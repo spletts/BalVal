@@ -23,6 +23,10 @@ Examples of plot attributes, which are explained in `ms_plotter.py` are:
 
 `NORMALIZE` `HEXBIN` `CM_T_S2N_COLORBAR` `CM_T_COLORBAR`  `PLOT_1SIG`
 
+**Warnings**
+
+User may need to replace `/data/des71.a/data/mspletts/balrog_validation_tests/scripts/ms_matcher` (in `ms_plotter.matcher()`) with the correct path to `ms_matcher`.
+
 ___
 
 **Stacking multiple realizations**
