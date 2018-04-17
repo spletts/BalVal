@@ -33,7 +33,7 @@ ___
 
 **Directory structure for saving plots**
 
-Uses the directory structure: `outdir/{tile}/{plot_type}/{realization}/`.
+Directory structure: `outdir/{tile}/{plot_type}/{realization}/`.
 
 Allowed values for `{plot_type}` are: `normalized` `scatter`
 
