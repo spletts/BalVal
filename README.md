@@ -1,6 +1,6 @@
 # BalVal
 
-Tests [Balrog-GalSim](https://github.com/sweverett/Balrog-GalSim).
+Conducts some [Balrog-GalSim](https://github.com/sweverett/Balrog-GalSim) validation tests.
 
 ___
 **Contents of the repository**
