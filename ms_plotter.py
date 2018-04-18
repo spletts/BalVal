@@ -2232,7 +2232,7 @@ def make_plots(m1_hdr, m2_hdr, ylow, yhigh):
 
 
 def get_coadd_matcher_catalog(basepath, cat_type, inj, realization_number, tile_name):
-	"""Make new FITS file that includes magnitude column of form '(m_g, m_r, m_i, m_z)'.
+	"""Make FITS file that includes a column of form '(m_g, m_r, m_i, m_z)' where m is magnitude. Column will be added to '..._i_cat.fits'. This will be used in matcher().
 
 	Args:
 	Returns:
@@ -2241,11 +2241,13 @@ def get_coadd_matcher_catalog(basepath, cat_type, inj, realization_number, tile_
 
 	fn_new = os.path.join(outdir, str(tilename) + '_i_cat.fits')
 
+	# Check if new coadd catalog has already been created #
 	if os.path.isfile(fn_new):
 		print 'New coadd catalog already exists ...\n'
 
 
 	if os.path.isfile(fn_new) is False:	
+		print 'Adding a column to i-band coadd catalog. Will take a moment ...\n'
 
 		# Get list of filenames #
 		fn_griz = []
@@ -2253,18 +2255,19 @@ def get_coadd_matcher_catalog(basepath, cat_type, inj, realization_number, tile_
 			fn_griz.append(get_catalog(basepath=basepath, cat_type=MATCH_CAT1, inj=INJ1, realization_number=realization, tile_name=tilename, filter_name=f))
 		fn_g, fn_r, fn_i, fn_z = fn_griz
 
-		# Get coadd magnitude (mag_c) to be of form '(m_g, m_r, m_i, m_z)'. Recall this is a string, hence format=A #
+		# Get coadd magnitude (mag_c) to be of form '(m_g, m_r, m_i, m_z)'. Recall that this is a string #
 		mag_c = get_coadd_mag(fn_g=fn_g, fn_r=fn_r, fn_i=fn_i, fn_z=fn_z, hdr=m1_hdr)
   
 	       # Create new table #
 		mag_c = Column(mag_c, name='mag_c')
 
-		# Add new table to i-band catalog #
+		# Add new table to i-band coadd catalog #
 		table = Table.read(fn_i)
 		table.add_column(mag_c, index=0)
         
-		# Save new table #
+		# Save new table as FITS #
 		table.write(fn_new)
+
 
 	return fn_new 
 
