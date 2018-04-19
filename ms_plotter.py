@@ -88,7 +88,7 @@ SWAP_HAX = False
 
 ### Catalog attributes ###
 # !!!!! Allowed values: sof, mof, star_truth, gal_truth, coadd. Both can be 'sof' and both can be 'mof' if INJ1 and INJ2 are different. Note that truth catalogs always have INJ=True. #
-MATCH_CAT1, MATCH_CAT2 = 'gal_truth', 'sof'
+MATCH_CAT1, MATCH_CAT2 = 'star_truth', 'sof'
 # !!!!! Booleans. Examine injected catalogs? #
 INJ1, INJ2 = True, True
 # !!!!! Must be used with realization=all at command line #
