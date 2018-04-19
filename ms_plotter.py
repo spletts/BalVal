@@ -13,11 +13,13 @@ Constants that the user may wish to change are indicated by: # !!!!! {descriptio
 
 Megan Splettstoesser mspletts@fnal.gov"""
 
-# astropy is needed only if looking at a coadd catalog #
+
+# astropy is needed only if analyzing a coadd catalog #
+'''
 from astropy.io import fits
 from astropy.table import Column
 from astropy.table import Table
-
+'''
 import matplotlib.pyplot as plt
 import matplotlib
 import numpy as np
@@ -65,7 +67,7 @@ CM_T_ERR_COLORBAR = False
 CM_T_COLORBAR = False
 BIN_CM_T_S2N = False
 # Normalizes plot to 1-sigma magnitude error. If NORMALIZE is True, PLOT_1SIG must be True else errors will not be computed and normalization cannot be performed #
-NORMALIZE = False
+NORMALIZE = True
 
 # Use quality cuts introduced by Eric Huff? Link: https://github.com/sweverett/Balrog-GalSim/blob/master/plots/balrog_catalog_tests.py. Can only be performed if catalog has all the necessary headers: cm_s2n_r, cm_T, cm_T_err, and psfrec_T. #
 EH_CUTS = False
@@ -78,7 +80,7 @@ SAVE_PLOT = False
 SHOW_PLOT = True
 
 # !!!!! Limits for the vertical axis. 'None' is an allowed value and will result in default scaling #
-YLOW, YHIGH = None, None
+YLOW, YHIGH = -10, 10
 
 # Swap horizontal axis? Default is magnitude1. Matching script ms_matcher determines which catalog is 1 and which is 2. Generally SWAP_HAX does not need to be changed unless the truth catalog values are not on the horizontal axis. #
 SWAP_HAX = False
@@ -86,9 +88,9 @@ SWAP_HAX = False
 
 ### Catalog attributes ###
 # !!!!! Allowed values: sof, mof, star_truth, gal_truth, coadd. Both can be 'sof' and both can be 'mof' if INJ1 and INJ2 are different. Note that truth catalogs always have INJ=True. #
-MATCH_CAT1, MATCH_CAT2 = 'coadd', 'sof'
+MATCH_CAT1, MATCH_CAT2 = 'gal_truth', 'sof'
 # !!!!! Booleans. Examine injected catalogs? #
-INJ1, INJ2 = False, True
+INJ1, INJ2 = True, True
 # !!!!! Must be used with realization=all at command line #
 STACK_REALIZATIONS = False
 
@@ -583,8 +585,10 @@ def get_68percentile_from_normalized_data(norm_dm_list, bins, hax_mag_list):
 		vax_68percentile (list of floats) -- Point on the vertical axis (vax) corresponding to 68 percentile. Each element in the list corresponds to a different bin.
 		bins (list of floats) -- Bins used in error calculation.
 	"""
-
 	vax_68percentile = []
+
+	neg_vax_34percentile, pos_vax_34percentile = [], []
+
 
 	PLOT_HIST = False
 
@@ -593,36 +597,61 @@ def get_68percentile_from_normalized_data(norm_dm_list, bins, hax_mag_list):
 
 		if norm_dm_list[b] == 0:
 			vax_68percentile.append(0)
+			neg_vax_34percentile.append(0)
+			pos_vax_34percentile.append(0)
 
 		if norm_dm_list[b] != 0:
 
-			# Plot histogram to see distrubtion of data (data is not normally distributed) #
-			if PLOT_HIST:
-				plt.figure()
-				norm_dm = [abs(elmt) for elmt in norm_dm_list[b]]
-				plt.hist(norm_dm)
-				plt.title('Bin LHS: ' + str(bins[b]))
-				plt.xlabel(r'$\Delta M$')
-				plt.axvline(x=0, color='black', linestyle=':', linewidth=0.5)	
-				plt.show()
-		
+			### Find 68th percentile about zero ### 	
 			# Values in current bin (icb) #
 			vax_mag_list_icb = norm_dm_list[b]
 			# Take absolute value of each point in bin #
-			vax_mag_list_icb = [abs(elmt) for elmt in vax_mag_list_icb]
+			abs_vax_mag_list_icb = [abs(elmt) for elmt in vax_mag_list_icb]
 			# Percentile sorts the data #
-			vax_68p_icb = np.percentile(vax_mag_list_icb, 68, interpolation='lower')
-			vax_68percentile.append(vax_68p_icb)
+			vax_68percentile.append(np.percentile(abs_vax_mag_list_icb, 68, interpolation='lower'))	
 			# Check the percentile because interpolation='lower' was used #
 			num = 0
 			for j in np.arange(0, len(norm_dm_list[b])):
-				if abs(norm_dm_list[b][j]) <= vax_68p_icb:
+				if abs(norm_dm_list[b][j]) <= np.percentile(abs_vax_mag_list_icb, 68, interpolation='lower'):
 					num += 1
 			if PRINTOUTS:
 				print 'Number of objects within 68 percentile via np.percentile(interpolation=lower): ', float(num)/len(norm_dm_list[b]), '...\n'
 
 
-	return vax_68percentile, bins
+			### Find 34th percentile of positive and negative values separately ###
+			neg_vax, pos_vax = [], []
+			counter_neg, counter_pos = 0, 0
+			for j in np.arange(0, len(vax_mag_list_icb)):
+				if vax_mag_list_icb[j] < 0:
+					neg_vax.append(vax_mag_list_icb[j])
+					counter_neg += 1
+				if vax_mag_list_icb[j] > 0:
+					pos_vax.append(vax_mag_list_icb[j])
+					counter_pos += 1
+
+			# Check if lists are populated #
+			if counter_neg > 0: 
+				neg_vax_34percentile.append(np.percentile(neg_vax, 34, interpolation='lower'))
+			if counter_pos > 0:
+				pos_vax_34percentile.append(np.percentile(pos_vax, 34, interpolation='lower'))
+			if counter_neg == 0:
+				neg_vax_34percentile.append(0)
+			if counter_pos == 0:
+				pos_vax_34percentile.append(0)
+
+
+			# Plot histogram to see distrubtion of data (data is not normally distributed) #
+                        if PLOT_HIST:
+                                plt.figure()
+                                norm_dm = [abs(elmt) for elmt in norm_dm_list[b]]
+                                plt.hist(norm_dm)
+                                plt.title('Bin LHS: ' + str(bins[b]))
+                                plt.xlabel(r'$\Delta M$')
+                                plt.axvline(x=0, color='black', linestyle=':', linewidth=0.5)
+                                plt.show()
+
+
+	return vax_68percentile, bins, neg_vax_34percentile, pos_vax_34percentile
 
 
 
@@ -811,9 +840,8 @@ def normalize_plot_maintain_bin_structure(clean_magnitude1, clean_magnitude2, er
 
 		# 0 is a placeholder for empty bins and bins with few objects #
 		if vax_mag_icb == 0:
-			norm_dm_list.append(0.0)	
+			norm_dm_list.append(0)	
 			hax_mag_list.append(0)
-	
 		#if vax_mag_icb != 0:
 		if b_err_median[b] != 0:
 			for i in np.arange(0, len(vax_mag_icb)):
@@ -823,7 +851,7 @@ def normalize_plot_maintain_bin_structure(clean_magnitude1, clean_magnitude2, er
 			# List of lists to keep bin structure #
 			hax_mag_list.append(hax_mag_icb)
 			norm_dm_list.append(norm_dm_icb)
-
+	print norm_dm_list[:7]
 
 	return norm_dm_list, bins, hax_mag_list
 
@@ -835,7 +863,7 @@ def normalize_plot_maintain_bin_structure(clean_magnitude1, clean_magnitude2, er
 
 
 
-def normalize_plot(norm_dm_list, bins, hax_mag_list):
+def normalize_plot(norm_delta_mag_list, bins, hax_mag_list):
 	"""Normalize plot to 1-sigma curve using tame magnitude errors only (use bin_and_cut_measured_magnitude_error()).
 
 	Args:
@@ -848,12 +876,12 @@ def normalize_plot(norm_dm_list, bins, hax_mag_list):
 	"""
 
 	### Remove zeros so that lists can be flattened. Zeros (int) were placeholders for missing lists due to empty or small bin. ###
-	norm_dm_list[:] = [temp for temp in norm_dm_list if temp != 0]
+	norm_delta_mag_list[:] = [temp for temp in norm_delta_mag_list if temp != 0]
 	hax_mag_list[:] = [temp for temp in hax_mag_list if temp != 0]
 
 	### Flatten lists ###
 	hax_mag = [item for sublist in hax_mag_list for item in sublist]
-	norm_dm = [item for sublist in norm_dm_list for item in sublist]
+	norm_dm = [item for sublist in norm_delta_mag_list for item in sublist]
 
 
 	return norm_dm, hax_mag, bins
@@ -936,10 +964,12 @@ def get_color(filter_name):
 		color, cmap = 'orange', 'Oranges'
 
 	if filter_name is 'i':
-		color, cmap = 'purple', 'Purples'
+		#color, cmap = 'purple', 'Purples'
+		color, cmap = 'darkgrey', 'Greys'
 
 	if filter_name is 'z':
-		color, cmap = 'blue', 'Blues'
+		#color, cmap = 'blue', 'Blues'
+		color, cmap = 'saddlebrown', 'Yellows'
 
 	return color, cmap
 
@@ -1220,39 +1250,86 @@ def plotter(cbar_val, error1, error2, fd_nop, fd_1sig, filter_name, clean_magnit
 		mag_axlabel2 = 'inj_' + mag_axlabel2
 
 
+
 	### Values to plot for normalized plot ###
 	if NORMALIZE:
 		# Args needed to call normalize_plot() #
 		norm_dm_list, bins, hax_mag_list = normalize_plot_maintain_bin_structure(clean_magnitude1=clean_magnitude1, clean_magnitude2=clean_magnitude2, error1=error1, error2=error2, swap_hax=swap_hax, axlabel1=axlabel1, axlabel2=axlabel2, fd_mag_bins=fd_mag_bins) 
 
-		deltam, hax_mag, bins = normalize_plot(norm_dm_list=norm_dm_list, bins=bins, hax_mag_list=hax_mag_list)
-
-
-                # Labels and appearance #
-                plt.ylabel('('+str(mag_axlabel1) + ' - ' + str(mag_axlabel2)+') / '+ '$\sigma$', fontsize=8)
+		PLOT_68P, PLOT_34P_SPLIT = True, True
 
 		if PLOT_1SIG:
-			### Plot the 68th percentile calculated from np.percentile() ###
-			vax_68percentile_list, bins = get_68percentile_from_normalized_data(norm_dm_list=norm_dm_list, bins=bins, hax_mag_list=hax_mag_list)
-			# Plot legend once #
-			counter_legend = 0
-			for b in np.arange(0, len(vax_68percentile_list)-1):
-				if vax_68percentile_list[b] != 0:
-					if counter_legend == 0:	
-						plt.plot(np.array([bins[b], bins[b+1]]), np.array([vax_68percentile_list[b], vax_68percentile_list[b]]), color='fuchsia', label='$P_{68}$', linewidth=0.7)
-						counter_legend += 1
-					if counter_legend == 1:
-						# Horizontal bounds #
-						plt.plot(np.array([bins[b], bins[b+1]]), np.array([vax_68percentile_list[b], vax_68percentile_list[b]]), color='fuchsia', linewidth=0.7)
-						plt.plot(np.array([bins[b], bins[b+1]]), -1.0*np.array([vax_68percentile_list[b], vax_68percentile_list[b]]), color='fuchsia', linewidth=0.7)
-						# Vertical bounds #
-						plt.plot(np.array([bins[b], bins[b]]), np.array([-1*vax_68percentile_list[b], vax_68percentile_list[b]]), color='fuchsia', linewidth=0.5, linestyle=':')
-						plt.plot(np.array([bins[b+1], bins[b+1]]), np.array([-1*vax_68percentile_list[b], vax_68percentile_list[b]]), color='fuchsia', linewidth=0.5, linestyle=':')
-			
 
 			### Plot 1-sigma curve according to error calculation ###
-			plt.axhline(y=1.0, color='red', linestyle='--', linewidth=0.7, label='$1 \sigma_{mag\_meas}$')
-			plt.axhline(y=-1.0, color='red', linestyle='--', linewidth=0.7)
+                        plt.axhline(y=1.0, color='red', linestyle='--', linewidth=0.7, label='$1 \sigma_{mag\_meas}$')
+                        plt.axhline(y=-1.0, color='red', linestyle='--', linewidth=0.7)
+
+
+			if PLOT_68P:
+				### Plot the 68th percentile calculated from np.percentile() ###
+				vax_68percentile_list, bins, neg_vax_34percentile, pos_vax_34percentile = get_68percentile_from_normalized_data(norm_dm_list=norm_dm_list, bins=bins, hax_mag_list=hax_mag_list)
+				counter_legend1 = 0
+	
+				for b in np.arange(0, len(neg_vax_34percentile)-1):
+					# Horizontal bar bounds #
+					x_hbound = np.array([bins[b], bins[b+1]])
+					x_vbound = np.array([bins[b], bins[b]])
+
+					if neg_vax_34percentile[b] != 0:
+						# Horizontal bar bounds #
+						neg_y_hbound = np.array([neg_vax_34percentile[b], neg_vax_34percentile[b]])
+						# Vertical bar bounds #
+						y_vbound = np.array([neg_vax_34percentile[b], 0])
+						# Plot #
+						# Plot legend once #
+						if counter_legend1 == 0:
+							plt.plot(x_hbound, neg_y_hbound, color='cyan', label='$\pm P_{34}$')
+							counter_legend1 = 1
+						if counter_legend1 == 1:
+							plt.plot(x_hbound, neg_y_hbound, color='cyan')
+							plt.plot(x_vbound, y_vbound, color='cyan', linestyle=':')
+					if pos_vax_34percentile[b] != 0:
+						# Horizontal bar bounds #
+						pos_y_hbound = np.array([pos_vax_34percentile[b], pos_vax_34percentile[b]])
+						# Vertical bar bounds #
+						y_vbound = np.array([0, pos_vax_34percentile[b]])
+						# Plot #
+						plt.plot(x_hbound, pos_y_hbound, color='cyan')
+						plt.plot(x_vbound, y_vbound, color='cyan', linestyle=':')
+				
+
+	
+			if PLOT_34P_SPLIT:
+				counter_legend2 = 0
+				for b in np.arange(0, len(vax_68percentile_list)-1):
+
+					if vax_68percentile_list[b] != 0:
+
+						# Horizontal bar bounds #
+						x_hbound = np.array([bins[b], bins[b+1]])
+						y_hbound = np.array([vax_68percentile_list[b], vax_68percentile_list[b]])
+						# Vertical bar bounds #
+						x_vbound1, x_vbound2 = np.array([bins[b], bins[b]]), np.array([bins[b+1], bins[b+1]])
+						y_vbound = np.array([-1*vax_68percentile_list[b], vax_68percentile_list[b]])
+
+						# Plot legend once #
+						if counter_legend2 == 0:
+							plt.plot(x_hbound, y_hbound, color='fuchsia', label='$P_{68}$', linewidth=0.7)	
+							counter_legend2 += 1
+
+						if counter_legend2 == 1:
+							# Horizontal bar #
+							plt.plot(x_hbound, y_hbound, color='fuchsia', linewidth=0.7)
+							plt.plot(x_hbound, -1.0*y_hbound, color='fuchsia', linewidth=0.7)
+							# Vertical bar #
+							plt.plot(x_vbound1, y_vbound, color='fuchsia', linewidth=0.7, linestyle=':')
+							plt.plot(x_vbound2, y_vbound, color='fuchsia', linewidth=0.7, linestyle=':')
+			
+
+		### Values to plot ###
+		deltam, hax_mag, bins = normalize_plot(norm_delta_mag_list=norm_dm_list, bins=bins, hax_mag_list=hax_mag_list)
+		# Labels and appearance #
+                plt.ylabel('('+str(mag_axlabel1) + ' - ' + str(mag_axlabel2)+') / '+ '$\sigma$', fontsize=8)
 
 
 
