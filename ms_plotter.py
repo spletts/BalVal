@@ -80,7 +80,7 @@ SAVE_PLOT = False
 SHOW_PLOT = True
 
 # !!!!! Limits for the vertical axis. 'None' is an allowed value and will result in default scaling #
-YLOW, YHIGH = -10, 10
+YLOW, YHIGH = -20, 20
 
 # Swap horizontal axis? Default is magnitude1. Matching script ms_matcher determines which catalog is 1 and which is 2. Generally SWAP_HAX does not need to be changed unless the truth catalog values are not on the horizontal axis. #
 SWAP_HAX = False
@@ -609,12 +609,13 @@ def get_68percentile_from_normalized_data(norm_dm_list, bins, hax_mag_list):
 			abs_vax_mag_list_icb = [abs(elmt) for elmt in vax_mag_list_icb]
 			# Percentile sorts the data #
 			vax_68percentile.append(np.percentile(abs_vax_mag_list_icb, 68, interpolation='lower'))	
-			# Check the percentile because interpolation='lower' was used #
-			num = 0
-			for j in np.arange(0, len(norm_dm_list[b])):
-				if abs(norm_dm_list[b][j]) <= np.percentile(abs_vax_mag_list_icb, 68, interpolation='lower'):
-					num += 1
-			if PRINTOUTS:
+
+			if PRINTOUTS_MINOR:
+				# Check the percentile because interpolation='lower' was used #
+				num = 0
+				for j in np.arange(0, len(norm_dm_list[b])):
+					if abs(norm_dm_list[b][j]) <= np.percentile(abs_vax_mag_list_icb, 68, interpolation='lower'):
+						num += 1
 				print 'Number of objects within 68 percentile via np.percentile(interpolation=lower): ', float(num)/len(norm_dm_list[b]), '...\n'
 
 
@@ -763,7 +764,10 @@ def bin_and_cut_measured_magnitude_error(clean_magnitude1, clean_magnitude2, err
 
                 # Add zeros to empty bins and bins with a small number of points #
 		# CONST = 0.0002, len(hax_mag) * CONST #
-		CONST = 10
+		if STACK_REALIZATIONS:
+			CONST = 30
+		if STACK_REALIZATIONS is False:
+			CONST = 10
 		if counter_err <= CONST:
                         counter_empty_bin += 1
                         b_err_median.append(0.0)
@@ -851,7 +855,6 @@ def normalize_plot_maintain_bin_structure(clean_magnitude1, clean_magnitude2, er
 			# List of lists to keep bin structure #
 			hax_mag_list.append(hax_mag_icb)
 			norm_dm_list.append(norm_dm_icb)
-	print norm_dm_list[:7]
 
 	return norm_dm_list, bins, hax_mag_list
 
@@ -894,7 +897,7 @@ def normalize_plot(norm_delta_mag_list, bins, hax_mag_list):
 
 
 
-def one_sigma_counter(norm_delta_mag, clean_magnitude1):
+def one_sigma_counter(norm_delta_mag, clean_magnitude1, bins, hax_mag):
 	"""Find the number of objects within 1-sigma, where 1-sigma is calculated according to the error.
 
 	Args:
@@ -905,12 +908,19 @@ def one_sigma_counter(norm_delta_mag, clean_magnitude1):
 
 	counter_1sig = 0
 
+	# Cutoffs were introduced in error calculation. Consider only points not cutoff #
+	maglow, maghigh = min(bins), max(bins)
+	hax_mag, norm_delta_mag = np.array(hax_mag), np.array(norm_delta_mag)
+	norm_delta_mag = norm_delta_mag[(hax_mag >= maglow) & (hax_mag <= maghigh)]
+
 	for k in norm_delta_mag:
 		if abs(k) < 1.0:
 			counter_1sig += 1
 
 	if PRINTOUTS:
-		print 'Fraction of objects within 1-sigma: ', counter_1sig, ' / ', len(clean_magnitude1), ' = ', str(float(counter_1sig) / len(clean_magnitude1)), ' \n'
+		print 'Fraction of objects within 1-sigma: ', counter_1sig, ' / ', len(norm_delta_mag), ' = ', str(float(counter_1sig) / len(norm_delta_mag))
+		print ' Fraction of objects considered from clean magnitude: ', str(float(len(norm_delta_mag)) / len(clean_magnitude1)), '\n'
+
 
 	return counter_1sig
 
@@ -969,7 +979,7 @@ def get_color(filter_name):
 
 	if filter_name is 'z':
 		#color, cmap = 'blue', 'Blues'
-		color, cmap = 'saddlebrown', 'Yellows'
+		color, cmap = 'navy', 'Blues'
 
 	return color, cmap
 
@@ -981,7 +991,7 @@ def get_color(filter_name):
 
 
 
-def logger(fd_nop, fd_1sig, delta_mag, tile_name, filter_name, run_type, realization_number, clean_magnitude1, full_magnitude1):
+def logger(fd_nop, fd_1sig, delta_mag, tile_name, filter_name, run_type, realization_number, clean_magnitude1, full_magnitude1, bins, hax_mag):
 	"""Write to log files to record number of objects plotted and number of objects within 1sigma.
 
 	Args:
@@ -997,7 +1007,7 @@ def logger(fd_nop, fd_1sig, delta_mag, tile_name, filter_name, run_type, realiza
 	"""
 
 	if NORMALIZE:
-		num_1sig = one_sigma_counter(norm_delta_mag=delta_mag, clean_magnitude1=clean_magnitude1)
+		num_1sig = one_sigma_counter(norm_delta_mag=delta_mag, clean_magnitude1=clean_magnitude1, bins=bins, hax_mag=hax_mag)
 
 		# Record number of objects plotted within 1sigma #
 		fd_1sig.write('Number of objects within 1sigma for tile ' + str(tile_name) + ', filter ' + str(filter_name) + ', type ' + str(run_type) + ', realization ' + str(realization_number) + ' : ' + str(num_1sig) + ' / ' + str(len(clean_magnitude1)) + ' = ' + str(float(num_1sig) / len(clean_magnitude1)) + '\n')
@@ -1287,7 +1297,7 @@ def plotter(cbar_val, error1, error2, fd_nop, fd_1sig, filter_name, clean_magnit
 							counter_legend1 = 1
 						if counter_legend1 == 1:
 							plt.plot(x_hbound, neg_y_hbound, color='cyan')
-							plt.plot(x_vbound, y_vbound, color='cyan', linestyle=':')
+							plt.plot(x_vbound, y_vbound, color='cyan', linewidth=0.7, linestyle=':')
 					if pos_vax_34percentile[b] != 0:
 						# Horizontal bar bounds #
 						pos_y_hbound = np.array([pos_vax_34percentile[b], pos_vax_34percentile[b]])
@@ -1300,6 +1310,8 @@ def plotter(cbar_val, error1, error2, fd_nop, fd_1sig, filter_name, clean_magnit
 
 	
 			if PLOT_34P_SPLIT:
+				# Set linewidth #
+				lw = 1.0
 				counter_legend2 = 0
 				for b in np.arange(0, len(vax_68percentile_list)-1):
 
@@ -1314,13 +1326,13 @@ def plotter(cbar_val, error1, error2, fd_nop, fd_1sig, filter_name, clean_magnit
 
 						# Plot legend once #
 						if counter_legend2 == 0:
-							plt.plot(x_hbound, y_hbound, color='fuchsia', label='$P_{68}$', linewidth=0.7)	
+							plt.plot(x_hbound, y_hbound, color='fuchsia', label='$P_{68}$', linewidth=lw)	
 							counter_legend2 += 1
 
 						if counter_legend2 == 1:
 							# Horizontal bar #
-							plt.plot(x_hbound, y_hbound, color='fuchsia', linewidth=0.7)
-							plt.plot(x_hbound, -1.0*y_hbound, color='fuchsia', linewidth=0.7)
+							plt.plot(x_hbound, y_hbound, color='fuchsia', linewidth=lw)
+							plt.plot(x_hbound, -1.0*y_hbound, color='fuchsia', linewidth=lw)
 							# Vertical bar #
 							plt.plot(x_vbound1, y_vbound, color='fuchsia', linewidth=0.7, linestyle=':')
 							plt.plot(x_vbound2, y_vbound, color='fuchsia', linewidth=0.7, linestyle=':')
@@ -1345,7 +1357,8 @@ def plotter(cbar_val, error1, error2, fd_nop, fd_1sig, filter_name, clean_magnit
 		plt.ylabel(str(mag_axlabel1) + ' - ' + str(mag_axlabel2), fontsize=9)
 		### 1-sigma curve ###
 		if PLOT_1SIG:
-			hax, vax, err, placehold1, p3, p4, p5 = bin_and_cut_measured_magnitude_error(error1=error1, error2=error2, clean_magnitude1=clean_magnitude1, clean_magnitude2=clean_magnitude2, swap_hax=swap_hax, axlabel1=mag_axlabel1, axlabel2=mag_axlabel2, fd_mag_bins=fd_mag_bins)
+			hax, vax, err, bins = bin_and_cut_measured_magnitude_error(error1=error1, error2=error2, clean_magnitude1=clean_magnitude1, clean_magnitude2=clean_magnitude2, swap_hax=swap_hax, axlabel1=mag_axlabel1, axlabel2=mag_axlabel2, fd_mag_bins=fd_mag_bins)[:3]
+			#hax, vax, err, placehold1, p3, p4, p5 = bin_and_cut_measured_magnitude_error(error1=error1, error2=error2, clean_magnitude1=clean_magnitude1, clean_magnitude2=clean_magnitude2, swap_hax=swap_hax, axlabel1=mag_axlabel1, axlabel2=mag_axlabel2, fd_mag_bins=fd_mag_bins)
 			### Remove zeros from x, y, and err (zeros were placeholders for instances in which there were no objects in a particular magnitude bin) ###
 			err[:] = [temp for temp in err if temp != 0]
 			hax[:] = [temp for temp in hax if temp != 0]
@@ -1355,13 +1368,14 @@ def plotter(cbar_val, error1, error2, fd_nop, fd_1sig, filter_name, clean_magnit
 			plt.plot(hax, np.array(vax) - np.array(err), color='red', linestyle='-', linewidth=0.7)
 
 
-	if PRINTOUTS:
-		print 'Plotting ', len(clean_magnitude1), ' objects ... \n'
-
 
 	### Write to log files to record the number of objects plotted and the number of objects within 1sigma ###
-	logger(delta_mag=deltam, fd_nop=fd_nop, fd_1sig=fd_1sig, filter_name=filter_name, clean_magnitude1=clean_magnitude1, full_magnitude1=full_magnitude1, realization_number=realization_number, run_type=run_type, tile_name=tile_name)
+	logger(delta_mag=deltam, fd_nop=fd_nop, fd_1sig=fd_1sig, filter_name=filter_name, clean_magnitude1=clean_magnitude1, full_magnitude1=full_magnitude1, realization_number=realization_number, run_type=run_type, tile_name=tile_name, bins=bins, hax_mag=hax_mag)
 
+
+
+	if PRINTOUTS:
+                print 'Plotting ', len(clean_magnitude1), ' objects ... \n'
 
 	### Plot ###
 	# One colorbar at a time. This error is caught at beginning of script #
