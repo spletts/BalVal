@@ -88,11 +88,11 @@ SWAP_HAX = False
 
 ### Catalog attributes ###
 # !!!!! Allowed values: sof, mof, star_truth, gal_truth, coadd. Both can be 'sof' and both can be 'mof' if INJ1 and INJ2 are different. Note that truth catalogs always have INJ=True. #
-MATCH_CAT1, MATCH_CAT2 = 'star_truth', 'sof'
+MATCH_CAT1, MATCH_CAT2 = 'gal_truth', 'sof'
 # !!!!! Booleans. Examine injected catalogs? #
 INJ1, INJ2 = True, True
 # !!!!! Must be used with realization=all at command line #
-STACK_REALIZATIONS = False
+STACK_REALIZATIONS = True
 
 
 ### Miscellaneous ###
@@ -799,7 +799,6 @@ def bin_and_cut_measured_magnitude_error(clean_magnitude1, clean_magnitude2, err
 		print ' Calculated errors using objects where |DeltaM| < 3 ... '
 		print ' Excluded bins with less than ', CONST, ' objects ... \n'
 
-
         return b_hax_mag_median, b_vax_mag_median, b_err_median, bins, b_hax_mag_list, b_vax_mag_list, b_err_list
 
 
@@ -830,28 +829,36 @@ def normalize_plot_maintain_bin_structure(clean_magnitude1, clean_magnitude2, er
 
 
 	### Identify which magnitude will be plotted on the horizontal axis (hax) ###
+	# FIXME are these needed??
+	''' need to use same hax that was in bins 
         if swap_hax:
                 hax_clean_mag = clean_magnitude2
 	if swap_hax is False:
                 hax_clean_mag = clean_magnitude1
+	'''
+
 
 	# Loop through bins (b) #
 	for b in np.arange(0, len(b_vax_mag_list)):
 
 		# Normalized Delta-Magnitude (dm) in current bin (icb) #
 		norm_dm_icb, hax_mag_icb = [], []	
-		vax_mag_icb = b_vax_mag_list[b]
 
 		# 0 is a placeholder for empty bins and bins with few objects #
-		if vax_mag_icb == 0:
+		if b_err_median[b] == 0:
 			norm_dm_list.append(0)	
 			hax_mag_list.append(0)
+
 		#if vax_mag_icb != 0:
 		if b_err_median[b] != 0:
+			### @@@ ###
+			vax_mag_icb = b_vax_mag_list[b]
+
 			for i in np.arange(0, len(vax_mag_icb)):
-				norm = vax_mag_icb[i]/b_err_median[b]
-				norm_dm_icb.append(norm)
-				hax_mag_icb.append(hax_clean_mag[i])
+				#### @@@@ ####
+				#if hax_mag_icb[i] >= bins[b] and hax_mag_icb[i] < bins[b+1]:
+				norm_dm_icb.append(vax_mag_icb[i]/b_err_median[b])
+				hax_mag_icb.append(b_hax_mag_list[b][i])
 			# List of lists to keep bin structure #
 			hax_mag_list.append(hax_mag_icb)
 			norm_dm_list.append(norm_dm_icb)
@@ -887,6 +894,15 @@ def normalize_plot(norm_delta_mag_list, bins, hax_mag_list):
 	norm_dm = [item for sublist in norm_delta_mag_list for item in sublist]
 
 
+	### Check ###
+	idx = []
+	for b in np.arange(0, len(bins)-1):
+		for j in np.arange(0, len(hax_mag)):
+			if hax_mag[j] >= bins[b] and hax_mag[j] <= bins[b+1]:
+				idx.append(j)
+	norm_dm, hax_mag = np.array(norm_dm), np.array(hax_mag)
+	norm_dm, hax_mag = norm_dm[idx], hax_mag[idx]
+
 	return norm_dm, hax_mag, bins
 
 
@@ -907,6 +923,7 @@ def one_sigma_counter(norm_delta_mag, clean_magnitude1, bins, hax_mag):
 	"""
 
 	counter_1sig = 0
+
 
 	# Cutoffs were introduced in error calculation. Consider only points not cutoff #
 	maglow, maghigh = min(bins), max(bins)
@@ -1266,6 +1283,8 @@ def plotter(cbar_val, error1, error2, fd_nop, fd_1sig, filter_name, clean_magnit
 		# Args needed to call normalize_plot() #
 		norm_dm_list, bins, hax_mag_list = normalize_plot_maintain_bin_structure(clean_magnitude1=clean_magnitude1, clean_magnitude2=clean_magnitude2, error1=error1, error2=error2, swap_hax=swap_hax, axlabel1=axlabel1, axlabel2=axlabel2, fd_mag_bins=fd_mag_bins) 
 
+
+
 		PLOT_68P, PLOT_34P_SPLIT = True, True
 
 		if PLOT_1SIG:
@@ -1275,10 +1294,15 @@ def plotter(cbar_val, error1, error2, fd_nop, fd_1sig, filter_name, clean_magnit
                         plt.axhline(y=-1.0, color='red', linestyle='--', linewidth=0.7)
 
 
+			# Line width for top and sides of 68th percentile bins #
+			lwt = 1.2
+			lws = 0.7
+			
 			if PLOT_68P:
 				### Plot the 68th percentile calculated from np.percentile() ###
 				vax_68percentile_list, bins, neg_vax_34percentile, pos_vax_34percentile = get_68percentile_from_normalized_data(norm_dm_list=norm_dm_list, bins=bins, hax_mag_list=hax_mag_list)
 				counter_legend1 = 0
+				color1 = 'cyan'
 	
 				for b in np.arange(0, len(neg_vax_34percentile)-1):
 					# Horizontal bar bounds #
@@ -1293,26 +1317,27 @@ def plotter(cbar_val, error1, error2, fd_nop, fd_1sig, filter_name, clean_magnit
 						# Plot #
 						# Plot legend once #
 						if counter_legend1 == 0:
-							plt.plot(x_hbound, neg_y_hbound, color='cyan', label='$\pm P_{34}$')
+							plt.plot(x_hbound, neg_y_hbound, color=color1, linewidth=lwt, label='$\pm P_{34}$')
 							counter_legend1 = 1
 						if counter_legend1 == 1:
-							plt.plot(x_hbound, neg_y_hbound, color='cyan')
-							plt.plot(x_vbound, y_vbound, color='cyan', linewidth=0.7, linestyle=':')
+							plt.plot(x_hbound, neg_y_hbound, color=color1)
+							plt.plot(x_vbound, y_vbound, color=color1, linewidth=lws, linestyle=':')
 					if pos_vax_34percentile[b] != 0:
 						# Horizontal bar bounds #
 						pos_y_hbound = np.array([pos_vax_34percentile[b], pos_vax_34percentile[b]])
 						# Vertical bar bounds #
 						y_vbound = np.array([0, pos_vax_34percentile[b]])
 						# Plot #
-						plt.plot(x_hbound, pos_y_hbound, color='cyan')
-						plt.plot(x_vbound, y_vbound, color='cyan', linestyle=':')
+						plt.plot(x_hbound, pos_y_hbound, color=color1, linewidth=lwt)
+						plt.plot(x_vbound, y_vbound, color=color1, linewidth=lws, linestyle=':')
 				
 
 	
 			if PLOT_34P_SPLIT:
-				# Set linewidth #
-				lw = 1.0
+
 				counter_legend2 = 0
+				color2 = 'fuchsia'
+
 				for b in np.arange(0, len(vax_68percentile_list)-1):
 
 					if vax_68percentile_list[b] != 0:
@@ -1326,16 +1351,16 @@ def plotter(cbar_val, error1, error2, fd_nop, fd_1sig, filter_name, clean_magnit
 
 						# Plot legend once #
 						if counter_legend2 == 0:
-							plt.plot(x_hbound, y_hbound, color='fuchsia', label='$P_{68}$', linewidth=lw)	
+							plt.plot(x_hbound, y_hbound, color=color2, label='$P_{68}$', linewidth=lwt)	
 							counter_legend2 += 1
 
 						if counter_legend2 == 1:
 							# Horizontal bar #
-							plt.plot(x_hbound, y_hbound, color='fuchsia', linewidth=lw)
-							plt.plot(x_hbound, -1.0*y_hbound, color='fuchsia', linewidth=lw)
+							plt.plot(x_hbound, y_hbound, color=color2, linewidth=lwt)
+							plt.plot(x_hbound, -1.0*y_hbound, color=color2, linewidth=lwt)
 							# Vertical bar #
-							plt.plot(x_vbound1, y_vbound, color='fuchsia', linewidth=0.7, linestyle=':')
-							plt.plot(x_vbound2, y_vbound, color='fuchsia', linewidth=0.7, linestyle=':')
+							plt.plot(x_vbound1, y_vbound, color=color2, linewidth=lws, linestyle=':')
+							plt.plot(x_vbound2, y_vbound, color=color2, linewidth=lws, linestyle=':')
 			
 
 		### Values to plot ###
@@ -1366,7 +1391,6 @@ def plotter(cbar_val, error1, error2, fd_nop, fd_1sig, filter_name, clean_magnit
 			### Plot 1-sigma curve ###
 			plt.plot(hax, np.array(vax) + np.array(err), color='red', linestyle='-', linewidth=0.7, label='$1 \sigma_{mag\_meas}$')
 			plt.plot(hax, np.array(vax) - np.array(err), color='red', linestyle='-', linewidth=0.7)
-
 
 
 	### Write to log files to record the number of objects plotted and the number of objects within 1sigma ###
@@ -1680,8 +1704,6 @@ def get_coadd_mag(fn_g, fn_r, fn_i, fn_z, hdr):
         for i in np.arange(0, len(m_g)):
                 m_griz.append("'("+ str(m_g[i]) + ', ' + str(m_r[i]) + ', ' + str(m_i[i]) + ', ' + str(m_z[i]) + ")'")
 
-	print m_griz
-	sys.exit('check')
         return m_griz
 
 
