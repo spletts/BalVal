@@ -9,7 +9,7 @@ Relies on ms_matcher. User may need to replace `/data/des71.a/data/mspletts/balr
 Plot attributes are specified with constants (many of them booleans) at the top of this script.
 Constants that the user may wish to change are indicated by: # !!!!! {description and/or warnings} #. For example, user may wish to set `PRINTOUTS = False` or comment out `notice`.
 
-# Comments are ABOVE the code they correspond to (with the exception of #FIXMEs and #TODOs). #
+# Comments are ABOVE the code they correspond to (with the exception of FIXMEs and TODOs). #
 
 Megan Splettstoesser mspletts@fnal.gov"""
 
@@ -61,13 +61,13 @@ if realization != 'all':
 
 ### Colorbar ###
 # !!!!! Add colorbar according to one of the following (only one can be True at a time). If all are False a scatter-plot is made. Colorbars cannot be used if NORMALIZE is True. #
-HEXBIN = False
+HEXBIN = True
 CM_T_S2N_COLORBAR = False
 CM_T_ERR_COLORBAR = False
 CM_T_COLORBAR = False
 BIN_CM_T_S2N = False
 # Normalizes plot to 1-sigma magnitude error. If NORMALIZE is True, PLOT_1SIG must be True else errors will not be computed and normalization cannot be performed #
-NORMALIZE = True
+NORMALIZE = False
 
 # Use quality cuts introduced by Eric Huff? Link: https://github.com/sweverett/Balrog-GalSim/blob/master/plots/balrog_catalog_tests.py. Can only be performed if catalog has all the necessary headers: cm_s2n_r, cm_T, cm_T_err, and psfrec_T. #
 EH_CUTS = False
@@ -531,35 +531,35 @@ def calculate_and_bin_cm_T_signal_to_noise(cm_t_hdr, cm_t_err_hdr, df, idx_good,
 	cm_t_err = get_good_data(df=df, hdr=cm_t_err_hdr, idx_good=idx_good, magnitude=False, filter_name=None)
 
 	# cm_T signal to noise (s2n) #
-	s2n = []
+	cm_t_s2n = []
 	for i in np.arange(0, len(cm_t)):
-		s2n_temp = abs(cm_t[i] / cm_t_err[i])
-		s2n.append(s2n_temp)
+		cm_t_s2n.append(abs(cm_t[i]/cm_t_err[i]))
 
 	# Bin signal to noise #
 	# Bins suggested by Spencer Everett #
-	bins = [0, 1, 9, 20, max(s2n)]
+	bins = [0, 1, 9, 20, max(cm_t_s2n)]
 	if PRINTOUTS:
 		print 'Binning cm_T_s1n with bins: ', bins, ' and headers/axlabels:', cm_t_hdr, ', ', cm_t_err_hdr, '...'
-		print ' Min and max absolute value of cm_T signal-to-noise: ', min(s2n), ' and ', max(s2n), '...'
-	
-	binned_s2n, binned_hax_mag, binned_vax_mag, idx = [], [], [], []
+		print ' Min and max absolute value of cm_T signal-to-noise: ', min(cm_t_s2n), ' and ', max(cm_t_s2n), '...'
+
+	# idx_list is a list of lists to preserve bin structure #	
+	binned_s2n, binned_hax_mag, binned_vax_mag, idx_list = [], [], [], []
 
 	for j in np.arange(0, len(bins)-1):
 		idx_temp = []
-		for i in np.arange(0, len(s2n)):
-			if s2n[i] > bins[j] and s2n[i] < bins[j+1]:
+		for i in np.arange(0, len(cm_t_s2n)):
+			if cm_t_s2n[i] > bins[j] and cm_t_s2n[i] < bins[j+1]:
 				idx_temp.append(i)	
 		if PRINTOUTS:
 			print ' For cm_T_s2n, number of objects in bin ', bins[j], '-', bins[j+1], ': ', len(idx_temp)
-		idx.append(idx_temp)
+		idx_list.append(idx_temp)
 		#idx_temp = np.where(s2n > bins[j] & (s2n < bins[j+1]))
 
 	if PRINTOUTS:
 		print ' '
 
 
-	return idx, bins, s2n
+	return idx_list, bins, cm_t_s2n
 
 
 
@@ -657,7 +657,7 @@ def get_68percentile_from_normalized_data(norm_dm_list, bins, hax_mag_list):
 
 
 
-def bin_and_cut_measured_magnitude_error(clean_magnitude1, clean_magnitude2, error1, error2, swap_hax, axlabel1, axlabel2, fd_mag_bins):
+def bin_and_cut_measured_magnitude_error(clean_magnitude1, clean_magnitude2, error1, error2, swap_hax, axlabel1, axlabel2, fd_mag_bins, filter_name):
         """Remove error values corresponding to objects where |Delta-M| > 3. Do not consider error corresponding to empty bins nor bins with a small number of objects.
 
         Args:
@@ -679,7 +679,7 @@ def bin_and_cut_measured_magnitude_error(clean_magnitude1, clean_magnitude2, err
 			print 'Using measured catalog (catalog1) for error calculation ... '
 
 	if 'meas' in axlabel2 and 'meas' not in axlabel1:
-		error1 =np.zeros(len(error2))
+		error1 = np.zeros(len(error2))
 		if PRINTOUTS:
 			print 'Using measured catalog (catalog2) for error calculation ... '
 
@@ -728,8 +728,8 @@ def bin_and_cut_measured_magnitude_error(clean_magnitude1, clean_magnitude2, err
 	vax_mag = np.array(clean_magnitude1) - np.array(clean_magnitude2)
 
 
-	# Write to log file once outside of loop. FIXME pass filter_name arg to this function #
-	fd_mag_bins.write('New filter. First instance: g. Second: r. Third: i. Fourth: z. \n')
+	# Write to log file #
+	fd_mag_bins.write('Filter: ' + str(filter_name) + '\n')
 
 
 	for j in np.arange(limlow, limhigh, step):
@@ -751,7 +751,7 @@ def bin_and_cut_measured_magnitude_error(clean_magnitude1, clean_magnitude2, err
 
 		# Write to log file #
 		if counter_err == 0:
-			write_median, write_err = 'NA', 'NA'
+			write_median, write_err = None, None
 		if counter_err > 0:
 			write_median, write_err = np.median(binned_hax_mag_temp), np.median(binned_err_temp)
 		fd_mag_bins.write(str(counter_err) + '\t' + str(round(j, 2)) + '\t' + str(round(j+step, 2)) + '\t' + str(write_median)+ '\t' + str(write_err) + '\n')
@@ -768,6 +768,7 @@ def bin_and_cut_measured_magnitude_error(clean_magnitude1, clean_magnitude2, err
                         binned_hax_mag_median.append(None)
                         binned_vax_mag_median.append(None)
 
+			# Add to list of lists to keep bin structure #
 			binned_err_list.append(None)
                         binned_hax_mag_list.append(None)
                         binned_vax_mag_list.append(None)		
@@ -782,8 +783,6 @@ def bin_and_cut_measured_magnitude_error(clean_magnitude1, clean_magnitude2, err
                         binned_hax_mag_list.append(binned_hax_mag_temp)
                         binned_vax_mag_list.append(binned_vax_mag_temp)
 
-
-	#FIXME : Edit `bins` returned by this function... do not consider the bins with <= CONST objs in it
 
 	if PRINTOUTS:
                 if swap_hax:
@@ -803,7 +802,7 @@ def bin_and_cut_measured_magnitude_error(clean_magnitude1, clean_magnitude2, err
 
 
 
-def normalize_plot_maintain_bin_structure(clean_magnitude1, clean_magnitude2, error1, error2, swap_hax, axlabel1, axlabel2, fd_mag_bins):
+def normalize_plot_maintain_bin_structure(clean_magnitude1, clean_magnitude2, error1, error2, swap_hax, axlabel1, axlabel2, fd_mag_bins, filter_name):
 	"""Normalize the vertical axis using error and uphold the bin structure. 
 
 	Args:
@@ -821,7 +820,7 @@ def normalize_plot_maintain_bin_structure(clean_magnitude1, clean_magnitude2, er
 	norm_dm_list, hax_mag_list = [], []
 
 	# binned_err_median: stores median of vales in bin. *_list: stores all values in each bin #
-	binned_err_median, bins, binned_hax_mag_list, binned_vax_mag_list = bin_and_cut_measured_magnitude_error(clean_magnitude1=clean_magnitude1, clean_magnitude2=clean_magnitude2, error1=error1, error2=error2, swap_hax=swap_hax, axlabel1=axlabel1, axlabel2=axlabel2, fd_mag_bins=fd_mag_bins)[2:-1]
+	binned_err_median, bins, binned_hax_mag_list, binned_vax_mag_list = bin_and_cut_measured_magnitude_error(clean_magnitude1=clean_magnitude1, clean_magnitude2=clean_magnitude2, error1=error1, error2=error2, swap_hax=swap_hax, axlabel1=axlabel1, axlabel2=axlabel2, fd_mag_bins=fd_mag_bins, filter_name=filter_name)[2:-1]
 
 
 	# Loop through bins (b) #
@@ -1048,10 +1047,10 @@ def get_colorbar_value(df, cm_t_hdr, cm_t_err_hdr, idx_good, clean_magnitude1, c
 	if 'true' in axlabel:
                 sys.exit('ERROR. Colorbars should describe measured catalog values, not truth catalog values.')
 
+
         if CM_T_S2N_COLORBAR:
-                # For measured catalog #FIXME in this function add check to see if meas is in axlabel and if not exit and throw error  #
                 cbar_idx_list, cbar_bins, cbar_val = calculate_and_bin_cm_T_signal_to_noise(cm_t_hdr=cm_t_hdr, cm_t_err_hdr=cm_t_err_hdr, df=df, idx_good=idx_good, clean_magnitude1=clean_magnitude1, clean_magnitude2=clean_magnitude2)
-		cbar_axlabel = 'cm_T_s2n_meas' #FIXME
+		cbar_axlabel = 'cm_T_s2n_'+str(axlabel)
 
         if CM_T_ERR_COLORBAR:
                 # For measured catalog, cuts performed on truth catalogs #
@@ -1268,7 +1267,7 @@ def plotter(cbar_val, error1, error2, fd_nop, fd_1sig, filter_name, clean_magnit
 	### Values to plot for normalized plot ###
 	if NORMALIZE:
 		# Args needed to call normalize_plot() #
-		norm_dm_list, bins, hax_mag_list = normalize_plot_maintain_bin_structure(clean_magnitude1=clean_magnitude1, clean_magnitude2=clean_magnitude2, error1=error1, error2=error2, swap_hax=swap_hax, axlabel1=axlabel1, axlabel2=axlabel2, fd_mag_bins=fd_mag_bins) 
+		norm_dm_list, bins, hax_mag_list = normalize_plot_maintain_bin_structure(clean_magnitude1=clean_magnitude1, clean_magnitude2=clean_magnitude2, error1=error1, error2=error2, swap_hax=swap_hax, axlabel1=axlabel1, axlabel2=axlabel2, fd_mag_bins=fd_mag_bins, filter_name=filter_name) 
 
 
 
@@ -1370,8 +1369,8 @@ def plotter(cbar_val, error1, error2, fd_nop, fd_1sig, filter_name, clean_magnit
 		plt.ylabel(str(mag_axlabel1) + ' - ' + str(mag_axlabel2), fontsize=9)
 		### 1-sigma curve ###
 		if PLOT_1SIG:
-			hax, vax, err, bins = bin_and_cut_measured_magnitude_error(error1=error1, error2=error2, clean_magnitude1=clean_magnitude1, clean_magnitude2=clean_magnitude2, swap_hax=swap_hax, axlabel1=mag_axlabel1, axlabel2=mag_axlabel2, fd_mag_bins=fd_mag_bins)[:3]
-			#hax, vax, err, placehold1, p3, p4, p5 = bin_and_cut_measured_magnitude_error(error1=error1, error2=error2, clean_magnitude1=clean_magnitude1, clean_magnitude2=clean_magnitude2, swap_hax=swap_hax, axlabel1=mag_axlabel1, axlabel2=mag_axlabel2, fd_mag_bins=fd_mag_bins)
+			hax, vax, err, bins = bin_and_cut_measured_magnitude_error(error1=error1, error2=error2, clean_magnitude1=clean_magnitude1, clean_magnitude2=clean_magnitude2, swap_hax=swap_hax, axlabel1=mag_axlabel1, axlabel2=mag_axlabel2, fd_mag_bins=fd_mag_bins, filter_name=filter_name)[:4]
+
 			### Remove zeros from x, y, and err (zeros were placeholders for instances in which there were no objects in a particular magnitude bin) ###
 			err[:] = [temp for temp in err if temp != None]
 			hax[:] = [temp for temp in hax if temp != None]
@@ -1417,7 +1416,7 @@ def plotter(cbar_val, error1, error2, fd_nop, fd_1sig, filter_name, clean_magnit
 		if NORMALIZE is False:
 			grid = 100
 		plt.hexbin(hax_mag, deltam, gridsize=grid, cmap=get_color(filter_name=filter_name)[1], bins='log')
-		plt.colorbar()#FIXME: label?
+		plt.colorbar(label='log(counts)')
 
 
 	# Labels and appearance #
@@ -1481,11 +1480,8 @@ def subplotter(cm_flux_hdr1, cm_flux_hdr2, cm_flux_cov_hdr1, cm_flux_cov_hdr2, c
 
         ### Create 4-by-4 subplot ###
 	counter_subplot = 1
-	# Set figure size once. Units: inches #
+	# Figure size units: inches #
 	plt.figure(figsize=(10, 8))
-
-	# The coadds have mag_err header and a separate _cat.fits for each filter #
-	#TODO add filter_dependent_df or combine catalogs
 
 
         ### Create one subplot for each griz filter ###
@@ -2152,7 +2148,7 @@ fd_nop = open(fd_nop_name, 'w')
 fd_1sig = open(fd_1sig_name, 'w')
 # Create log file for magnitude bins #
 fd_mag_bins = open(fd_mag_bins_name, 'w')
-fd_mag_bins.write('NUM_OBJS_IN_BIN, BIN_LHS, BIN_RHS, MEDIAN_HAXIS_MAG, MEDIAN_ERROR \n') #TODO will have logs for all griz bands - make this clear in file?
+fd_mag_bins.write('NUM_OBJS_IN_BIN, BIN_LHS, BIN_RHS, MEDIAN_HAXIS_MAG, MEDIAN_ERROR \n') 
 # Create log file for flags #
 fd_flag = open(fd_flag_name, 'w')
 fd_flag.write('TILE, FILTER, TYPE, REALIZATION, FLAG1_HEADER, FLAG2_HEADER, FLAG1_VALUE, FLAG2_VALUE, MAG1, MAG2 \n')
