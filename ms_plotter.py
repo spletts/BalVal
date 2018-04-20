@@ -663,7 +663,7 @@ def get_68percentile_from_normalized_data(norm_dm_list, bins, hax_mag_list):
 
 
 def bin_and_cut_measured_magnitude_error(clean_magnitude1, clean_magnitude2, error1, error2, swap_hax, axlabel1, axlabel2, fd_mag_bins):
-        """Remove error values corresponding to objects where |Delta-M| > 3.
+        """Remove error values corresponding to objects where |Delta-M| > 3. Do not consider error corresponding to empty bins nor bins with a small number of objects.
 
         Args:
                 clean_magnitude1, clean_magnitude2 (list of floats) -- Objects with flag values of zero and/or quality cuts performed.
@@ -702,9 +702,9 @@ def bin_and_cut_measured_magnitude_error(clean_magnitude1, clean_magnitude2, err
         limlow1, limlow2 = min(clean_magnitude1), min(clean_magnitude2)
         limhigh1, limhigh2 = max(clean_magnitude1), max(clean_magnitude2)
         limlow, limhigh = min([limlow1, limlow2]), max([limhigh1, limhigh2])
+
 	# Define bins limits by ints #
 	limlow = int(limlow)
-
 	# Introduce magnitude cutoff to tame errors #
 	if 'gal' in MATCH_CAT1 or 'gal' in MATCH_CAT2:
 		limhigh = 26
@@ -716,10 +716,9 @@ def bin_and_cut_measured_magnitude_error(clean_magnitude1, clean_magnitude2, err
 
         bins = np.arange(limlow, limhigh, step)
 
-
-        # b = binned #
+	# Stores median of values in each bin #
         binned_hax_mag_median, binned_vax_mag_median, binned_err_median = [], [], []
-	# List of lists. Stores values in each bin #
+	# List of lists. Stores all values in each bin #
 	binned_hax_mag_list, binned_vax_mag_list, binned_err_list = [], [], []
         counter_empty_bin = 0
 
@@ -823,35 +822,35 @@ def normalize_plot_maintain_bin_structure(clean_magnitude1, clean_magnitude2, er
 		bins (list of floats) -- Bins used in error calculation. 
 	"""
 
+	# List of lists. Stores all values in each bin #
 	norm_dm_list, hax_mag_list = [], []
 
+	# binned_err_median: stores median of vales in bin. *_list: stores all values in each bin #
 	binned_err_median, bins, binned_hax_mag_list, binned_vax_mag_list = bin_and_cut_measured_magnitude_error(clean_magnitude1=clean_magnitude1, clean_magnitude2=clean_magnitude2, error1=error1, error2=error2, swap_hax=swap_hax, axlabel1=axlabel1, axlabel2=axlabel2, fd_mag_bins=fd_mag_bins)[2:-1]
-
-
-	# FIXME add swap_hax?
 
 
 	# Loop through bins (b) #
 	for b in np.arange(0, len(binned_vax_mag_list)):
 
-		# Normalized Delta-Magnitude (dm) in current bin (icb) #
+		# Normalized Delta-Magnitudes (dm) in current bin (icb) #
 		norm_dm_icb, hax_mag_icb = [], []	
+
 
 		# 0 is a placeholder for empty bins and bins with few objects #
 		if binned_err_median[b] == 0:
 			norm_dm_list.append(0)	
 			hax_mag_list.append(0)
 
+
 		#if vax_mag_icb != 0:
 		if binned_err_median[b] != 0:
-			### @@@ ###
+			
 			vax_mag_icb = binned_vax_mag_list[b]
 
 			for i in np.arange(0, len(vax_mag_icb)):
-				#### @@@@ ####
-				#if hax_mag_icb[i] >= bins[b] and hax_mag_icb[i] < bins[b+1]:
 				norm_dm_icb.append(vax_mag_icb[i]/binned_err_median[b])
 				hax_mag_icb.append(binned_hax_mag_list[b][i])
+
 			# List of lists to keep bin structure #
 			hax_mag_list.append(hax_mag_icb)
 			norm_dm_list.append(norm_dm_icb)
@@ -870,7 +869,7 @@ def normalize_plot(norm_delta_mag_list, bins, hax_mag_list):
 	"""Normalize plot to 1-sigma curve using tame magnitude errors only (use bin_and_cut_measured_magnitude_error()).
 
 	Args:
-		norm_dm_list (list of list of floats) -- Normalized delta magnitudes. Bin structure preserved.
+		norm_dm_list (list of list of floats) -- Normalized delta magnitudes in each bin. 
                 bins (list of floats) -- Bins used in error calculation.
                 hax_mag_list (list of list of floats) -- Magnitudes on the horizontal axis. Bin structure preserved.
         Returns:
