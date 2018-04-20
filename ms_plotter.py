@@ -595,12 +595,12 @@ def get_68percentile_from_normalized_data(norm_dm_list, bins, hax_mag_list):
 	# Loop through bins (b) #
 	for b in np.arange(0, len(norm_dm_list)):
 
-		if norm_dm_list[b] == 0:
-			vax_68percentile.append(0)
-			neg_vax_34percentile.append(0)
-			pos_vax_34percentile.append(0)
+		if norm_dm_list[b] is None:
+			vax_68percentile.append(None)
+			neg_vax_34percentile.append(None)
+			pos_vax_34percentile.append(None)
 
-		if norm_dm_list[b] != 0:
+		if norm_dm_list[b] != None:
 
 			### Find 68th percentile about zero ### 	
 			# Values in current bin (icb) #
@@ -635,10 +635,10 @@ def get_68percentile_from_normalized_data(norm_dm_list, bins, hax_mag_list):
 				neg_vax_34percentile.append(np.percentile(neg_vax, 34, interpolation='lower'))
 			if counter_pos > 0:
 				pos_vax_34percentile.append(np.percentile(pos_vax, 34, interpolation='lower'))
-			if counter_neg == 0:
-				neg_vax_34percentile.append(0)
-			if counter_pos == 0:
-				pos_vax_34percentile.append(0)
+			if counter_neg  == 0:
+				neg_vax_34percentile.append(None)
+			if counter_pos  == 0:
+				pos_vax_34percentile.append(None)
 
 
 			# Plot histogram to see distrubtion of data (data is not normally distributed) #
@@ -769,13 +769,13 @@ def bin_and_cut_measured_magnitude_error(clean_magnitude1, clean_magnitude2, err
 			CONST = 10
 		if counter_err <= CONST:
                         counter_empty_bin += 1
-                        binned_err_median.append(0.0)
-                        binned_hax_mag_median.append(0.0)
-                        binned_vax_mag_median.append(0.0)
+                        binned_err_median.append(None)
+                        binned_hax_mag_median.append(None)
+                        binned_vax_mag_median.append(None)
 
-			binned_err_list.append(0)
-                        binned_hax_mag_list.append(0)
-                        binned_vax_mag_list.append(0)		
+			binned_err_list.append(None)
+                        binned_hax_mag_list.append(None)
+                        binned_vax_mag_list.append(None)		
 
                 if counter_err > CONST:
                         binned_err_median.append(np.median(binned_err_temp))
@@ -837,13 +837,13 @@ def normalize_plot_maintain_bin_structure(clean_magnitude1, clean_magnitude2, er
 
 
 		# 0 is a placeholder for empty bins and bins with few objects #
-		if binned_err_median[b] == 0:
-			norm_dm_list.append(0)	
-			hax_mag_list.append(0)
+		if binned_err_median[b] is None:
+			norm_dm_list.append(None)	
+			hax_mag_list.append(None)
 
 
 		#if vax_mag_icb != 0:
-		if binned_err_median[b] != 0:
+		if binned_err_median[b] != None:
 			
 			vax_mag_icb = binned_vax_mag_list[b]
 
@@ -878,8 +878,8 @@ def normalize_plot(norm_delta_mag_list, bins, hax_mag_list):
 	"""
 
 	### Remove zeros so that lists can be flattened. Zeros (int) were placeholders for missing lists due to empty or small bin. ###
-	norm_delta_mag_list[:] = [temp for temp in norm_delta_mag_list if temp != 0]
-	hax_mag_list[:] = [temp for temp in hax_mag_list if temp != 0]
+	norm_delta_mag_list[:] = [temp for temp in norm_delta_mag_list if temp != None]
+	hax_mag_list[:] = [temp for temp in hax_mag_list if temp != None]
 
 	### Flatten lists ###
 	hax_mag = [item for sublist in hax_mag_list for item in sublist]
@@ -1290,7 +1290,7 @@ def plotter(cbar_val, error1, error2, fd_nop, fd_1sig, filter_name, clean_magnit
 			lwt = 1.2
 			lws = 0.7
 			
-			if PLOT_68P:
+			if PLOT_34P_SPLIT:
 				### Plot the 68th percentile calculated from np.percentile() ###
 				vax_68percentile_list, bins, neg_vax_34percentile, pos_vax_34percentile = get_68percentile_from_normalized_data(norm_dm_list=norm_dm_list, bins=bins, hax_mag_list=hax_mag_list)
 				counter_legend1 = 0
@@ -1301,7 +1301,7 @@ def plotter(cbar_val, error1, error2, fd_nop, fd_1sig, filter_name, clean_magnit
 					x_hbound = np.array([bins[b], bins[b+1]])
 					x_vbound = np.array([bins[b], bins[b]])
 
-					if neg_vax_34percentile[b] != 0:
+					if neg_vax_34percentile[b] != None:
 						# Horizontal bar bounds #
 						neg_y_hbound = np.array([neg_vax_34percentile[b], neg_vax_34percentile[b]])
 						# Vertical bar bounds #
@@ -1314,7 +1314,8 @@ def plotter(cbar_val, error1, error2, fd_nop, fd_1sig, filter_name, clean_magnit
 						if counter_legend1 == 1:
 							plt.plot(x_hbound, neg_y_hbound, color=color1)
 							plt.plot(x_vbound, y_vbound, color=color1, linewidth=lws, linestyle=':')
-					if pos_vax_34percentile[b] != 0:
+
+					if pos_vax_34percentile[b] != None:
 						# Horizontal bar bounds #
 						pos_y_hbound = np.array([pos_vax_34percentile[b], pos_vax_34percentile[b]])
 						# Vertical bar bounds #
@@ -1325,14 +1326,14 @@ def plotter(cbar_val, error1, error2, fd_nop, fd_1sig, filter_name, clean_magnit
 				
 
 	
-			if PLOT_34P_SPLIT:
+			if PLOT_68P:
 
 				counter_legend2 = 0
 				color2 = 'fuchsia'
 
 				for b in np.arange(0, len(vax_68percentile_list)-1):
 
-					if vax_68percentile_list[b] != 0:
+					if vax_68percentile_list[b] != None:
 
 						# Horizontal bar bounds #
 						x_hbound = np.array([bins[b], bins[b+1]])
@@ -1377,9 +1378,9 @@ def plotter(cbar_val, error1, error2, fd_nop, fd_1sig, filter_name, clean_magnit
 			hax, vax, err, bins = bin_and_cut_measured_magnitude_error(error1=error1, error2=error2, clean_magnitude1=clean_magnitude1, clean_magnitude2=clean_magnitude2, swap_hax=swap_hax, axlabel1=mag_axlabel1, axlabel2=mag_axlabel2, fd_mag_bins=fd_mag_bins)[:3]
 			#hax, vax, err, placehold1, p3, p4, p5 = bin_and_cut_measured_magnitude_error(error1=error1, error2=error2, clean_magnitude1=clean_magnitude1, clean_magnitude2=clean_magnitude2, swap_hax=swap_hax, axlabel1=mag_axlabel1, axlabel2=mag_axlabel2, fd_mag_bins=fd_mag_bins)
 			### Remove zeros from x, y, and err (zeros were placeholders for instances in which there were no objects in a particular magnitude bin) ###
-			err[:] = [temp for temp in err if temp != 0]
-			hax[:] = [temp for temp in hax if temp != 0]
-			vax[:] = [temp for temp in vax if temp != 0]
+			err[:] = [temp for temp in err if temp != None]
+			hax[:] = [temp for temp in hax if temp != None]
+			vax[:] = [temp for temp in vax if temp != None]
 			### Plot 1-sigma curve ###
 			plt.plot(hax, np.array(vax) + np.array(err), color='red', linestyle='-', linewidth=0.7, label='$1 \sigma_{mag\_meas}$')
 			plt.plot(hax, np.array(vax) - np.array(err), color='red', linestyle='-', linewidth=0.7)
