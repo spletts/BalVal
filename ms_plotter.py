@@ -92,7 +92,7 @@ MATCH_CAT1, MATCH_CAT2 = 'gal_truth', 'sof'
 # !!!!! Booleans. Examine injected catalogs? #
 INJ1, INJ2 = True, True
 # !!!!! Must be used with realization=all at command line #
-STACK_REALIZATIONS = True
+STACK_REALIZATIONS = False
 
 
 ### Miscellaneous ###
@@ -103,7 +103,7 @@ PRINTOUTS_MINOR = False
 
 # Not currently in use or under constructrion #
 LOG_FLAGS = False
-PLOT_FLAGGED_OBJS = False
+PLOT_FLAGGED_OBJS = True
 SHOW_FLAG_TYPE = False
 SUBPLOT = True #TODO
 
@@ -270,21 +270,19 @@ def get_good_index_using_primary_flags(df, cm_flag_hdr1, cm_flag_hdr2, flag_hdr1
         cm_flag1, cm_flag2 = df[cm_flag_hdr1], df[cm_flag_hdr2]
 
 
-	idx_good, idx_bad = [], []
+	# Make arrays to take absolute value in next step #
+	full_magnitude1, full_magnitude2 = np.array(full_magnitude1), np.array(full_magnitude2)
 
+	# Get rid of these objects 37.5 corresponds to a negative flux #
+	idx_good= np.where( (abs(full_magnitude1) != 9999.0) & (abs(full_magnitude1) != 99.0) & (abs(full_magnitude1) != 37.5) & (abs(full_magnitude2) != 9999.0) & (abs(full_magnitude2) != 99.0) & (abs(full_magnitude2) != 9999.0) & (abs(full_magnitude2) != 99.0) & (abs(full_magnitude2) != 37.5) & (flag1 == 0) & (flag2 == 0) & (cm_flag1 == 0) & (cm_flag2 == 0) )[0]
 
-	for i in np.arange(0, len(full_magnitude1)):
+	if PLOT_FLAGGED_OBJS:
+		idx_bad = np.where( (abs(full_magnitude1) != 9999.0) & (abs(full_magnitude1) != 99.0) & (abs(full_magnitude1) != 37.5) & (abs(full_magnitude2) != 9999.0) & (abs(full_magnitude2) != 99.0) & (abs(full_magnitude2) != 9999.0) & (abs(full_magnitude2) != 99.0) & ((flag2 != 0) | (flag1 != 0) | (cm_flag1 != 0) | (cm_flag2 != 0)) )[0]
 
-		# Keep objects with these indices #
-		if abs(full_magnitude1[i]) != 9999.0 and abs(full_magnitude2[i]) != 9999.0 and full_magnitude1[i] != 37.5 and full_magnitude2[i] != 37.5 and full_magnitude1[i] != 99.0 and full_magnitude2[i] != 99 and flag1[i] == 0 and flag2[i] == 0 and cm_flag1[i] == 0 and cm_flag2[i] == 0:
-			idx_good.append(i)
+	if PLOT_FLAGGED_OBJS is False:
+		idx_bad = None
 
-		if PLOT_FLAGGED_OBJS:
-			# Get rid of objects with these indices #
-			if abs(full_magnitude1[i]) != 9999.0 and abs(full_magnitude2[i]) != 9999.0 and full_magnitude1[i] != 37.5 and full_magnitude2[i] != 37.5 and full_magnitude1[i] != 99.0 and full_magnitude2[i] != 99 and flag1[i] != 0 or flag2[i] != 0 or cm_flag1[i] != 0 or cm_flag2[i] != 0:
-				idx_bad.append(i)
-
-
+		
         if PRINTOUTS:
                 print 'Eliminated ', len(full_magnitude1) - len(idx_good), ' objects with magnitudes equal to +/- 9999, +/- 99, and 37.5 and objects with nonzero flags for: ', flag_hdr1, ', ', flag_hdr2, ', ', cm_flag_hdr1, ', ', cm_flag_hdr2, ' ... \n'
 
@@ -299,7 +297,7 @@ def get_good_index_using_primary_flags(df, cm_flag_hdr1, cm_flag_hdr2, flag_hdr1
 
 
 
-def get_good_index_using_quality_cuts(cm_flag_hdr1, cm_flag_hdr2, df, cm_t_hdr1, cm_t_hdr2, cm_t_err_hdr1, cm_t_err_hdr2, cm_s2n_r_hdr1, cm_s2n_r_hdr2, flag_hdr1, flag_hdr2, full_magnitude1, full_magnitude2, psfrec_t_hdr1, psfrec_t_hdr2, cm_t_err_axlabel1, cm_t_err_axlabel2):
+def get_good_index_using_quality_cuts(cm_flag_hdr1, cm_flag_hdr2, df, cm_t_hdr1, cm_t_hdr2, cm_t_err_hdr1, cm_t_err_hdr2, cm_s2n_r_hdr1, cm_s2n_r_hdr2, flag_hdr1, flag_hdr2, full_magnitude1, full_magnitude2, psfrec_t_hdr1, psfrec_t_hdr2, axlabel1, axlabel2):
 	"""Get indices of objects that satisfy quality cuts introduced by Eric Huff. Also get indices of objects without flags as indicated by the headers 'flags' and 'cm_flags'. Also get indices of objects with  magnitudes not equal to +/- 99, +/- 9999, and 37.5. Store the bad indices as well (if PLOT_FLAGGED_OBJS is True).
 
 	Args:
@@ -316,14 +314,14 @@ def get_good_index_using_quality_cuts(cm_flag_hdr1, cm_flag_hdr2, df, cm_t_hdr1,
 		idx_bad (list of ints) -- Is empty if PLOT_FLAGGED_OBJS is False.
 	"""
 
-	if 'true' in cm_t_axlabel1 and 'true' in cm_t_axlabel2:
+	if 'true' in axlabel1 and 'true' in axlabel2:
 		sys.exit('ERROR. Cuts should be performed on measured catalog, not truth catalog.')
 
-	# Ignore truth catalog #
-	if 'true' in cm_t_axlabel1 and 'meas' in cm_t_axlabel2:
+	# Ignore truth catalog if one is present. Preserve ability to check both catalogs. #
+	if 'true' in axlabel1 and 'meas' in axlabel2:
 		cm_t_hdr1, cm_t_err_hdr1, cm_s2n_r_hdr1, psfrec_t_hdr1 = cm_t_hdr2, cm_t_err_hdr2, cm_s2n_r_hdr2, psfrec_t_hdr2
 
-	if 'true' in cm_t_axlabel2 and 'meas' in cm_t_axlabel1:
+	if 'true' in axlabel2 and 'meas' in axlabel1:
 		cm_t_hdr2, cm_t_err_hdr2, cm_s2n_r_hdr2, psfrec_t_hdr2 = cm_t_hdr1, cm_t_err_hdr1, cm_s2n_r_hdr1, psfrec_t_hdr1
 
 	idx_good, idx_bad = [], []
@@ -346,32 +344,28 @@ def get_good_index_using_quality_cuts(cm_flag_hdr1, cm_flag_hdr2, df, cm_t_hdr1,
 	# Size error #
 	cm_t_err1, cm_t_err2 = df[cm_t_err_hdr1], df[cm_t_err_hdr2]
 	# Signal to noise #
-	cm_s2n_r1, cm_s2n2_r = df[cm_s2n_r_hdr1], df[cm_s2n_r_hdr2]
+	cm_s2n_r1, cm_s2n_r2 = df[cm_s2n_r_hdr1], df[cm_s2n_r_hdr2]
 	# PSF size #
 	psfrec_t1, psfrec_t2 = df[psfrec_t_hdr1], df[psfrec_t_hdr2]
 
+	# Cast into array to take absolute value in next step #
+	full_magnitude1 = np.array(full_magnitude1)
+	full_magnitude2 = np.array(full_magnitude2)
 
-	### Search for flags, etc ###
-	counter1, counter2 = 0, 0
-
-
-	for i in np.arange(0, len(full_magnitude1)):
-
-	# Keep these objects #
-		if abs(full_magnitude1[i]) != 9999.0 and abs(full_magnitude2[i]) != 9999.0 and full_magnitude1[i] != 37.5 and full_magnitude2[i] != 37.5 and full_magnitude1[i] != 99.0 and full_magnitude2[i] != 99 and flag1[i] == 0 and flag2[i] == 0 and cm_flag1[i] == 0 and cm_flag2[i] == 0:
-
-			counter1 += 1
-
-			# From Eric Huff: keep (catalog['cm_s2n_r'] > 10) & (catalog['cm_T']/catalog['cm_T_err'] > .5) & (catalog['cm_T']/catalog['psfrec_T'] > 0.5) via https://github.com/sweverett/Balrog-GalSim/blob/master/plots/balrog_catalog_tests.py #
-			if cm_s2n_r1[i] > 10 and cm_s2n2_r[i] > 10 and cm_t1[i]/cm_t_err1[i] > 0.5 and cm_t2[i]/cm_t_err2[i] > 0.5 and cm_t1[i]/psfrec_t1[i] > 0.5 and cm_t2[i]/psfrec_t2[i] > 0.5:
-				idx_good.append(i)
-				counter2 += 1
+	idx_good = np.where( (abs(full_magnitude1) != 9999.0) & (abs(full_magnitude1) != 99.0) & (abs(full_magnitude1) != 37.5) & (abs(full_magnitude2) != 9999.0) & (abs(full_magnitude2) != 99.0) & (abs(full_magnitude2) != 9999.0) & (abs(full_magnitude2) != 99.0) & (abs(full_magnitude2) != 37.5) & (flag1 == 0) & (flag2 == 0) & (cm_flag1 == 0) & (cm_flag2 == 0) & (cm_s2n_r1 > 10) & (cm_s2n_r2 > 10) & (cm_t1/cm_t_err1 > 0.5) & (cm_t2/cm_t_err2 > 0.5) & (cm_t1/psfrec_t1 > 0.5) & (cm_t1/psfrec_t2 > 0.5) )[0]
 
 
-		if PLOT_FLAGGED_OBJS:
+	idx_bad = []
+
+
+	if PLOT_FLAGGED_OBJS:
+		counter_bad_mag = 0
+		for i in np.arange(0, len(full_magnitude1)):
+
 			# Get rid of these objects #
-			if abs(full_magnitude1[i]) != 9999.0 and abs(full_magnitude2[i]) != 9999.0 and full_magnitude1[i] != 37.5 and full_magnitude2[i] != 37.5 and full_magnitude1[i] != 99.0 and full_magnitude2[i] != 99 and flag1[i] != 0 or flag2[i] != 0 or cm_flag1[i] != 0 or cm_flag2[i] != 0:
-				if cm_s2n_r1[i] < 10 or cm_s2n2_r[i] < 10 or cm_t1[i]/cm_t_err1[i] < 0.5 or cm_t2[i]/cm_t_err2[i] < 0.5 or cm_t1[i]/psfrec_t1[i] < 0.5 or cm_t2[i]/psfrec_t2[i] < 0.5:
+			if abs(full_magnitude1[i]) != 9999.0 and abs(full_magnitude2[i]) != 9999.0 and full_magnitude1[i] != 37.5 and full_magnitude2[i] != 37.5 and full_magnitude1[i] != 99.0 and full_magnitude2[i] != 99:
+				counter_bad_mag += 1
+				if flag1[i] != 0 or flag2[i] != 0 or cm_flag1[i] != 0 or cm_flag2[i] != 0 or cm_s2n_r1[i] < 10 or cm_s2n_r2[i] < 10 or cm_t1[i]/cm_t_err1[i] < 0.5 or cm_t2[i]/cm_t_err2[i] < 0.5 or cm_t1[i]/psfrec_t1[i] < 0.5 or cm_t2[i]/psfrec_t2[i] < 0.5:
 					idx_bad.append(i)
 
 	if PRINTOUTS:
@@ -379,10 +373,11 @@ def get_good_index_using_quality_cuts(cm_flag_hdr1, cm_flag_hdr2, df, cm_t_hdr1,
 		print ' Eliminated objects with signal-to-noise ratio < 10 ...'
 		print ' Eliminated objects with cm_T/cm_T_err < 0.5 ...'
 		print ' Eliminated objects with cm_T/psfrec_T < 0.5 ...'
-		print ' Number of objects with primary flags and outlier magnitudes removed: ', counter1
-		print " Number of objects when Eric Huff's additional constraints are used: ", counter2, '\n'
 
-	
+	if PLOT_FLAGGED_OBJS is False:
+		idx_bad = None
+
+
 	return idx_good, idx_bad
 
 
@@ -1200,7 +1195,7 @@ def get_plot_variables(filter_name, df, mag_hdr1, mag_hdr2, flag_hdr_list, cm_s2
 
 	### Clean the data: removed flags and/or perform quality cuts ###
 	if EH_CUTS:
-		idx_good = get_good_index_using_quality_cuts(cm_flag_hdr1=cm_flag_hdr1, cm_flag_hdr2=cm_flag_hdr2, df=df, cm_t_hdr1=cm_t_hdr1, cm_t_hdr2=cm_t_hdr2, cm_t_err_hdr1=cm_t_err_hdr1, cm_t_err_hdr2=cm_t_err_hdr2, cm_s2n_r_hdr1=cm_s2n_r_hdr1, cm_s2n_r_hdr2=cm_s2n_r_hdr2, flag_hdr1=flag_hdr1, flag_hdr2=flag_hdr2, full_magnitude1=fullmag1, full_magnitude2=fullmag2, psfrec_t_hdr1=psfrec_t_hdr1, psfrec_t_hdr2=psfrec_t_hdr2, cm_t_err_axlabel1=cm_t_err_axlabel1, cm_t_err_axlabel2=cm_t_err_axlabel2)[0]
+		idx_good = get_good_index_using_quality_cuts(cm_flag_hdr1=flag_list[2], cm_flag_hdr2=flag_list[3], df=df, cm_t_hdr1=cm_t_hdr1, cm_t_hdr2=cm_t_hdr2, cm_t_err_hdr1=cm_t_err_hdr1, cm_t_err_hdr2=cm_t_err_hdr2, cm_s2n_r_hdr1=cm_s2n_r_hdr1, cm_s2n_r_hdr2=cm_s2n_r_hdr2, flag_hdr1=flag_list[0], flag_hdr2=flag_list[1], full_magnitude1=fullmag1, full_magnitude2=fullmag2, psfrec_t_hdr1=psfrec_t_hdr1, psfrec_t_hdr2=psfrec_t_hdr2, axlabel1=axlabel1, axlabel2=axlabel2)[0]
 	
 	if EH_CUTS is False:
                 idx_good = get_good_index_using_primary_flags(df=df, cm_flag_hdr1=flag_list[2], cm_flag_hdr2=flag_list[3], flag_hdr1=flag_list[0], flag_hdr2=flag_list[1], full_magnitude1=fullmag1, full_magnitude2=fullmag2)[0]
@@ -1786,7 +1781,6 @@ class CoaddCat():
 		# For Eric Huff (EH) quality cuts #
                 self.cm_s2n_r_hdr = None
                 self.psfrec_t_hdr = None
-                self.eh_cuts = False
 
 
 
@@ -1838,9 +1832,8 @@ class SOFGalTruthCat():
                 self.dec_hdr = 'dec_' + str(suf)
                 self.a_hdr, self.b_hdr = None, None
                 # For Eric Huff (EH) quality cuts #
-                self.cm_s2n_r_hdr = None
-                self.psfrec_t_hdr = None
-                self.eh_cuts = False
+		self.cm_s2n_r_hdr = 'cm_s2n_r_' + str(suf)
+                self.psfrec_t_hdr = 'psfrec_T_' + str(suf)
 
 
 
@@ -1892,9 +1885,8 @@ class SOFCat():
                 self.dec_hdr = 'dec_' + str(suf)
                 self.a_hdr, self.b_hdr = None, None
                 # For Eric Huff (EH) quality cuts #
-                self.cm_s2n_r_hdr = None
-                self.psfrec_t_hdr = None
-                self.eh_cuts = False
+		self.cm_s2n_r_hdr = 'cm_s2n_r_' + str(suf)
+                self.psfrec_t_hdr = 'psfrec_T_' + str(suf)
 
 
 
@@ -1946,9 +1938,8 @@ class MOFCat():
 		self.dec_hdr = 'dec_' + str(suf)
 		self.a_hdr, self.b_hdr = None, None
 		# For Eric Huff (EH) quality cuts #
-                self.cm_s2n_r_hdr = None
-                self.psfrec_t_hdr = None
-                self.eh_cuts = False
+                self.cm_s2n_r_hdr = 'cm_s2n_r_' + str(suf) 
+                self.psfrec_t_hdr = 'psfrec_T_' + str(suf) 
 
 
 
@@ -2002,7 +1993,6 @@ class StarTruthCat(): #are there sep headers for MOFStarTruthCat and SOFStarTrut
 		# For Eric Huff (EH) quality cuts #
 		self.cm_s2n_r_hdr = None
 		self.psfrec_t_hdr = None
-		self.eh_cuts = False
 		
 
 
