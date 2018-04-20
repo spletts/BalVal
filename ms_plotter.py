@@ -657,19 +657,21 @@ def get_68percentile_from_normalized_data(norm_dm_list, bins, hax_mag_list):
 
 
 
-def bin_and_cut_measured_magnitude_error(clean_magnitude1, clean_magnitude2, error1, error2, swap_hax, axlabel1, axlabel2, fd_mag_bins, filter_name):
+def bin_and_cut_measured_magnitude_error(clean_magnitude1, clean_magnitude2, error1, error2, axlabel1, axlabel2, fd_mag_bins, filter_name):
         """Remove error values corresponding to objects where |Delta-M| > 3. Do not consider error corresponding to empty bins nor bins with a small number of objects.
 
         Args:
+		axlabel1, axlabel2 (str) -- Set in a class. Refers to truth catalog or measured catalog (MOF, SOF, coadd). Allowed values: 'true' or 'meas'.
                 clean_magnitude1, clean_magnitude2 (list of floats) -- Objects with flag values of zero and/or quality cuts performed.
                 error1, error2 (list of floats) -- 1 and 2 refer to the matched catalogs. 
-		swap_hax (bool) -- "swap horizontal axis". If False plots magnitude1 on the x-axis. If True plots magnitude2 on the x-axis.
+		SWAP_HAX (bool) -- "swap horizontal axis". If False plots magnitude1 on the x-axis. If True plots magnitude2 on the x-axis.
 		fd_mag_bins (file director) -- Log file to record information about the bins used in error calculation.
         Returns:
                 binned_hax_mag_median (list of floats) -- List of medians of the horizontal axis magnitude in each bin.
                 binned_vax_mag_median (list of floats) -- List of medians of the vertical axis magnitude in each bin. Vertical axis is computed via clean_magnitude1 - clean_magnitude2.
                 binned_err_median (list of floats) -- Median of the error in each bin.
                 bins (list of floats) -- Bins used. Binned according to horizontal axis.
+		binned_hax_mag_list, binned_vax_mag_list, binned_err_list (list of lists of floats) -- Stores values in each bin (horizontal axis magnitude, vertical axis magnitude, error, respectively).
         """
 
 	### !!!!! Comment this block out if errors are to be computed using both catalogs regardless of origin (measured catalog or truth catalog) ###
@@ -719,19 +721,20 @@ def bin_and_cut_measured_magnitude_error(clean_magnitude1, clean_magnitude2, err
 
 
         # Bin magnitude errors according to the magnitude on the horizontal axis #
-        if swap_hax:
+        if SWAP_HAX:
                 hax_mag = clean_magnitude2
-        if swap_hax is False:
+        if SWAP_HAX is False:
                 hax_mag = clean_magnitude1
 
 	# Magnitude on the vertical axis (vax) #	
 	vax_mag = np.array(clean_magnitude1) - np.array(clean_magnitude2)
 
 
-	# Write to log file #
+	### Write filter header to log file ###
 	fd_mag_bins.write('Filter: ' + str(filter_name) + '\n')
 
 
+	### Populate each bin ###
 	for j in np.arange(limlow, limhigh, step):
 
                 binned_hax_mag_temp, binned_vax_mag_temp, binned_err_temp, counter_err = [], [], [], 0
@@ -749,19 +752,21 @@ def bin_and_cut_measured_magnitude_error(clean_magnitude1, clean_magnitude2, err
                         print ' For magnitude, number of objects in bin ', round(j, 2), '-', round(j+step, 2), ': ', counter_err, '...'
 
 
-		# Write to log file #
+		### Write to log file ###
 		if counter_err == 0:
 			write_median, write_err = None, None
 		if counter_err > 0:
 			write_median, write_err = np.median(binned_hax_mag_temp), np.median(binned_err_temp)
 		fd_mag_bins.write(str(counter_err) + '\t' + str(round(j, 2)) + '\t' + str(round(j+step, 2)) + '\t' + str(write_median)+ '\t' + str(write_err) + '\n')
 
-                # Add zeros to empty bins and bins with a small number of points #
-		# CONST = 0.0002, len(hax_mag) * CONST #
+
+                ### Tame error calculation and normalization by adding zeros to empty bins and bins with a small number of points ###
+		# Define 'small' #
 		if STACK_REALIZATIONS:
 			CONST = 30
 		if STACK_REALIZATIONS is False:
 			CONST = 10
+
 		if counter_err <= CONST:
                         counter_empty_bin += 1
                         binned_err_median.append(None)
@@ -785,12 +790,13 @@ def bin_and_cut_measured_magnitude_error(clean_magnitude1, clean_magnitude2, err
 
 
 	if PRINTOUTS:
-                if swap_hax:
+                if SWAP_HAX:
                         print 'Binned clean_magnitude2 with step size: ', step, ', and minimum: ', limlow, ', and maximum: ', limhigh, '...'
-		if swap_hax is False:
+		if SWAP_HAX is False:
                         print 'Binned clean_magnitude1 with step size: ', step, ', and minimum: ', limlow, ', and maximum: ', limhigh, '...'
 		print ' Calculated errors using objects where |DeltaM| < 3 ... '
 		print ' Excluded bins with less than ', CONST, ' objects ... \n'
+
 
         return binned_hax_mag_median, binned_vax_mag_median, binned_err_median, bins, binned_hax_mag_list, binned_vax_mag_list, binned_err_list
 
@@ -802,13 +808,13 @@ def bin_and_cut_measured_magnitude_error(clean_magnitude1, clean_magnitude2, err
 
 
 
-def normalize_plot_maintain_bin_structure(clean_magnitude1, clean_magnitude2, error1, error2, swap_hax, axlabel1, axlabel2, fd_mag_bins, filter_name):
+def normalize_plot_maintain_bin_structure(clean_magnitude1, clean_magnitude2, error1, error2, axlabel1, axlabel2, fd_mag_bins, filter_name):
 	"""Normalize the vertical axis using error and uphold the bin structure. 
 
 	Args:
 		clean_magnitude1, clean_magnitude2 (list of floats) --
 		error1, error2 (list of floats) --
-		swap_hax (bool) -- Swap horizontal axis? Is a global constant.
+		SWAP_HAX (bool) -- Swap horizontal axis? Is aconstant.
 		fd_mag_bins (file director) --
 		axlabel1, axlabel2 -- Allowed values: 
 	Returns:
@@ -820,7 +826,7 @@ def normalize_plot_maintain_bin_structure(clean_magnitude1, clean_magnitude2, er
 	norm_dm_list, hax_mag_list = [], []
 
 	# binned_err_median: stores median of vales in bin. *_list: stores all values in each bin #
-	binned_err_median, bins, binned_hax_mag_list, binned_vax_mag_list = bin_and_cut_measured_magnitude_error(clean_magnitude1=clean_magnitude1, clean_magnitude2=clean_magnitude2, error1=error1, error2=error2, swap_hax=swap_hax, axlabel1=axlabel1, axlabel2=axlabel2, fd_mag_bins=fd_mag_bins, filter_name=filter_name)[2:-1]
+	binned_err_median, bins, binned_hax_mag_list, binned_vax_mag_list = bin_and_cut_measured_magnitude_error(clean_magnitude1=clean_magnitude1, clean_magnitude2=clean_magnitude2, error1=error1, error2=error2, axlabel1=axlabel1, axlabel2=axlabel2, fd_mag_bins=fd_mag_bins, filter_name=filter_name)[2:-1]
 
 
 	# Loop through bins (b) #
@@ -1239,7 +1245,7 @@ def get_plot_variables(filter_name, df, mag_hdr1, mag_hdr2, flag_hdr_list, cm_s2
 
 
 
-def plotter(cbar_val, error1, error2, fd_nop, fd_1sig, filter_name, clean_magnitude1, full_magnitude1, mag_axlabel1, clean_magnitude2, mag_axlabel2, plot_title, realization_number, swap_hax, run_type, tile_name, idx_list, bins, cbar_axlabel, fd_mag_bins, ylow, yhigh):
+def plotter(cbar_val, error1, error2, fd_nop, fd_1sig, filter_name, clean_magnitude1, full_magnitude1, mag_axlabel1, clean_magnitude2, mag_axlabel2, plot_title, realization_number, run_type, tile_name, idx_list, bins, cbar_axlabel, fd_mag_bins, ylow, yhigh):
 	"""Plot a single magnitude versus delta-magnitude plot.
 
 	Args:
@@ -1248,7 +1254,7 @@ def plotter(cbar_val, error1, error2, fd_nop, fd_1sig, filter_name, clean_magnit
             full_magnitude1, full_magnitude2 (numpy.ndarray if directly from `df` OR list of floats if from `get_floats_from_string()`) -- Values read directly from pandas DataFrame via `df[hdr]`; no objects removed using nonzero flag values and no quality cuts performed.
             realization_number (str) -- Allowed values: 0 1 2 None. Refers to Balrog injection and None refers to a one-realization run.
             run_type (str) -- Allowed values: 'ok' 'rerun' None. 'ok' refers to FOF groups unchanged after Balrog injection. 'rerun' refers to changed FOF groups.
-            swap_hax (bool) -- "swap horizontal axis". If False plots magnitude1 on the x-axis. If True plots magnitude2 on the x-axis.
+            SWAP_HAX (bool) -- "swap horizontal axis". If False plots magnitude1 on the x-axis. If True plots magnitude2 on the x-axis.
         Returns:
 		0
 	"""
@@ -1267,7 +1273,7 @@ def plotter(cbar_val, error1, error2, fd_nop, fd_1sig, filter_name, clean_magnit
 	### Values to plot for normalized plot ###
 	if NORMALIZE:
 		# Args needed to call normalize_plot() #
-		norm_dm_list, bins, hax_mag_list = normalize_plot_maintain_bin_structure(clean_magnitude1=clean_magnitude1, clean_magnitude2=clean_magnitude2, error1=error1, error2=error2, swap_hax=swap_hax, axlabel1=axlabel1, axlabel2=axlabel2, fd_mag_bins=fd_mag_bins, filter_name=filter_name) 
+		norm_dm_list, bins, hax_mag_list = normalize_plot_maintain_bin_structure(clean_magnitude1=clean_magnitude1, clean_magnitude2=clean_magnitude2, error1=error1, error2=error2, axlabel1=axlabel1, axlabel2=axlabel2, fd_mag_bins=fd_mag_bins, filter_name=filter_name) 
 
 
 
@@ -1361,15 +1367,15 @@ def plotter(cbar_val, error1, error2, fd_nop, fd_1sig, filter_name, clean_magnit
 	if NORMALIZE is False:
 		# Values to plot #
 		deltam = np.array(clean_magnitude1) - np.array(clean_magnitude2)
-		if swap_hax:
+		if SWAP_HAX:
 			hax_mag = clean_magnitude2
-		if swap_hax is False:
+		if SWAP_HAX is False:
                         hax_mag = clean_magnitude1
 		# Labels and appearance #
 		plt.ylabel(str(mag_axlabel1) + ' - ' + str(mag_axlabel2), fontsize=9)
 		### 1-sigma curve ###
 		if PLOT_1SIG:
-			hax, vax, err, bins = bin_and_cut_measured_magnitude_error(error1=error1, error2=error2, clean_magnitude1=clean_magnitude1, clean_magnitude2=clean_magnitude2, swap_hax=swap_hax, axlabel1=mag_axlabel1, axlabel2=mag_axlabel2, fd_mag_bins=fd_mag_bins, filter_name=filter_name)[:4]
+			hax, vax, err, bins = bin_and_cut_measured_magnitude_error(error1=error1, error2=error2, clean_magnitude1=clean_magnitude1, clean_magnitude2=clean_magnitude2, axlabel1=mag_axlabel1, axlabel2=mag_axlabel2, fd_mag_bins=fd_mag_bins, filter_name=filter_name)[:4]
 
 			### Remove zeros from x, y, and err (zeros were placeholders for instances in which there were no objects in a particular magnitude bin) ###
 			err[:] = [temp for temp in err if temp != None]
@@ -1420,9 +1426,9 @@ def plotter(cbar_val, error1, error2, fd_nop, fd_1sig, filter_name, clean_magnit
 
 
 	# Labels and appearance #
-	if swap_hax:
+	if SWAP_HAX:
 		plt.xlabel(str(mag_axlabel2), fontsize=9)
-	if swap_hax is False:
+	if SWAP_HAX is False:
                 plt.xlabel(str(mag_axlabel1), fontsize=9)
 	plt.axhline(y=0.0, color='k', linestyle=':', linewidth=0.5)
         if ylow is not None and yhigh is not None:
@@ -1454,7 +1460,7 @@ def plotter(cbar_val, error1, error2, fd_nop, fd_1sig, filter_name, clean_magnit
 
 
 
-def subplotter(cm_flux_hdr1, cm_flux_hdr2, cm_flux_cov_hdr1, cm_flux_cov_hdr2, cm_t_hdr1, cm_t_hdr2, cm_t_err_hdr1, cm_t_err_hdr2, cm_s2n_r_hdr1, cm_s2n_r_hdr2, psfrec_t_hdr1, psfrec_t_hdr2, df, fd_1sig, fd_flag, fd_nop, flag_idx, flag_list, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, plot_name, plot_title, realization_number, run_type, tile_name, swap_hax, stack_realizations, cm_t_s2n_axlabel1, cm_t_s2n_axlabel2, axlabel1, axlabel2, fd_mag_bins, ylow, yhigh):
+def subplotter(cm_flux_hdr1, cm_flux_hdr2, cm_flux_cov_hdr1, cm_flux_cov_hdr2, cm_t_hdr1, cm_t_hdr2, cm_t_err_hdr1, cm_t_err_hdr2, cm_s2n_r_hdr1, cm_s2n_r_hdr2, psfrec_t_hdr1, psfrec_t_hdr2, df, fd_1sig, fd_flag, fd_nop, flag_idx, flag_list, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, plot_name, plot_title, realization_number, run_type, tile_name, stack_realizations, cm_t_s2n_axlabel1, cm_t_s2n_axlabel2, axlabel1, axlabel2, fd_mag_bins, ylow, yhigh):
 	"""Combine four subplots into a single plot with four panels (2-by-2). Declare variables needed for plotting.
 
 	Args:
@@ -1467,7 +1473,7 @@ def subplotter(cm_flux_hdr1, cm_flux_hdr2, cm_flux_cov_hdr1, cm_flux_cov_hdr2, c
             plot_name (str) -- Path and name for the plot. Used when save_plot is True and normalize is False.
             realization_number (int) -- Allowed values: 0 1 2 None. Refers to Balrog injection and None refers to a one-realization run.
             run_type (str) -- Allowed values: 'ok' 'rerun' None. 'ok' refers to FOF groups unchanged after Balrog injection. 'rerun' refers to changed FOF groups.
-            swap_hax (bool) -- "swap horizontal axis". If False plots magnitude1 on the x-axis. If True plots magnitude2 on the x-axis.
+            SWAP_HAX (bool) -- "swap horizontal axis". If False plots magnitude1 on the x-axis. If True plots magnitude2 on the x-axis.
         Returns:
             flag_idx (list of ints) -- If log_flags is True, will check for all nonzero flag values in `flag_list` and `flag_idx` will contain indices that have nonzero flag values. Will be empty if LOG_FLAGS is False.
 	"""
@@ -1493,7 +1499,7 @@ def subplotter(cm_flux_hdr1, cm_flux_hdr2, cm_flux_cov_hdr1, cm_flux_cov_hdr2, c
 
 		### Subplot ###
 		plt.subplot(2, 2, counter_subplot)
-		plotter(cbar_val=cbar_val, plot_title=plot_title, fd_1sig=fd_1sig, run_type=run_type, error1=err1, error2=err2, fd_nop=fd_nop, filter_name=f, full_magnitude1=fullmag1, clean_magnitude1=cleanmag1, clean_magnitude2=cleanmag2, mag_axlabel1=mag_axlabel1, mag_axlabel2=mag_axlabel2, realization_number=realization_number, tile_name=tile_name, swap_hax=swap_hax, idx_list=cbar_idx_list, bins=cbar_bins, fd_mag_bins=fd_mag_bins, cbar_axlabel=cbar_axlabel, ylow=ylow, yhigh=yhigh)
+		plotter(cbar_val=cbar_val, plot_title=plot_title, fd_1sig=fd_1sig, run_type=run_type, error1=err1, error2=err2, fd_nop=fd_nop, filter_name=f, full_magnitude1=fullmag1, clean_magnitude1=cleanmag1, clean_magnitude2=cleanmag2, mag_axlabel1=mag_axlabel1, mag_axlabel2=mag_axlabel2, realization_number=realization_number, tile_name=tile_name, idx_list=cbar_idx_list, bins=cbar_bins, fd_mag_bins=fd_mag_bins, cbar_axlabel=cbar_axlabel, ylow=ylow, yhigh=yhigh)
 		counter_subplot += 1
 
 
@@ -2268,7 +2274,7 @@ def make_plots(m1_hdr, m2_hdr, ylow, yhigh):
 			if MATCH_CAT2 is 'star_truth':
 				m2_hdr = 'mag_a'
 
-			subplotter(cm_flux_hdr1=cm_flux_hdr1, cm_flux_hdr2=cm_flux_hdr2, cm_flux_cov_hdr1=cm_flux_cov_hdr1, cm_flux_cov_hdr2=cm_flux_cov_hdr2, cm_t_hdr1=cm_t_hdr1, cm_t_hdr2=cm_t_hdr2, cm_t_err_hdr1=cm_t_err_hdr1, cm_t_err_hdr2=cm_t_err_hdr2, cm_s2n_r_hdr1=cm_s2n_r_hdr1, cm_s2n_r_hdr2=cm_s2n_r_hdr2, psfrec_t_hdr1=psfrec_t_hdr1, psfrec_t_hdr2=psfrec_t_hdr2, df=df, fd_1sig=fd_1sig, fd_flag=fd_flag, fd_nop=fd_nop, flag_idx=flag_idx, flag_list=flaglist, mag_hdr1=m1_hdr, mag_hdr2=m2_hdr, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, plot_name=fn, plot_title=title, realization_number='stacked', run_type=None, tile_name=t, swap_hax=SWAP_HAX, stack_realizations=STACK_REALIZATIONS, cm_t_s2n_axlabel1=cm_t_s2n_axlabel1, cm_t_s2n_axlabel2=cm_t_s2n_axlabel2, axlabel1=axlabel1, axlabel2=axlabel2, fd_mag_bins=fd_mag_bins, ylow=ylow, yhigh=yhigh)
+			subplotter(cm_flux_hdr1=cm_flux_hdr1, cm_flux_hdr2=cm_flux_hdr2, cm_flux_cov_hdr1=cm_flux_cov_hdr1, cm_flux_cov_hdr2=cm_flux_cov_hdr2, cm_t_hdr1=cm_t_hdr1, cm_t_hdr2=cm_t_hdr2, cm_t_err_hdr1=cm_t_err_hdr1, cm_t_err_hdr2=cm_t_err_hdr2, cm_s2n_r_hdr1=cm_s2n_r_hdr1, cm_s2n_r_hdr2=cm_s2n_r_hdr2, psfrec_t_hdr1=psfrec_t_hdr1, psfrec_t_hdr2=psfrec_t_hdr2, df=df, fd_1sig=fd_1sig, fd_flag=fd_flag, fd_nop=fd_nop, flag_idx=flag_idx, flag_list=flaglist, mag_hdr1=m1_hdr, mag_hdr2=m2_hdr, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, plot_name=fn, plot_title=title, realization_number='stacked', run_type=None, tile_name=t, stack_realizations=STACK_REALIZATIONS, cm_t_s2n_axlabel1=cm_t_s2n_axlabel1, cm_t_s2n_axlabel2=cm_t_s2n_axlabel2, axlabel1=axlabel1, axlabel2=axlabel2, fd_mag_bins=fd_mag_bins, ylow=ylow, yhigh=yhigh)
 
 
 
@@ -2312,7 +2318,7 @@ def make_plots(m1_hdr, m2_hdr, ylow, yhigh):
 
 
 
-			subplotter(cm_flux_hdr1=cm_flux_hdr1, cm_flux_hdr2=cm_flux_hdr2, cm_flux_cov_hdr1=cm_flux_cov_hdr1, cm_flux_cov_hdr2=cm_flux_cov_hdr2, cm_t_hdr1=cm_t_hdr1, cm_t_hdr2=cm_t_hdr2, cm_t_err_hdr1=cm_t_err_hdr1, cm_t_err_hdr2=cm_t_err_hdr2, cm_s2n_r_hdr1=cm_s2n_r_hdr1, cm_s2n_r_hdr2=cm_s2n_r_hdr2, psfrec_t_hdr1=psfrec_t_hdr1, psfrec_t_hdr2=psfrec_t_hdr2, df=df, fd_1sig=fd_1sig, fd_flag=fd_flag, fd_nop=fd_nop, flag_idx=flag_idx, flag_list=flaglist, mag_hdr1=m1_hdr, mag_hdr2=m2_hdr, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, plot_name=fn, plot_title=title, realization_number=r, run_type=None, tile_name=t, swap_hax=SWAP_HAX, stack_realizations=STACK_REALIZATIONS, cm_t_s2n_axlabel1=cm_t_s2n_axlabel1, cm_t_s2n_axlabel2=cm_t_s2n_axlabel2, axlabel1=axlabel1, axlabel2=axlabel2, fd_mag_bins=fd_mag_bins, ylow=ylow, yhigh=yhigh)
+			subplotter(cm_flux_hdr1=cm_flux_hdr1, cm_flux_hdr2=cm_flux_hdr2, cm_flux_cov_hdr1=cm_flux_cov_hdr1, cm_flux_cov_hdr2=cm_flux_cov_hdr2, cm_t_hdr1=cm_t_hdr1, cm_t_hdr2=cm_t_hdr2, cm_t_err_hdr1=cm_t_err_hdr1, cm_t_err_hdr2=cm_t_err_hdr2, cm_s2n_r_hdr1=cm_s2n_r_hdr1, cm_s2n_r_hdr2=cm_s2n_r_hdr2, psfrec_t_hdr1=psfrec_t_hdr1, psfrec_t_hdr2=psfrec_t_hdr2, df=df, fd_1sig=fd_1sig, fd_flag=fd_flag, fd_nop=fd_nop, flag_idx=flag_idx, flag_list=flaglist, mag_hdr1=m1_hdr, mag_hdr2=m2_hdr, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, plot_name=fn, plot_title=title, realization_number=r, run_type=None, tile_name=t, stack_realizations=STACK_REALIZATIONS, cm_t_s2n_axlabel1=cm_t_s2n_axlabel1, cm_t_s2n_axlabel2=cm_t_s2n_axlabel2, axlabel1=axlabel1, axlabel2=axlabel2, fd_mag_bins=fd_mag_bins, ylow=ylow, yhigh=yhigh)
 
 
 	return 0
