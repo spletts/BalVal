@@ -671,9 +671,9 @@ def bin_and_cut_measured_magnitude_error(clean_magnitude1, clean_magnitude2, err
 		swap_hax (bool) -- "swap horizontal axis". If False plots magnitude1 on the x-axis. If True plots magnitude2 on the x-axis.
 		fd_mag_bins (file director) -- Log file to record information about the bins used in error calculation.
         Returns:
-                b_hax_mag_median (list of floats) -- List of medians of the horizontal axis magnitude in each bin.
-                b_vax_mag_median (list of floats) -- List of medians of the vertical axis magnitude in each bin. Vertical axis is computed via clean_magnitude1 - clean_magnitude2.
-                b_err_median (list of floats) -- Median of the error in each bin.
+                binned_hax_mag_median (list of floats) -- List of medians of the horizontal axis magnitude in each bin.
+                binned_vax_mag_median (list of floats) -- List of medians of the vertical axis magnitude in each bin. Vertical axis is computed via clean_magnitude1 - clean_magnitude2.
+                binned_err_median (list of floats) -- Median of the error in each bin.
                 bins (list of floats) -- Bins used. Binned according to horizontal axis.
         """
 
@@ -718,9 +718,9 @@ def bin_and_cut_measured_magnitude_error(clean_magnitude1, clean_magnitude2, err
 
 
         # b = binned #
-        b_hax_mag_median, b_vax_mag_median, b_err_median = [], [], []
+        binned_hax_mag_median, binned_vax_mag_median, binned_err_median = [], [], []
 	# List of lists. Stores values in each bin #
-	b_hax_mag_list, b_vax_mag_list, b_err_list = [], [], []
+	binned_hax_mag_list, binned_vax_mag_list, binned_err_list = [], [], []
         counter_empty_bin = 0
 
 
@@ -740,15 +740,15 @@ def bin_and_cut_measured_magnitude_error(clean_magnitude1, clean_magnitude2, err
 
 	for j in np.arange(limlow, limhigh, step):
 
-                b_hax_mag_temp, b_vax_mag_temp, b_err_temp, counter_err = [], [], [], 0
+                binned_hax_mag_temp, binned_vax_mag_temp, binned_err_temp, counter_err = [], [], [], 0
 
                 for i in np.arange(0, len(clean_magnitude1)):
 
                         # Do not calculate errors using outlier magnitudes (chosen to be |Delta-M| > 3). Bin magnitude errors according to the magnitude on the horizontal axis of the plot #
                         if hax_mag[i] >= j and hax_mag[i] < j+step and abs(vax_mag[i]) < 3:
-                                b_err_temp.append((error1[i]**2 + error2[i]**2)**0.5)
-                                b_hax_mag_temp.append(hax_mag[i])
-                                b_vax_mag_temp.append(vax_mag[i])
+                                binned_err_temp.append((error1[i]**2 + error2[i]**2)**0.5)
+                                binned_hax_mag_temp.append(hax_mag[i])
+                                binned_vax_mag_temp.append(vax_mag[i])
                                 counter_err += 1
 
                 if PRINTOUTS:
@@ -759,7 +759,7 @@ def bin_and_cut_measured_magnitude_error(clean_magnitude1, clean_magnitude2, err
 		if counter_err == 0:
 			write_median, write_err = 'NA', 'NA'
 		if counter_err > 0:
-			write_median, write_err = np.median(b_hax_mag_temp), np.median(b_err_temp)
+			write_median, write_err = np.median(binned_hax_mag_temp), np.median(binned_err_temp)
 		fd_mag_bins.write(str(counter_err) + '\t' + str(round(j, 2)) + '\t' + str(round(j+step, 2)) + '\t' + str(write_median)+ '\t' + str(write_err) + '\n')
 
                 # Add zeros to empty bins and bins with a small number of points #
@@ -770,23 +770,23 @@ def bin_and_cut_measured_magnitude_error(clean_magnitude1, clean_magnitude2, err
 			CONST = 10
 		if counter_err <= CONST:
                         counter_empty_bin += 1
-                        b_err_median.append(0.0)
-                        b_hax_mag_median.append(0.0)
-                        b_vax_mag_median.append(0.0)
+                        binned_err_median.append(0.0)
+                        binned_hax_mag_median.append(0.0)
+                        binned_vax_mag_median.append(0.0)
 
-			b_err_list.append(0)
-                        b_hax_mag_list.append(0)
-                        b_vax_mag_list.append(0)		
+			binned_err_list.append(0)
+                        binned_hax_mag_list.append(0)
+                        binned_vax_mag_list.append(0)		
 
                 if counter_err > CONST:
-                        b_err_median.append(np.median(b_err_temp))
-                        b_hax_mag_median.append(np.median(b_hax_mag_temp))
-                        b_vax_mag_median.append(np.median(b_vax_mag_temp))
+                        binned_err_median.append(np.median(binned_err_temp))
+                        binned_hax_mag_median.append(np.median(binned_hax_mag_temp))
+                        binned_vax_mag_median.append(np.median(binned_vax_mag_temp))
 	
 			# Add to list of lists to keep bin structure #	
-			b_err_list.append(b_err_temp)
-                        b_hax_mag_list.append(b_hax_mag_temp)
-                        b_vax_mag_list.append(b_vax_mag_temp)
+			binned_err_list.append(binned_err_temp)
+                        binned_hax_mag_list.append(binned_hax_mag_temp)
+                        binned_vax_mag_list.append(binned_vax_mag_temp)
 
 
 	#FIXME : Edit `bins` returned by this function... do not consider the bins with <= CONST objs in it
@@ -799,7 +799,7 @@ def bin_and_cut_measured_magnitude_error(clean_magnitude1, clean_magnitude2, err
 		print ' Calculated errors using objects where |DeltaM| < 3 ... '
 		print ' Excluded bins with less than ', CONST, ' objects ... \n'
 
-        return b_hax_mag_median, b_vax_mag_median, b_err_median, bins, b_hax_mag_list, b_vax_mag_list, b_err_list
+        return binned_hax_mag_median, binned_vax_mag_median, binned_err_median, bins, binned_hax_mag_list, binned_vax_mag_list, binned_err_list
 
 
 
@@ -825,40 +825,33 @@ def normalize_plot_maintain_bin_structure(clean_magnitude1, clean_magnitude2, er
 
 	norm_dm_list, hax_mag_list = [], []
 
-	b_err_median, bins, b_hax_mag_list, b_vax_mag_list = bin_and_cut_measured_magnitude_error(clean_magnitude1=clean_magnitude1, clean_magnitude2=clean_magnitude2, error1=error1, error2=error2, swap_hax=swap_hax, axlabel1=axlabel1, axlabel2=axlabel2, fd_mag_bins=fd_mag_bins)[2:-1]
+	binned_err_median, bins, binned_hax_mag_list, binned_vax_mag_list = bin_and_cut_measured_magnitude_error(clean_magnitude1=clean_magnitude1, clean_magnitude2=clean_magnitude2, error1=error1, error2=error2, swap_hax=swap_hax, axlabel1=axlabel1, axlabel2=axlabel2, fd_mag_bins=fd_mag_bins)[2:-1]
 
 
-	### Identify which magnitude will be plotted on the horizontal axis (hax) ###
-	# FIXME are these needed??
-	''' need to use same hax that was in bins 
-        if swap_hax:
-                hax_clean_mag = clean_magnitude2
-	if swap_hax is False:
-                hax_clean_mag = clean_magnitude1
-	'''
+	# FIXME add swap_hax?
 
 
 	# Loop through bins (b) #
-	for b in np.arange(0, len(b_vax_mag_list)):
+	for b in np.arange(0, len(binned_vax_mag_list)):
 
 		# Normalized Delta-Magnitude (dm) in current bin (icb) #
 		norm_dm_icb, hax_mag_icb = [], []	
 
 		# 0 is a placeholder for empty bins and bins with few objects #
-		if b_err_median[b] == 0:
+		if binned_err_median[b] == 0:
 			norm_dm_list.append(0)	
 			hax_mag_list.append(0)
 
 		#if vax_mag_icb != 0:
-		if b_err_median[b] != 0:
+		if binned_err_median[b] != 0:
 			### @@@ ###
-			vax_mag_icb = b_vax_mag_list[b]
+			vax_mag_icb = binned_vax_mag_list[b]
 
 			for i in np.arange(0, len(vax_mag_icb)):
 				#### @@@@ ####
 				#if hax_mag_icb[i] >= bins[b] and hax_mag_icb[i] < bins[b+1]:
-				norm_dm_icb.append(vax_mag_icb[i]/b_err_median[b])
-				hax_mag_icb.append(b_hax_mag_list[b][i])
+				norm_dm_icb.append(vax_mag_icb[i]/binned_err_median[b])
+				hax_mag_icb.append(binned_hax_mag_list[b][i])
 			# List of lists to keep bin structure #
 			hax_mag_list.append(hax_mag_icb)
 			norm_dm_list.append(norm_dm_icb)
