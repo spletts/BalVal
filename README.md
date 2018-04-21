@@ -30,7 +30,7 @@ Examples of plot attributes, which are explained in `ms_plotter.py` are:
 
 Catalogs are specified using:
 
-`MATCH_CAT1` `MATCH_CAT2` with allowed values: `mof` `sof` `star_truth` `gal_truth`.
+`MATCH_CAT1` `MATCH_CAT2` with allowed values: `mof` `sof` `star_truth` `gal_truth` `coadd`.
 
 `INJ1` `INJ2` (Booleans) which describe if the catalog is Balrog-injected `INJ=True` or non-injected/original `INJ=False`.
 
