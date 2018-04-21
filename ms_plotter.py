@@ -15,11 +15,9 @@ Megan Splettstoesser mspletts@fnal.gov"""
 
 
 # astropy is needed only if analyzing a coadd catalog #
-'''
 from astropy.io import fits
 from astropy.table import Column
 from astropy.table import Table
-'''
 import matplotlib.pyplot as plt
 import matplotlib
 import numpy as np
@@ -88,9 +86,9 @@ SWAP_HAX = False
 
 ### Catalog attributes ###
 # !!!!! Allowed values: sof, mof, star_truth, gal_truth, coadd. Both can be 'sof' and both can be 'mof' if INJ1 and INJ2 are different. Note that truth catalogs always have INJ=True. #
-MATCH_CAT1, MATCH_CAT2 = 'gal_truth', 'sof'
+MATCH_CAT1, MATCH_CAT2 = 'gal_truth', 'coadd'
 # !!!!! Booleans. Examine injected catalogs? #
-INJ1, INJ2 = True, True
+INJ1, INJ2 = True, False
 # !!!!! Must be used with realization=all at command line #
 STACK_REALIZATIONS = False
 
@@ -145,22 +143,22 @@ def get_floats_from_string(df, filter_name, hdr):
 	# Each element (elmt) is of form '(1, 2, 3, 4)' #
 	for elmt in strings:
 
-		if filter_name is 'g':
+		if filter_name == 'g':
 			i = 1
 			idx1 = elmt.find('(') + i
 			idx2 = elmt.find(',')
 
-		if filter_name is 'r':
+		if filter_name == 'r':
 			i = 2
 			idx1 = elmt.replace(',', ';', 0).find(',') + i
 			idx2 = elmt.replace(',', ';', 1).find(',')
 
-		if filter_name is 'i':
+		if filter_name == 'i':
 			i = 2
 			idx1 = elmt.replace(',', ';', 1,).find(',') + i
 			idx2 = elmt.replace(',', ';', 2).find(',')
 
-		if filter_name is 'z':
+		if filter_name == 'z':
 			i = 2
 			idx1 = elmt.replace(',', ';', 2).find(',') + i
 			idx2 = elmt.find(')')
@@ -200,22 +198,22 @@ def get_matrix_diagonal_element(df, filter_name, hdr):
 	# Each element in `matrices` is a matrix of form '((11,12,13,14), (21,22,23,24), (31,32,33,34), (41,42,43,44))' #
 	for matrix in matrices:
 
-		if filter_name is 'g':
+		if filter_name == 'g':
  			i, j = 2, 0
 			idx1 = 0
 			idx2 = matrix.find(',')
 
-		if filter_name is 'r':
+		if filter_name == 'r':
 			i, j = 2, 0
 			idx1 = matrix.replace(',', ';', 4).find(',')
 			idx2 = matrix.replace(',', ';', 5).find(',')
 
-		if filter_name is 'i':
+		if filter_name == 'i':
 			i, j = 2, 0
 			idx1 = matrix.replace(',', ';', 9).find(',')
 			idx2 = matrix.replace(',', ';', 10).find(',')
 
-		if filter_name is 'z':
+		if filter_name == 'z':
 			i, j = 2, -1
 			idx1 = matrix.replace(',', ';', 14).find(',')
 			idx2 = matrix.replace(',', ';', 15).find(',')
@@ -976,17 +974,17 @@ def get_color(filter_name):
 		cmap (str) -- Colormap used for Delta-Magnitude colorbars.
 	"""
 
-	if filter_name is 'g':
+	if filter_name == 'g':
 		color, cmap = 'green', 'Greens'
 
-	if filter_name is 'r':
+	if filter_name == 'r':
 		color, cmap = 'orange', 'Oranges'
 
-	if filter_name is 'i':
+	if filter_name == 'i':
 		#color, cmap = 'purple', 'Purples'
 		color, cmap = 'darkgrey', 'Greys'
 
-	if filter_name is 'z':
+	if filter_name == 'z':
 		#color, cmap = 'blue', 'Blues'
 		color, cmap = 'navy', 'Blues'
 
@@ -1100,15 +1098,18 @@ def get_errors(mag_err_hdr1, mag_err_hdr2, df, cm_flux_hdr1, cm_flux_hdr2, cm_fl
                 if mag_err_hdr1 is None:
                         err1 = calculate_total_fractional_magnitude_error(df=df, flux_hdr=cm_flux_hdr1, cov_hdr=cm_flux_cov_hdr1, filter_name=filter_name, idx_good=idx_good)
                 if mag_err_hdr1 is not None:
-			if 'star' not in MATCH_CAT1:
-                                err1 = df[mag_err_hdr1]
-			if 'star' in MATCH_CAT1:
+			if MATCH_CAT1 == 'coadd':
+				err1 = get_floats_from_string(df=df, hdr=mag_err_hdr1, filter_name=filter_name)
+			if MATCH_CAT1 == 'star_truth':
                                 err1 = df[str(mag_err_hdr1[:-2]) + '_' + filter_name.upper() + str(mag_err_hdr1[-2:])]
 
                 if mag_err_hdr2 is None:
                         err2 = calculate_total_fractional_magnitude_error(df=df, flux_hdr=cm_flux_hdr2, cov_hdr=cm_flux_cov_hdr2, filter_name=filter_name, idx_good=idx_good)
-                if mag_err_hdr2:
-                        err2 = df[mag_err_hdr2]
+                if mag_err_hdr2 is not None:
+			if MATCH_CAT2 == 'coadd':
+				err2 = get_floats_from_string(df=df, hdr=mag_err_hdr2, filter_name=filter_name)
+			if MATCH_CAT2 == 'star_truth':
+				err2 = df[str(mag_err_hdr2[:-2]) + '_' + filter_name.upper() + str(mag_err_hdr2[-2:])] 
 
         if PLOT_1SIG is False:
                 print 'WARNING: Not plotting 1-sigma curve so log file will FALSELY report that ZERO objects are within 1sigma ...\n'
@@ -1171,9 +1172,9 @@ def get_plot_variables(filter_name, df, mag_hdr1, mag_hdr2, flag_hdr_list, cm_s2
 	mag_axlabel2 = str(mag_hdr2[:-2]) + '_' + str(axlabel2)
 
 	# Coadd catalogs. Combined to get '(m_g, m_r, m_i, m_z)' then matched.  #
-	if MATCH_CAT1 is 'coadd':
+	if MATCH_CAT1 == 'coadd':
 		mag_axlabel1 = 'MAG_AUTO_'+ str(axlabel1)
-	if MATCH_CAT2 is 'coadd':
+	if MATCH_CAT2 == 'coadd':
 		mag_axlabel2 = 'MAG_AUTO_'+ str(axlabel2)
 
         if cm_t_hdr1 is not None:
@@ -1658,7 +1659,7 @@ def get_plot_save_name(outdir, realization_number, tile_name, title_piece1, titl
 
 
 
-def get_coadd_mag(fn_g, fn_r, fn_i, fn_z, hdr):
+def get_coadd_mag_and_mag_err(fn_g, fn_r, fn_i, fn_z, mag_hdr, err_hdr):
 	"""Solely for use with coadd catalogs. Creates a list of magnitudes of form '(mag_g, mag_r, mag_i, mag_z)' from four catalogs.
 
 	Args:
@@ -1669,7 +1670,8 @@ def get_coadd_mag(fn_g, fn_r, fn_i, fn_z, hdr):
 	"""
 
 	# Files have not yet been matched, and do not have hdr_1 #
-	hdr = hdr[:-2]
+	mag_hdr = mag_hdr[:-2]
+	err_hdr = err_hdr[:-2]
 
 	# Open FITS files #
 	hdu_g = fits.open(fn_g)
@@ -1684,17 +1686,24 @@ def get_coadd_mag(fn_g, fn_r, fn_i, fn_z, hdr):
 	data_z = hdu_z[1].data
 
 	# Get magnitudes #
-	m_g = data_g[hdr]
-	m_r = data_r[hdr]
-	m_i = data_i[hdr]
-	m_z = data_z[hdr]
+	m_g = data_g[mag_hdr]
+	m_r = data_r[mag_hdr]
+	m_i = data_i[mag_hdr]
+	m_z = data_z[mag_hdr]
 
-	m_griz = []
+	# Get magnitude errors #
+	err_g = data_g[err_hdr]
+	err_r = data_r[err_hdr]
+	err_i = data_i[err_hdr]
+	err_z = data_z[err_hdr]
+
+	m_griz, m_err_griz = [], []
 
         for i in np.arange(0, len(m_g)):
                 m_griz.append("'("+ str(m_g[i]) + ', ' + str(m_r[i]) + ', ' + str(m_i[i]) + ', ' + str(m_z[i]) + ")'")
+		m_err_griz.append("'("+ str(err_g[i])+ ', ' + str(err_r[i])+ ', ' + str(err_i[i]) + ', ' + str(err_z[i]) + ")'")
 
-        return m_griz
+        return m_griz, m_err_griz
 
 
 
@@ -2015,19 +2024,19 @@ def get_class(cat_type, inj, suf):
                 cat_type_class -- Points to the appropriate class which contains constants.
         """
 
-        if cat_type is 'gal_truth':
+        if cat_type == 'gal_truth':
                 cat_type_class = SOFGalTruthCat(inj=inj, suf=suf)
 
-        if cat_type is 'mof':
+        if cat_type == 'mof':
                 cat_type_class = MOFCat(inj=inj, suf=suf)
 
-        if cat_type is 'star_truth':
+        if cat_type == 'star_truth':
                 cat_type_class = StarTruthCat(inj=inj, suf=suf)
 
-        if cat_type is 'sof':
+        if cat_type == 'sof':
                 cat_type_class = SOFCat(inj=inj, suf=suf)
 
-        if cat_type is 'coadd':
+        if cat_type == 'coadd':
                 cat_type_class = CoaddCat(inj=inj, suf=suf)
 
         return cat_type_class
@@ -2054,30 +2063,30 @@ def get_catalog(basepath, cat_type, inj, realization_number, tile_name, filter_n
                 fn -- Filename
         """
 
-        if cat_type is 'gal_truth' and inj:
+        if cat_type == 'gal_truth' and inj:
                 fn = os.path.join(basepath, 'balrog_images', realization_number, tile_name, tile_name+'_'+realization_number+'_balrog_truth_cat_gals.fits')
-        if cat_type is 'gal_truth' and inj is False:
+        if cat_type == 'gal_truth' and inj is False:
                 sys.exit('No non-injected truth catalog exists.')
 
-        if cat_type is 'star_truth' and inj:
+        if cat_type == 'star_truth' and inj:
                 fn = os.path.join(basepath, 'balrog_images', realization_number, tile_name, tile_name+'_'+realization_number+'_balrog_truth_cat_stars.fits')
-        if cat_type is 'star_truth' and inj is False:
+        if cat_type == 'star_truth' and inj is False:
 		sys.exit('No non-injected truth catalog exists.')
 
-        if cat_type is 'sof' and inj:
+        if cat_type == 'sof' and inj:
                 fn = os.path.join(basepath, 'balrog_images', realization_number, tile_name, 'sof', tile_name+'_sof.fits')
-        if cat_type is 'sof' and inj is False:
+        if cat_type == 'sof' and inj is False:
                 fn = os.path.join(basepath, tile_name, 'sof', tile_name+'_sof.fits')
 
-        if cat_type is 'mof' and inj:
+        if cat_type == 'mof' and inj:
                 fn = os.path.join(basepath, 'balrog_images', realization_number, tile_name, 'mof', tile_name+'_mof.fits')
-        if cat_type is 'mof' and inj is False:
+        if cat_type == 'mof' and inj is False:
                 fn = os.path.join(basepath, tile_name, 'mof', tile_name+'_mof.fits')
 
-        if cat_type is 'coadd' and inj:
+        if cat_type == 'coadd' and inj:
 		#fn = os.path.join(basepath, realization_number, tile_name, 'coadd', tile_name+'_i_cat.fits')
                 fn = os.path.join(basepath, realization_number, tile_name, 'coadd', tile_name+'_'+filter_name+'_cat.fits')
-        if cat_type is 'coadd' and inj is False:
+        if cat_type == 'coadd' and inj is False:
 		#fn = os.path.join(basepath, tile_name, 'coadd', tile_name+'_i_cat.fits')
                 fn = os.path.join(basepath, tile_name, 'coadd', tile_name+'_'+filter_name+'_cat.fits')
 
@@ -2188,13 +2197,13 @@ def matcher(basepath, outdir, realization_number, tile_name, filter_name):
         # Input catalogs for STILTS #
 	if MATCH_CAT1 is not 'coadd':
 		in1 = get_catalog(basepath=basepath, cat_type=MATCH_CAT1, inj=INJ1, realization_number=realization_number, tile_name=tile_name, filter_name=filter_name)
-	if MATCH_CAT1 is 'coadd':
-		in1 =  get_coadd_matcher_catalog(basepath=basepath, cat_type=MATCH_CAT1, inj=INJ1, realization_number=realization_number, tile_name=tile_name)
+	if MATCH_CAT1 == 'coadd':
+		in1 =  get_coadd_matcher_catalog(basepath=basepath, cat_type=MATCH_CAT1, inj=INJ1, realization_number=realization_number, tile_name=tile_name, mag_hdr=m1_hdr, err_hdr=mag_err_hdr1)
 
 	if MATCH_CAT2 is not 'coadd':
 		in2 = get_catalog(basepath=basepath, cat_type=MATCH_CAT2, inj=INJ2, realization_number=realization_number, tile_name=tile_name, filter_name=filter_name)
-	if MATCH_CAT2 is 'coadd':
-		in2 =  get_coadd_matcher_catalog(basepath=basepath, cat_type=MATCH_CAT2, inj=INJ2, realization_number=realization_number, tile_name=tile_name)
+	if MATCH_CAT2 == 'coadd':
+		in2 =  get_coadd_matcher_catalog(basepath=basepath, cat_type=MATCH_CAT2, inj=INJ2, realization_number=realization_number, tile_name=tile_name, mag_hdr=m2_hdr, err_hdr=mag_err_hdr2)
 
         # Output catalog name for STILTS #
         outname = os.path.join(outdir, tile_name+'_'+realization_number+'_'+str(MATCH_TYPE)+'_match1and2.csv')
@@ -2227,6 +2236,10 @@ def make_plots(m1_hdr, m2_hdr, ylow, yhigh):
 	Returns:
 		0
 	"""
+
+	# Will only be changed if a coadd catalog is used #
+	global mag_err_hdr1; global mag_err_hdr2
+
 
 	for t in ALL_TILES:
 
@@ -2263,16 +2276,25 @@ def make_plots(m1_hdr, m2_hdr, ylow, yhigh):
 
 
 			### Handle star truth catalogs ###
-			if MATCH_CAT1 is 'star_truth' or MATCH_CAT2 is 'star_truth':
+			if MATCH_CAT1 == 'star_truth' or MATCH_CAT2 == 'star_truth':
 				print 'Adding new column to matched csv ...'
 				star_mag = get_star_mag(df=df)
 				# 'mag_a' short for mag_all. New header must be of the form {base}_x where x is a single character because of the way m_axlabel is created from m_hdr #
 				df.insert(len(df.columns), 'mag_a', star_mag)
 
-			if MATCH_CAT1 is 'star_truth':
+			if MATCH_CAT1 == 'star_truth':
 				m1_hdr = 'mag_a'
-			if MATCH_CAT2 is 'star_truth':
+			if MATCH_CAT2 == 'star_truth':
 				m2_hdr = 'mag_a'
+
+			 ### Handle coadd catalogs. New column has been added with name 'mag_c'. Catalog combined then matched so has suffix (unlike star) #
+                        if MATCH_CAT1 == 'coadd':
+                                m1_hdr = 'mag_c_1'
+                                mag_err_hdr1 = 'mag_err_c_1'
+                        if MATCH_CAT2 == 'coadd':
+                                m2_hdr = 'mag_c_2'
+                                mag_err_hdr2 = 'mag_err_c_2'
+
 
 			subplotter(cm_flux_hdr1=cm_flux_hdr1, cm_flux_hdr2=cm_flux_hdr2, cm_flux_cov_hdr1=cm_flux_cov_hdr1, cm_flux_cov_hdr2=cm_flux_cov_hdr2, cm_t_hdr1=cm_t_hdr1, cm_t_hdr2=cm_t_hdr2, cm_t_err_hdr1=cm_t_err_hdr1, cm_t_err_hdr2=cm_t_err_hdr2, cm_s2n_r_hdr1=cm_s2n_r_hdr1, cm_s2n_r_hdr2=cm_s2n_r_hdr2, psfrec_t_hdr1=psfrec_t_hdr1, psfrec_t_hdr2=psfrec_t_hdr2, df=df, fd_1sig=fd_1sig, fd_flag=fd_flag, fd_nop=fd_nop, flag_idx=flag_idx, flag_list=flaglist, mag_hdr1=m1_hdr, mag_hdr2=m2_hdr, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, plot_name=fn, plot_title=title, realization_number='stacked', run_type=None, tile_name=t, stack_realizations=STACK_REALIZATIONS, cm_t_s2n_axlabel1=cm_t_s2n_axlabel1, cm_t_s2n_axlabel2=cm_t_s2n_axlabel2, axlabel1=axlabel1, axlabel2=axlabel2, fd_mag_bins=fd_mag_bins, ylow=ylow, yhigh=yhigh)
 
@@ -2298,24 +2320,25 @@ def make_plots(m1_hdr, m2_hdr, ylow, yhigh):
 
 
 			### Handle star truth catalogs ###
-                        if MATCH_CAT1 is 'star_truth' or MATCH_CAT2 is 'star_truth':
+                        if MATCH_CAT1 == 'star_truth' or MATCH_CAT2 == 'star_truth':
                                 print 'Adding new column to matched csv ... \n'
                                 star_mag = get_star_mag(df=df)
                                 df.insert(len(df.columns), 'mag_a', star_mag)
 
-			# Star truth catalogs matched then combined #
-                        if MATCH_CAT1 is 'star_truth':
+			# Star truth catalogs matched then combined # #FIXME rename to mag_s for mag_star 
+                        if MATCH_CAT1 == 'star_truth':
                                 m1_hdr = 'mag_a'
-                        if MATCH_CAT2 is 'star_truth':
+                        if MATCH_CAT2 == 'star_truth':
                                 m2_hdr = 'mag_a'
 
 			
-			### Handle coadd catalogs. New column has been added with name 'mag_c' #
-			if MATCH_CAT1 is 'coadd':
+			### Handle coadd catalogs. New column has been added with name 'mag_c'. Catalog combined then matched so has suffix (unlike star) #
+			if MATCH_CAT1 == 'coadd':
 				m1_hdr = 'mag_c_1'
-			if MATCH_CAT2 is 'coadd':
+				mag_err_hdr1 = 'mag_err_c_1'
+			if MATCH_CAT2 == 'coadd':
 				m2_hdr = 'mag_c_2'
-
+				mag_err_hdr2 = 'mag_err_c_2'
 
 
 			subplotter(cm_flux_hdr1=cm_flux_hdr1, cm_flux_hdr2=cm_flux_hdr2, cm_flux_cov_hdr1=cm_flux_cov_hdr1, cm_flux_cov_hdr2=cm_flux_cov_hdr2, cm_t_hdr1=cm_t_hdr1, cm_t_hdr2=cm_t_hdr2, cm_t_err_hdr1=cm_t_err_hdr1, cm_t_err_hdr2=cm_t_err_hdr2, cm_s2n_r_hdr1=cm_s2n_r_hdr1, cm_s2n_r_hdr2=cm_s2n_r_hdr2, psfrec_t_hdr1=psfrec_t_hdr1, psfrec_t_hdr2=psfrec_t_hdr2, df=df, fd_1sig=fd_1sig, fd_flag=fd_flag, fd_nop=fd_nop, flag_idx=flag_idx, flag_list=flaglist, mag_hdr1=m1_hdr, mag_hdr2=m2_hdr, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, plot_name=fn, plot_title=title, realization_number=r, run_type=None, tile_name=t, stack_realizations=STACK_REALIZATIONS, cm_t_s2n_axlabel1=cm_t_s2n_axlabel1, cm_t_s2n_axlabel2=cm_t_s2n_axlabel2, axlabel1=axlabel1, axlabel2=axlabel2, fd_mag_bins=fd_mag_bins, ylow=ylow, yhigh=yhigh)
@@ -2329,12 +2352,19 @@ def make_plots(m1_hdr, m2_hdr, ylow, yhigh):
 
 
 
-def get_coadd_matcher_catalog(basepath, cat_type, inj, realization_number, tile_name):
+def get_coadd_matcher_catalog(basepath, cat_type, inj, realization_number, mag_hdr, err_hdr, tile_name):
 	"""Make FITS file that includes a column of form '(m_g, m_r, m_i, m_z)' where m is magnitude. Column will be added to '..._i_cat.fits'. This will be used in matcher().
 
 	Args:
+		basepath (str) -- String to catalogs.
+		cat_type (str) -- Catalog type. Allowed values: mof, sof, coadd, gal_truth, star_truth.
+		inj (bool) -- Is the catalog (`cat_type`) injected?
+		realization_number (str)
+		mag_hdr (str) -- Header for magnitude. Headers refer to columns in the matched catalog.
+		err_hdr (str) -- Header for error. Headers refer to columns in the matched catalog.
+		tile_name (str)
 	Returns:
-		fn -- Filename. Is a FITS file.
+		fn (str) -- Filename. Is a FITS file.
 	"""
 
 	fn_new = os.path.join(outdir, str(tilename) + '_i_cat.fits')
@@ -2350,22 +2380,23 @@ def get_coadd_matcher_catalog(basepath, cat_type, inj, realization_number, tile_
 		# Get list of filenames #
 		fn_griz = []
 		for f in ALL_FILTERS:
-			fn_griz.append(get_catalog(basepath=basepath, cat_type=MATCH_CAT1, inj=INJ1, realization_number=realization, tile_name=tilename, filter_name=f))
+			fn_griz.append(get_catalog(basepath=basepath, cat_type=cat_type, inj=inj, realization_number=realization, tile_name=tilename, filter_name=f))
 		fn_g, fn_r, fn_i, fn_z = fn_griz
 
-		# Get coadd magnitude (mag_c) to be of form '(m_g, m_r, m_i, m_z)'. Recall that this is a string #
-		mag_c = get_coadd_mag(fn_g=fn_g, fn_r=fn_r, fn_i=fn_i, fn_z=fn_z, hdr=m1_hdr)
-  
+		# Get coadd magnitude (mag_c) and magnitude error to be of form '(m_g, m_r, m_i, m_z)'. Recall that this is a string #
+		mag_c, mag_err_c = get_coadd_mag_and_mag_err(fn_g=fn_g, fn_r=fn_r, fn_i=fn_i, fn_z=fn_z, mag_hdr=mag_hdr, err_hdr=err_hdr)
+ 
 	       # Create new table #
 		mag_c = Column(mag_c, name='mag_c')
+		mag_err_c = Column(mag_err_c, name='mag_err_c')
 
 		# Add new table to i-band coadd catalog #
 		table = Table.read(fn_i)
 		table.add_column(mag_c, index=0)
-        
+       		table.add_column(mag_err_c, index=1)
+ 
 		# Save new table as FITS #
 		table.write(fn_new)
-
 
 	return fn_new 
 
