@@ -1597,6 +1597,11 @@ def get_fd_names(outdir):
 	fn3 = fn = os.path.join(outdir, 'log_files', BALROG_RUN, MATCH_TYPE, 'num_objs_plotted_'+str(MATCH_TYPE)+'.txt')
 	fn4 = os.path.join(outdir, 'log_files', BALROG_RUN, MATCH_TYPE, 'one_sigma_objects_'+str(MATCH_TYPE)+'.txt')
 
+	print '-----> Saving log file for flags as: ', fn1, '\n'
+	print '-----> Saving log file for magnitude and error bins as: ', fn2, '\n'
+	print '-----> Saving log file for number of objects plotted as: ', fn3, '\n'
+	print '-----> Saving log file for number of objects within 1-sigma as: ', fn4, '\n' 
+
 	return fn1, fn2, fn3, fn4
 
 
@@ -2226,7 +2231,7 @@ def matcher(basepath, outdir, realization_number, tile_name, filter_name):
 	if MATCH_CAT2 == 'coadd':
 		in2 =  get_coadd_matcher_catalog(basepath=basepath, cat_type=MATCH_CAT2, inj=INJ2, realization_number=realization_number, tile_name=tile_name, mag_hdr=m2_hdr, err_hdr=mag_err_hdr2)
 
-        # Output catalog name for STILTS #
+        # !!!!! User may wish to edit directory structure. Output catalog name for STILTS #
         outname = os.path.join(outdir, 'catalog_compare', BALROG_RUN, MATCH_TYPE, tile_name+'_'+realization_number+'_'+str(MATCH_TYPE)+'_match1and2.csv')
 
         # Overwrite matched catalog if it already exists? This must be a str. Allowed values: 'False' 'True'. #
@@ -2288,7 +2293,7 @@ def make_plots(m1_hdr, m2_hdr, ylow, yhigh):
 
 				# Save stacked catalog as DataFrame #
 				df.to_csv(fn_stack, sep=',')
-				print '-----> Saving as ', fn_stack
+				print '-----> Saving stacked realization catalog as ', fn_stack
 
 			# Name for plt.savefig() #
 			fn = get_plot_save_name(outdir=outdir, realization_number='stacked_realizations', tile_name=t, title_piece1=title_piece1, title_piece2=title_piece2, ylow=ylow, yhigh=yhigh)
