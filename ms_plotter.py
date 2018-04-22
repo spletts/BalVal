@@ -76,7 +76,7 @@ EH_CUTS = False
 PLOT_1SIG = True
 
 # !!!!! What to do with the plot? #
-SAVE_PLOT = True
+SAVE_PLOT = False
 SHOW_PLOT = True
 
 # !!!!! Limits for the vertical axis. 'None' is an allowed value and will result in default scaling #
@@ -598,7 +598,7 @@ def get_68percentile_from_normalized_data(norm_dm_list, bins, hax_mag_list):
 			neg_vax_34percentile.append(None)
 			pos_vax_34percentile.append(None)
 
-		if norm_dm_list[b] != None:
+		if norm_dm_list[b] is not None:
 
 			### Find 68th percentile about zero ### 	
 			# Values in current bin (icb) #
@@ -846,7 +846,7 @@ def normalize_plot_maintain_bin_structure(clean_magnitude1, clean_magnitude2, er
 
 
 		#if vax_mag_icb != 0:
-		if binned_err_median[b] != None:
+		if binned_err_median[b] is not None:
 			
 			vax_mag_icb = binned_vax_mag_list[b]
 
@@ -881,8 +881,8 @@ def normalize_plot(norm_delta_mag_list, bins, hax_mag_list):
 	"""
 
 	### Remove zeros so that lists can be flattened. Zeros (int) were placeholders for missing lists due to empty or small bin. ###
-	norm_delta_mag_list[:] = [temp for temp in norm_delta_mag_list if temp != None]
-	hax_mag_list[:] = [temp for temp in hax_mag_list if temp != None]
+	norm_delta_mag_list[:] = [temp for temp in norm_delta_mag_list if temp is not None]
+	hax_mag_list[:] = [temp for temp in hax_mag_list if temp is not None]
 
 	### Flatten lists ###
 	hax_mag = [item for sublist in hax_mag_list for item in sublist]
@@ -1308,7 +1308,7 @@ def plotter(cbar_val, error1, error2, fd_nop, fd_1sig, filter_name, clean_magnit
 					x_vbound1 = np.array([bins[b], bins[b]])
 					x_vbound2 = np.array([bins[b+1], bins[b+1]])
 
-					if neg_vax_34percentile[b] != None:
+					if neg_vax_34percentile[b] is not None:
 						# Horizontal bar bounds #
 						neg_y_hbound = np.array([neg_vax_34percentile[b], neg_vax_34percentile[b]])
 						# Vertical bar bounds #
@@ -1323,7 +1323,7 @@ def plotter(cbar_val, error1, error2, fd_nop, fd_1sig, filter_name, clean_magnit
 							plt.plot(x_vbound1, y_vbound, color=color1, linewidth=lws, linestyle=':')
 							plt.plot(x_vbound2, y_vbound, color=color1, linewidth=lws, linestyle=':')
 
-					if pos_vax_34percentile[b] != None:
+					if pos_vax_34percentile[b] is not None:
 						# Horizontal bar bounds #
 						pos_y_hbound = np.array([pos_vax_34percentile[b], pos_vax_34percentile[b]])
 						# Vertical bar bounds #
@@ -1342,7 +1342,7 @@ def plotter(cbar_val, error1, error2, fd_nop, fd_1sig, filter_name, clean_magnit
 
 				for b in np.arange(0, len(vax_68percentile_list)-1):
 
-					if vax_68percentile_list[b] != None:
+					if vax_68percentile_list[b] is not None:
 
 						# Horizontal bar bounds #
 						x_hbound = np.array([bins[b], bins[b+1]])
@@ -1387,9 +1387,9 @@ def plotter(cbar_val, error1, error2, fd_nop, fd_1sig, filter_name, clean_magnit
 			hax, vax, err, bins = bin_and_cut_measured_magnitude_error(error1=error1, error2=error2, clean_magnitude1=clean_magnitude1, clean_magnitude2=clean_magnitude2, axlabel1=mag_axlabel1, axlabel2=mag_axlabel2, fd_mag_bins=fd_mag_bins, filter_name=filter_name)[:4]
 
 			### Remove zeros from x, y, and err (zeros were placeholders for instances in which there were no objects in a particular magnitude bin) ###
-			err[:] = [temp for temp in err if temp != None]
-			hax[:] = [temp for temp in hax if temp != None]
-			vax[:] = [temp for temp in vax if temp != None]
+			err[:] = [temp for temp in err if temp is not None]
+			hax[:] = [temp for temp in hax if temp is not None]
+			vax[:] = [temp for temp in vax if temp is not None]
 			### Plot 1-sigma curve ###
 			plt.plot(hax, np.array(vax) + np.array(err), color='red', linestyle='-', linewidth=0.7, label='$1 \sigma_{mag\_meas}$')
 			plt.plot(hax, np.array(vax) - np.array(err), color='red', linestyle='-', linewidth=0.7)
