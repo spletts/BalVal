@@ -19,7 +19,9 @@ Ex: `$python ms_plotter.py /data/des71.a/data/kuropat/des2247-4414_sof/y3v02/ /B
 
 `all` is an allowed value for both `realization` and `tile`.
 
-After the above command is issued, a prompt will appear so that the user can confirm plot attributes. This is to prevent plots from being overwritten when testing new additions to the script. User can comment `NOTICE` to remove prompt. User should set plot attributes and catalog attributes within `ms_plotter.py`.
+After the above command is issued, a prompt will appear so that the user can confirm plot attributes. This is to prevent plots from being overwritten when testing new additions to the script. User can comment `NOTICE` to remove prompt. 
+
+User sets plot attributes and catalog attributes within `ms_plotter.py`.
 
 **Plot attributes**
 
