@@ -15,9 +15,11 @@ Megan Splettstoesser mspletts@fnal.gov"""
 
 
 # astropy is needed only if analyzing a coadd catalog #
+'''
 from astropy.io import fits
 from astropy.table import Column
 from astropy.table import Table
+'''
 import matplotlib.pyplot as plt
 import matplotlib
 import numpy as np
@@ -59,13 +61,13 @@ if realization != 'all':
 
 ### Colorbar ###
 # !!!!! Add colorbar according to one of the following (only one can be True at a time). If all are False a scatter-plot is made. Colorbars cannot be used if NORMALIZE is True. #
-HEXBIN = True
+HEXBIN = False
 CM_T_S2N_COLORBAR = False
 CM_T_ERR_COLORBAR = False
 CM_T_COLORBAR = False
 BIN_CM_T_S2N = False
 # Normalizes plot to 1-sigma magnitude error. If NORMALIZE is True, PLOT_1SIG must be True else errors will not be computed and normalization cannot be performed #
-NORMALIZE = False
+NORMALIZE = True
 
 # Use quality cuts introduced by Eric Huff? Link: https://github.com/sweverett/Balrog-GalSim/blob/master/plots/balrog_catalog_tests.py. Can only be performed if catalog has all the necessary headers: cm_s2n_r, cm_T, cm_T_err, and psfrec_T. #
 EH_CUTS = False
@@ -74,7 +76,7 @@ EH_CUTS = False
 PLOT_1SIG = True
 
 # !!!!! What to do with the plot? #
-SAVE_PLOT = False
+SAVE_PLOT = True
 SHOW_PLOT = True
 
 # !!!!! Limits for the vertical axis. 'None' is an allowed value and will result in default scaling #
@@ -86,12 +88,14 @@ SWAP_HAX = False
 
 ### Catalog attributes ###
 # !!!!! Allowed values: sof, mof, star_truth, gal_truth, coadd. Both can be 'sof' and both can be 'mof' if INJ1 and INJ2 are different. Note that truth catalogs always have INJ=True. #
-MATCH_CAT1, MATCH_CAT2 = 'gal_truth', 'coadd'
+MATCH_CAT1, MATCH_CAT2 = 'gal_truth', 'sof'
 # !!!!! Booleans. Examine injected catalogs? #
-INJ1, INJ2 = True, False
+INJ1, INJ2 = True, True
 # !!!!! Must be used with realization=all at command line #
 STACK_REALIZATIONS = False
 
+# !!!!! Make 2x2 subplots of each griz filter? Or make individual plots? #
+SUBPLOT = False
 
 ### Miscellaneous ###
 # Print progress? #
@@ -103,7 +107,8 @@ PRINTOUTS_MINOR = False
 LOG_FLAGS = False
 PLOT_FLAGGED_OBJS = True
 SHOW_FLAG_TYPE = False
-SUBPLOT = True #TODO
+# Want to make 2x2 subplots of each griz filter? #
+SUBPLOT = False
 
 
 
@@ -926,7 +931,7 @@ def one_sigma_counter(norm_delta_mag, clean_magnitude1, bins, hax_mag):
 
 	if PRINTOUTS:
 		print 'Fraction of objects within 1-sigma: ', counter_1sig, ' / ', len(norm_delta_mag), ' = ', str(float(counter_1sig) / len(norm_delta_mag))
-		print ' Fraction of objects considered from clean magnitude: ', str(float(len(norm_delta_mag)) / len(clean_magnitude1)), '\n'
+		print ' Fraction of objects considered (objects plotted on normalized plot / objects plotted on scatter plot): ', str(float(len(norm_delta_mag)) / len(clean_magnitude1)), '\n'
 
 
 	return counter_1sig
@@ -1246,7 +1251,7 @@ def get_plot_variables(filter_name, df, mag_hdr1, mag_hdr2, flag_hdr_list, cm_s2
 
 
 
-def plotter(cbar_val, error1, error2, fd_nop, fd_1sig, filter_name, clean_magnitude1, full_magnitude1, mag_axlabel1, clean_magnitude2, mag_axlabel2, plot_title, realization_number, run_type, tile_name, idx_list, bins, cbar_axlabel, fd_mag_bins, ylow, yhigh):
+def plotter(cbar_val, error1, error2, fd_nop, fd_1sig, filter_name, clean_magnitude1, full_magnitude1, mag_axlabel1, clean_magnitude2, mag_axlabel2, plot_title, realization_number, run_type, tile_name, idx_list, bins, cbar_axlabel, fd_mag_bins, ylow, yhigh, plot_name):
 	"""Plot a single magnitude versus delta-magnitude plot.
 
 	Args:
@@ -1300,7 +1305,8 @@ def plotter(cbar_val, error1, error2, fd_nop, fd_1sig, filter_name, clean_magnit
 				for b in np.arange(0, len(neg_vax_34percentile)-1):
 					# Horizontal bar bounds #
 					x_hbound = np.array([bins[b], bins[b+1]])
-					x_vbound = np.array([bins[b], bins[b]])
+					x_vbound1 = np.array([bins[b], bins[b]])
+					x_vbound2 = np.array([bins[b+1], bins[b+1]])
 
 					if neg_vax_34percentile[b] != None:
 						# Horizontal bar bounds #
@@ -1314,7 +1320,8 @@ def plotter(cbar_val, error1, error2, fd_nop, fd_1sig, filter_name, clean_magnit
 							counter_legend1 = 1
 						if counter_legend1 == 1:
 							plt.plot(x_hbound, neg_y_hbound, color=color1)
-							plt.plot(x_vbound, y_vbound, color=color1, linewidth=lws, linestyle=':')
+							plt.plot(x_vbound1, y_vbound, color=color1, linewidth=lws, linestyle=':')
+							plt.plot(x_vbound2, y_vbound, color=color1, linewidth=lws, linestyle=':')
 
 					if pos_vax_34percentile[b] != None:
 						# Horizontal bar bounds #
@@ -1323,7 +1330,8 @@ def plotter(cbar_val, error1, error2, fd_nop, fd_1sig, filter_name, clean_magnit
 						y_vbound = np.array([0, pos_vax_34percentile[b]])
 						# Plot #
 						plt.plot(x_hbound, pos_y_hbound, color=color1, linewidth=lwt)
-						plt.plot(x_vbound, y_vbound, color=color1, linewidth=lws, linestyle=':')
+						plt.plot(x_vbound1, y_vbound, color=color1, linewidth=lws, linestyle=':')
+						plt.plot(x_vbound2, y_vbound, color=color1, linewidth=lws, linestyle=':')
 				
 
 	
@@ -1446,9 +1454,18 @@ def plotter(cbar_val, error1, error2, fd_nop, fd_1sig, filter_name, clean_magnit
 			l.set_alpha(1)
 
 
-	if SUBPLOT is False and SHOW_PLOT:
-		plt.title(plot_title)
-		plt.show()
+	if SUBPLOT is False:
+
+		plot_name = plot_name.replace('griz', filter_name)
+
+		### Save plot ###
+		if SAVE_PLOT:
+			print '-----> Saving plot as: ', plot_name
+			plt.savefig(plot_name)
+
+		if SHOW_PLOT:
+			plt.title(plot_title)
+			plt.show()
 
 
         return 0
@@ -1498,31 +1515,36 @@ def subplotter(cm_flux_hdr1, cm_flux_hdr2, cm_flux_cov_hdr1, cm_flux_cov_hdr2, c
 		cbar_val, cbar_idx_list, cbar_bins, err1, err2, cleanmag1, cleanmag2, index_good, cbar_axlabel, fullmag1, mag_axlabel1, mag_axlabel2 = get_plot_variables(filter_name=f, df=df, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, flag_hdr_list=flag_list, cm_s2n_r_hdr1=cm_s2n_r_hdr1, cm_s2n_r_hdr2=cm_s2n_r_hdr2, psfrec_t_hdr1=psfrec_t_hdr1, psfrec_t_hdr2=psfrec_t_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, cm_flux_hdr1=cm_flux_hdr1, cm_flux_hdr2=cm_flux_hdr2, cm_flux_cov_hdr1=cm_flux_cov_hdr1, cm_flux_cov_hdr2=cm_flux_cov_hdr2, realization_number=realization_number, tile_name=tile_name, run_type=run_type, axlabel1=axlabel1, axlabel2=axlabel2, cm_t_hdr1=cm_t_hdr1, cm_t_hdr2=cm_t_hdr2, cm_t_err_hdr1=cm_t_err_hdr1, cm_t_err_hdr2=cm_t_err_hdr2, flag_list=flag_list)
 
 
+
 		### Subplot ###
-		plt.subplot(2, 2, counter_subplot)
-		plotter(cbar_val=cbar_val, plot_title=plot_title, fd_1sig=fd_1sig, run_type=run_type, error1=err1, error2=err2, fd_nop=fd_nop, filter_name=f, full_magnitude1=fullmag1, clean_magnitude1=cleanmag1, clean_magnitude2=cleanmag2, mag_axlabel1=mag_axlabel1, mag_axlabel2=mag_axlabel2, realization_number=realization_number, tile_name=tile_name, idx_list=cbar_idx_list, bins=cbar_bins, fd_mag_bins=fd_mag_bins, cbar_axlabel=cbar_axlabel, ylow=ylow, yhigh=yhigh)
+		if SUBPLOT:
+			plt.subplot(2, 2, counter_subplot)
+
+		plotter(cbar_val=cbar_val, plot_title=plot_title, fd_1sig=fd_1sig, run_type=run_type, error1=err1, error2=err2, fd_nop=fd_nop, filter_name=f, full_magnitude1=fullmag1, clean_magnitude1=cleanmag1, clean_magnitude2=cleanmag2, mag_axlabel1=mag_axlabel1, mag_axlabel2=mag_axlabel2, realization_number=realization_number, tile_name=tile_name, idx_list=cbar_idx_list, bins=cbar_bins, fd_mag_bins=fd_mag_bins, cbar_axlabel=cbar_axlabel, ylow=ylow, yhigh=yhigh, plot_name=plot_name)
+
 		counter_subplot += 1
 
 
-	### Show or save the plot once all four subplots have been filled ###
-	plt.subplots_adjust(hspace=0.4)
-	plt.subplots_adjust(wspace=0.3)
-	plt.tight_layout(pad=3, h_pad=2.5)
+	if SUBPLOT:
+
+		### Show or save the plot once all four subplots have been filled ###
+		plt.subplots_adjust(hspace=0.4)
+		plt.subplots_adjust(wspace=0.3)
+		plt.tight_layout(pad=3, h_pad=2.5)
 
 
-	### Title ###
-	plt.suptitle(plot_title)
+		### Title ###
+		plt.suptitle(plot_title)
 
 
-	### Save plot ###
-	if SAVE_PLOT:
-		filename = plot_name
-		print '-----> Saving plot as: ', filename
-		plt.savefig(plot_name)
+		### Save plot ###
+		if SAVE_PLOT:
+			print '-----> Saving plot as: ', plot_name
+			plt.savefig(plot_name)
 
-	### Show plot ###
-	if SHOW_PLOT:
-		plt.show()
+		### Show plot ###
+		if SHOW_PLOT:
+			plt.show()
 
 	
 	return flag_idx
@@ -1629,7 +1651,7 @@ def get_plot_save_name(outdir, realization_number, tile_name, title_piece1, titl
 	if YLOW is not None and YHIGH is not None:
 		ylim = str(YLOW)+'y'+str(YHIGH)
 	
-	endname = str(tile_name) + '_' + str(realization_number) + '_' + str(match_type) + '_'+str(ylim)+'_rm_flags.png'
+	endname = str(tile_name) + '_' + str(realization_number) + '_griz_' + str(match_type) + '_'+str(ylim)+'_rm_flags.png'
 
 	# dm = delta magnitude #	
         if CM_T_S2N_COLORBAR:
@@ -2271,6 +2293,7 @@ def make_plots(m1_hdr, m2_hdr, ylow, yhigh):
 
 			# Name for plt.savefig() #
 			fn = get_plot_save_name(outdir=outdir, realization_number='stacked_realizations', tile_name=t, title_piece1=title_piece1, title_piece2=title_piece2, ylow=ylow, yhigh=yhigh)
+
 			# Title for plot #
 			title = get_plot_suptitle(realization_number='stacked '+str(len(ALL_REALIZATIONS)), tile_name=t, title_piece1=title_piece1, title_piece2=title_piece2)
 
