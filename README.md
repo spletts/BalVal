@@ -38,7 +38,43 @@ Catalogs are specified using:
 
 User may need to replace `/data/des71.a/data/mspletts/balrog_validation_tests/scripts/ms_matcher` (in `ms_plotter.matcher()`) with the correct path to `ms_matcher`.
 
+---
+
+# Directory structure
+
+User can change directory structure in `ms_plotter.py`; search for `User may wish to edit directory structure`. 
+
+Directory structures depend on `outdir` `BALROG_RUN` `MATCH_TYPE`, which are defined below.
+
+`outdir` is supplied at the command line.
+
+`BALROG_RUN` `MATCH_TYPE` are defined in `ms_plotter.py` as follows:
+
+If `/data/des71.a/data/kuropat/des2247-4414_sof/y3v02/` is issued at the command line, `BALROG_RUN=des2247-4414_sof`.
+
+If `MATCH_CAT1, MATCH_CAT2, INJ1, INJ2 = 'gal_truth', 'sof', True, True` then `MATCH_TYPE=inj_gal_truth_cat_inj_sof_cat`. Note that `MATCH_TYPE` reflects the order in which the catalogs were matched in `ms_matcher`.
+
+**Matched catalogs**
+
+Matched catalogs are saved in: `outdir/catalog_compare/BALROG_RUN/MATCH_TYPE/`
+
+
+**Log Files**
+
+Log files are saved in: `outdir/log_files/BALROG_RUN/MATCH_TYPE/`
+
+
+**Plots**
+
+Plots are saved in: `outdir/plots/BALROG_RUN/MATCH_TYPE/{tile}/{plot_type}/{realization}/`
+
+Allowed values for `{plot_type}`: `normalized` `scatter`.
+
+Allowed values for `{realization}`: `0` `1` ... `stacked`.
+
+
 **Defaults**
+
 ...
 
 ___
@@ -49,12 +85,4 @@ Matching is performed first, then catalogs are stacked.
 
 ___
 
-**Directory structure for saving plots**
 
-Directory structure: `outdir/{tile}/{plot_type}/{realization}/`.
-
-Allowed values for `{plot_type}` are: `normalized` `scatter`.
-
-Allowed values for `{realization}` are: `0` `1` ... `stacked`.
-
-User can change directory structure in `ms_plotter.get_plot_save_name()`.
