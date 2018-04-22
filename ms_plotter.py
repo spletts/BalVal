@@ -38,6 +38,8 @@ if len(sys.argv) != 5:
         sys.exit("Args: basepath (location of catalogs), output directory, realization (can be 'all'), tile (can be 'all') \n")
 
 
+BALROG_RUN = basepath[basepath.replace('/', ';', 4).find('/')+1:basepath.replace('/', ';', 5).find('/')]
+
 ALL_FILTERS = [ 'g', 'r', 'i', 'z' ]
 
 # !!!!! Number of realizations depends on the tile # 
@@ -76,7 +78,7 @@ EH_CUTS = False
 PLOT_1SIG = True
 
 # !!!!! What to do with the plot? #
-SAVE_PLOT = False
+SAVE_PLOT = True
 SHOW_PLOT = True
 
 # !!!!! Limits for the vertical axis. 'None' is an allowed value and will result in default scaling #
@@ -95,7 +97,7 @@ INJ1, INJ2 = True, True
 STACK_REALIZATIONS = False
 
 # !!!!! Make 2x2 subplots of each griz filter? Or make individual plots? #
-SUBPLOT = False
+SUBPLOT = True
 
 ### Miscellaneous ###
 # Print progress? #
@@ -107,8 +109,6 @@ PRINTOUTS_MINOR = False
 LOG_FLAGS = False
 PLOT_FLAGGED_OBJS = True
 SHOW_FLAG_TYPE = False
-# Want to make 2x2 subplots of each griz filter? #
-SUBPLOT = False
 
 
 
@@ -1580,8 +1580,9 @@ def get_match_type(title_piece1, title_piece2):
 
 
 
-def get_fd_names(title_piece1, title_piece2, outdir):
+def get_fd_names(outdir):
         """Generate names for the following log files: flags, magnitude bins, number of objects plotted, number of objects within one sigma.
+	Relies on directory structure: outdir/log_files/`BALROG_RUN`/`MATCH_TYPE`/
 
         Args:
                 title_piece1, title_piece2 (str) --
@@ -1590,12 +1591,11 @@ def get_fd_names(title_piece1, title_piece2, outdir):
                 fn1, fn2, fn3, fn4 (str) -- Filenames for flag log file, magnitude log, number of objects plotted log, number of objects within 1-sigma, respectively.
         """
 
-        match_type = get_match_type(title_piece1, title_piece2)
-
-	fn1 = os.path.join(outdir, 'flag_log_'+str(match_type)+'.csv')
-	fn2 = os.path.join(outdir, 'magnitude_bins_'+str(match_type)+'.txt')
-	fn3 = fn = os.path.join(outdir, 'num_objs_plotted_'+str(match_type)+'.txt')
-	fn4 = os.path.join(outdir, 'one_sigma_objects_'+str(match_type)+'.txt')
+	# !!!!! User may wish to edit directory structure #
+	fn1 = os.path.join(outdir, 'log_files', BALROG_RUN, MATCH_TYPE, 'flag_log_'+str(MATCH_TYPE)+'.csv')
+	fn2 = os.path.join(outdir, 'log_files', BALROG_RUN, MATCH_TYPE, 'magnitude_bins_'+str(MATCH_TYPE)+'.txt')
+	fn3 = fn = os.path.join(outdir, 'log_files', BALROG_RUN, MATCH_TYPE, 'num_objs_plotted_'+str(MATCH_TYPE)+'.txt')
+	fn4 = os.path.join(outdir, 'log_files', BALROG_RUN, MATCH_TYPE, 'one_sigma_objects_'+str(MATCH_TYPE)+'.txt')
 
 	return fn1, fn2, fn3, fn4
 
@@ -1633,7 +1633,8 @@ def get_plot_suptitle(realization_number, tile_name, title_piece1, title_piece2)
 
 
 def get_plot_save_name(outdir, realization_number, tile_name, title_piece1, title_piece2, ylow, yhigh):
-        """Generate name of the plot that will be used in plt.savefig(). Relies on directory structure fn_dir/{tile}/{plot_type}/{realization}/ where allowed values for plot_type are: 'normalized' 'scatter'. 
+        """Generate name of the plot that will be used in plt.savefig().
+	Relies on directory structure: outdir/plots/`BALROG_RUN`/`MATCH_TYPE`/{tile}/{plot_type}/{realization}/ where allowed values for plot_type are: 'normalized' 'scatter'. 
 
         Args:
                 outdir (str) -- Output directory
@@ -1643,7 +1644,6 @@ def get_plot_save_name(outdir, realization_number, tile_name, title_piece1, titl
                 fn (str) -- The complete filename which includes path.
         """
 
-        match_type = get_match_type(title_piece1, title_piece2)
 
 	if YLOW is None and YHIGH is None:
 		# Default scale for the vertical axis (vax) is used #
@@ -1651,7 +1651,7 @@ def get_plot_save_name(outdir, realization_number, tile_name, title_piece1, titl
 	if YLOW is not None and YHIGH is not None:
 		ylim = str(YLOW)+'y'+str(YHIGH)
 	
-	endname = str(tile_name) + '_' + str(realization_number) + '_griz_' + str(match_type) + '_'+str(ylim)+'_rm_flags.png'
+	endname = str(tile_name) + '_' + str(realization_number) + '_griz_' + str(MATCH_TYPE) + '_'+str(ylim)+'_rm_flags.png'
 
 	# dm = delta magnitude #	
         if CM_T_S2N_COLORBAR:
@@ -1667,9 +1667,9 @@ def get_plot_save_name(outdir, realization_number, tile_name, title_piece1, titl
 
 	# !!!!! User may wish to edit directory structure #
         if NORMALIZE:
-                fn = os.path.join(outdir, tile_name, 'normalized', realization_number, 'norm_' + str(outname))
+                fn = os.path.join(outdir, 'plots', BALROG_RUN, MATCH_TYPE, tile_name, 'normalized', realization_number, 'norm_' + str(outname))
         if NORMALIZE is False:
-                fn = os.path.join(outdir, tile_name, 'scatter', realization_number, outname)
+                fn = os.path.join(outdir, 'plots', BALROG_RUN, MATCH_TYPE, tile_name, 'scatter', realization_number, outname)
 
         return fn
 
@@ -2173,11 +2173,10 @@ flag_idx = []
 ### For plot names, plot titles, log file names ###
 title_piece1 = class1.title_piece
 title_piece2 = class2.title_piece
-MATCH_TYPE = match_type = get_match_type(title_piece1, title_piece2)
-
+MATCH_TYPE = get_match_type(title_piece1, title_piece2)
 
 ### Names for file directors (fd) ###
-fd_flag_name, fd_mag_bins_name, fd_nop_name, fd_1sig_name = get_fd_names(outdir=outdir, title_piece1=title_piece1, title_piece2=title_piece2)
+fd_flag_name, fd_mag_bins_name, fd_nop_name, fd_1sig_name = get_fd_names(outdir=outdir)
 
 # Create log file for number of objects plotted (nop) #
 fd_nop = open(fd_nop_name, 'w')
@@ -2228,7 +2227,7 @@ def matcher(basepath, outdir, realization_number, tile_name, filter_name):
 		in2 =  get_coadd_matcher_catalog(basepath=basepath, cat_type=MATCH_CAT2, inj=INJ2, realization_number=realization_number, tile_name=tile_name, mag_hdr=m2_hdr, err_hdr=mag_err_hdr2)
 
         # Output catalog name for STILTS #
-        outname = os.path.join(outdir, tile_name+'_'+realization_number+'_'+str(MATCH_TYPE)+'_match1and2.csv')
+        outname = os.path.join(outdir, 'catalog_compare', BALROG_RUN, MATCH_TYPE, tile_name+'_'+realization_number+'_'+str(MATCH_TYPE)+'_match1and2.csv')
 
         # Overwrite matched catalog if it already exists? This must be a str. Allowed values: 'False' 'True'. #
         OVERWRITE = 'False'
