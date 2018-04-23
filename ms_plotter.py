@@ -69,7 +69,7 @@ CM_T_ERR_COLORBAR = False
 CM_T_COLORBAR = False
 BIN_CM_T_S2N = False
 # Normalizes plot to 1-sigma magnitude error. If NORMALIZE is True, PLOT_1SIG must be True else errors will not be computed and normalization cannot be performed #
-NORMALIZE = True
+NORMALIZE = False
 
 # Use quality cuts introduced by Eric Huff? Link: https://github.com/sweverett/Balrog-GalSim/blob/master/plots/balrog_catalog_tests.py. Can only be performed if catalog has all the necessary headers: cm_s2n_r, cm_T, cm_T_err, and psfrec_T. #
 EH_CUTS = False
@@ -78,7 +78,7 @@ EH_CUTS = False
 PLOT_1SIG = True
 
 # !!!!! What to do with the plot? #
-SAVE_PLOT = True
+SAVE_PLOT = False
 SHOW_PLOT = True
 
 # !!!!! Limits for the vertical axis. 'None' is an allowed value and will result in default scaling #
@@ -98,6 +98,10 @@ STACK_REALIZATIONS = False
 
 # !!!!! Make 2x2 subplots of each griz filter? Or make individual plots? #
 SUBPLOT = True
+
+# !!!!! If directories do no exist, make them or force sys.exit() to edit dirs within script? NO_DIR_EXIT is invoked first, so sys.exit() will exit if NO_DIR_EXIT = True and NO_DIR_MAKE = True #
+NO_DIR_EXIT = False
+NO_DIR_MAKE = True
 
 ### Miscellaneous ###
 # Print progress? #
@@ -1592,10 +1596,19 @@ def get_fd_names(outdir):
         """
 
 	# !!!!! User may wish to edit directory structure #
-	fn1 = os.path.join(outdir, 'log_files', BALROG_RUN, MATCH_TYPE, 'flag_log_'+str(MATCH_TYPE)+'.csv')
-	fn2 = os.path.join(outdir, 'log_files', BALROG_RUN, MATCH_TYPE, 'magnitude_bins_'+str(MATCH_TYPE)+'.txt')
-	fn3 = fn = os.path.join(outdir, 'log_files', BALROG_RUN, MATCH_TYPE, 'num_objs_plotted_'+str(MATCH_TYPE)+'.txt')
-	fn4 = os.path.join(outdir, 'log_files', BALROG_RUN, MATCH_TYPE, 'one_sigma_objects_'+str(MATCH_TYPE)+'.txt')
+	### Check for directory existence ###
+	log_dir = os.path.join(outdir, 'log_files', BALROG_RUN, MATCH_TYPE)
+	if os.path.isdir(log_dir) is False:
+		if NO_DIR_EXIT:
+			sys.exit('Directory ' + str(log_dir) + ' does not exist. \n Change directory structure in ms_plotter.get_fd_names() or set `NO_DIR_MAKE=True`')
+		if NO_DIR_MAKE:
+			print 'Making directory ', log_dir, '...\n'
+			os.makedirs(log_dir)
+	
+	fn1 = os.path.join(log_dir, 'flag_log_'+str(MATCH_TYPE)+'.csv')
+	fn2 = os.path.join(log_dir, 'magnitude_bins_'+str(MATCH_TYPE)+'.txt')
+	fn3 = os.path.join(log_dir, 'num_objs_plotted_'+str(MATCH_TYPE)+'.txt')
+	fn4 = os.path.join(log_dir, 'one_sigma_objects_'+str(MATCH_TYPE)+'.txt')
 
 	print '-----> Saving log file for flags as: ', fn1, '\n'
 	print '-----> Saving log file for magnitude and error bins as: ', fn2, '\n'
@@ -1649,7 +1662,7 @@ def get_plot_save_name(outdir, realization_number, tile_name, title_piece1, titl
                 fn (str) -- The complete filename which includes path.
         """
 
-
+	### Get filename ###
 	if YLOW is None and YHIGH is None:
 		# Default scale for the vertical axis (vax) is used #
 		ylim = 'defaultvax'
@@ -1670,11 +1683,28 @@ def get_plot_save_name(outdir, realization_number, tile_name, title_piece1, titl
 	if CM_T_S2N_COLORBAR is False and CM_T_COLORBAR is False and CM_T_ERR_COLORBAR is False and HEXBIN is False:
 		outname = 'm_vs_dm_' + endname
 
+
 	# !!!!! User may wish to edit directory structure #
+	### Check for directory existence ###
+	if NORMALIZE:
+		plot_dir = os.path.join(outdir, 'plots', BALROG_RUN, MATCH_TYPE, tile_name, 'normalized', realization_number)
+	if NORMALIZE is False:
+		plot_dir = os.path.join(outdir, 'plots', BALROG_RUN, MATCH_TYPE, tile_name, 'scatter', realization_number, outname)
+	
+	if os.path.isdir(plot_dir) is False:
+		if NO_DIR_EXIT:
+			sys.exit('Directory ' + str(plot_dir) + ' does not exist. \n Change directory structure in ms_plotter.get_plot_save_name() or set `NO_DIR_MAKE=True`')
+		if NO_DIR_MAKE:
+			print 'Making directory ', plot_dir, '...\n'
+			os.makedirs(plot_dir)
+
+
+	### Get filename and path ###
         if NORMALIZE:
-                fn = os.path.join(outdir, 'plots', BALROG_RUN, MATCH_TYPE, tile_name, 'normalized', realization_number, 'norm_' + str(outname))
+		fn = os.path.join(plot_dir, 'norm_' + str(outname))
         if NORMALIZE is False:
-                fn = os.path.join(outdir, 'plots', BALROG_RUN, MATCH_TYPE, tile_name, 'scatter', realization_number, outname)
+		fn = os.path.join(plot_dir, outname)
+
 
         return fn
 
@@ -2232,6 +2262,15 @@ def matcher(basepath, outdir, realization_number, tile_name, filter_name):
 		in2 =  get_coadd_matcher_catalog(basepath=basepath, cat_type=MATCH_CAT2, inj=INJ2, realization_number=realization_number, tile_name=tile_name, mag_hdr=m2_hdr, err_hdr=mag_err_hdr2)
 
         # !!!!! User may wish to edit directory structure. Output catalog name for STILTS #
+	### Check for directory existence ###
+	match_dir = os.path.join(outdir, 'catalog_compare', BALROG_RUN, MATCH_TYPE)
+	if os.path.isdir(match_dir) is False:
+		if NO_DIR_EXIT:
+			sys.exit('Directory ' + str(match_dir) + ' does not exist. \n Change directory structure in ms_plotter.matcher() or set `NO_DIR_MAKE=True`')
+		if NO_DIR_MAKE:
+			print 'Making directory ', match_dir, '...\n'
+			os.makedirs(match_dir)
+
         outname = os.path.join(outdir, 'catalog_compare', BALROG_RUN, MATCH_TYPE, tile_name+'_'+realization_number+'_'+str(MATCH_TYPE)+'_match1and2.csv')
 
         # Overwrite matched catalog if it already exists? This must be a str. Allowed values: 'False' 'True'. #
