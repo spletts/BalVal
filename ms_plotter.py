@@ -32,10 +32,10 @@ import sys
 
 
 ### Command line args ###
-basepath, outdir, realization, tilename = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
+basepath, outdir, realizations, tiles = sys.argv[1], sys.argv[2], sys.argv[3].split(','), sys.argv[4].split(',')
 # Catch error from inadequate number of command line args #
 if len(sys.argv) != 5:
-        sys.exit("Args: basepath (location of catalogs), output directory, realization (can be 'all'), tile (can be 'all') \n")
+        sys.exit("Args: basepath (location of catalogs), output directory, realizations (can be 'all'), tiles (can be 'all') \n")
 
 
 BALROG_RUN = basepath[basepath.replace('/', ';', 4).find('/')+1:basepath.replace('/', ';', 5).find('/')]
@@ -49,12 +49,11 @@ ALL_REALIZATIONS = [ '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' ]
 # !!!!! Available tiles depends on run #
 ALL_TILES = [ 'DES0347-5540', 'DES2329-5622', 'DES2357-6456' ]
 
+if tiles != 'all':
+	ALL_TILES = tiles
+if realizations != 'all':
+	ALL_REALIZATIONS = realizations
 
-### Make command line args lists ###
-if tilename != 'all':
-        ALL_TILES = [tilename]
-if realization != 'all':
-        ALL_REALIZATIONS = [realization]
 
 
 
@@ -69,7 +68,7 @@ CM_T_ERR_COLORBAR = False
 CM_T_COLORBAR = False
 BIN_CM_T_S2N = False
 # Normalizes plot to 1-sigma magnitude error. If NORMALIZE is True, PLOT_1SIG must be True else errors will not be computed and normalization cannot be performed #
-NORMALIZE = False
+NORMALIZE = False 
 
 # Use quality cuts introduced by Eric Huff? Link: https://github.com/sweverett/Balrog-GalSim/blob/master/plots/balrog_catalog_tests.py. Can only be performed if catalog has all the necessary headers: cm_s2n_r, cm_T, cm_T_err, and psfrec_T. #
 EH_CUTS = False
@@ -78,11 +77,11 @@ EH_CUTS = False
 PLOT_1SIG = True
 
 # !!!!! What to do with the plot? #
-SAVE_PLOT = False
+SAVE_PLOT = False 
 SHOW_PLOT = True
 
 # !!!!! Limits for the vertical axis. 'None' is an allowed value and will result in default scaling #
-YLOW, YHIGH = -20, 20
+YLOW, YHIGH = None, None
 
 # Swap horizontal axis? Default is magnitude1. Matching script ms_matcher determines which catalog is 1 and which is 2. Generally SWAP_HAX does not need to be changed unless the truth catalog values are not on the horizontal axis. #
 SWAP_HAX = False
@@ -106,7 +105,7 @@ NO_DIR_MAKE = True
 ### Miscellaneous ###
 # Print progress? #
 PRINTOUTS = True
-# Only refers to printouts within get_floats_from_string() and get_matrix_diagonal_element() # 
+# Only refers to printouts within get_floats_from_string(), get_matrix_diagonal_element(), and bin_and_cut_measured_magnitude_error() # 
 PRINTOUTS_MINOR = False
 
 # Not currently in use or under constructrion #
@@ -145,9 +144,7 @@ def get_floats_from_string(df, filter_name, hdr):
             list_a (list of floats) -- Collection of the numbers corresponding to a particular index in a list of form '[ (1, 2, 3, 4), (1, 2, 3, 4), ... ]. 
 	"""
 
-	strings = df[hdr]
-
-	list_a = []
+	strings = df[hdr]; list_a = []
 
 	# Each element (elmt) is of form '(1, 2, 3, 4)' #
 	for elmt in strings:
@@ -200,9 +197,7 @@ def get_matrix_diagonal_element(df, filter_name, hdr):
             list_aa (list of floats) -- Collection of the numbers corresponding to a particular diagonal element in a list of 4-by-4 matrices.
 	"""
 
-	matrices = df[hdr]
-
-	list_aa = []
+	matrices = df[hdr]; list_aa = []
 
 	# Each element in `matrices` is a matrix of form '((11,12,13,14), (21,22,23,24), (31,32,33,34), (41,42,43,44))' #
 	for matrix in matrices:
@@ -282,6 +277,7 @@ def get_good_index_using_primary_flags(df, cm_flag_hdr1, cm_flag_hdr2, flag_hdr1
 
 	# Get rid of these objects 37.5 corresponds to a negative flux #
 	idx_good= np.where( (abs(full_magnitude1) != 9999.0) & (abs(full_magnitude1) != 99.0) & (abs(full_magnitude1) != 37.5) & (abs(full_magnitude2) != 9999.0) & (abs(full_magnitude2) != 99.0) & (abs(full_magnitude2) != 9999.0) & (abs(full_magnitude2) != 99.0) & (abs(full_magnitude2) != 37.5) & (flag1 == 0) & (flag2 == 0) & (cm_flag1 == 0) & (cm_flag2 == 0) )[0]
+
 
 	if PLOT_FLAGGED_OBJS:
 		idx_bad = np.where( (abs(full_magnitude1) != 9999.0) & (abs(full_magnitude1) != 99.0) & (abs(full_magnitude1) != 37.5) & (abs(full_magnitude2) != 9999.0) & (abs(full_magnitude2) != 99.0) & (abs(full_magnitude2) != 9999.0) & (abs(full_magnitude2) != 99.0) & ((flag2 != 0) | (flag1 != 0) | (cm_flag1 != 0) | (cm_flag2 != 0)) )[0]
@@ -412,7 +408,7 @@ def handle_flags(df, fd_flag, filter_name, flag_hdr1, flag_hdr2, full_magnitude1
 		idx_bad (list of ints) -- Indices of objects with nonzero flag values.
 	"""
 
-	idx_good, idx_bad, counter_idx_bad = [], [], 0
+	idx_good, idx_bad = [], []; counter_idx_bad = 0
 
 	# If one catalog does not have the appropriate header, check it twice in the catalog that does have it so code still runs #
 	if flag_hdr1 is None:
@@ -484,7 +480,7 @@ def calculate_total_fractional_magnitude_error(cov_hdr, df, filter_name, flux_hd
 	full_flux = get_floats_from_string(df=df, hdr=flux_hdr, filter_name=filter_name)
 	full_flux_cov = get_matrix_diagonal_element(df=df, hdr=cov_hdr, filter_name=filter_name)
 
-	counter_neg, error, flux, fluxcov = 0, [], [], []
+	error, flux, fluxcov = [], [], []; counter_neg = 0
 
 	# 'Safe' indices #
 	for i in idx_good:
@@ -587,10 +583,8 @@ def get_68percentile_from_normalized_data(norm_dm_list, bins, hax_mag_list):
 		vax_68percentile (list of floats) -- Point on the vertical axis (vax) corresponding to 68 percentile. Each element in the list corresponds to a different bin.
 		bins (list of floats) -- Bins used in error calculation.
 	"""
-	vax_68percentile = []
 
-	neg_vax_34percentile, pos_vax_34percentile = [], []
-
+	vax_68percentile, neg_vax_34percentile, pos_vax_34percentile = [], [], []
 
 	PLOT_HIST = False
 
@@ -755,7 +749,8 @@ def bin_and_cut_measured_magnitude_error(clean_magnitude1, clean_magnitude2, err
                                 binned_vax_mag_temp.append(vax_mag[i])
                                 counter_err += 1
 
-                if PRINTOUTS:
+		# Written in log file, hence 'minor' #
+                if PRINTOUTS_MINOR:
                         print ' For magnitude, number of objects in bin ', round(j, 2), '-', round(j+step, 2), ': ', counter_err, '...'
 
 
@@ -1297,14 +1292,12 @@ def plotter(cbar_val, error1, error2, fd_nop, fd_1sig, filter_name, clean_magnit
 
 
 			# Line width for top and sides of 68th percentile bins #
-			lwt = 1.2
-			lws = 0.7
+			lwt = 1.1; lws = 0.7
 			
 			if PLOT_34P_SPLIT:
 				### Plot the 68th percentile calculated from np.percentile() ###
 				vax_68percentile_list, bins, neg_vax_34percentile, pos_vax_34percentile = get_68percentile_from_normalized_data(norm_dm_list=norm_dm_list, bins=bins, hax_mag_list=hax_mag_list)
-				counter_legend1 = 0
-				color1 = 'cyan'
+				counter_legend1 = 0; color1 = 'cyan'
 	
 				for b in np.arange(0, len(neg_vax_34percentile)-1):
 					# Horizontal bar bounds #
@@ -1341,8 +1334,7 @@ def plotter(cbar_val, error1, error2, fd_nop, fd_1sig, filter_name, clean_magnit
 	
 			if PLOT_68P:
 
-				counter_legend2 = 0
-				color2 = 'fuchsia'
+				counter_legend2 = 0; color2 = 'fuchsia'
 
 				for b in np.arange(0, len(vax_68percentile_list)-1):
 
@@ -1731,28 +1723,16 @@ def get_coadd_mag_and_mag_err(fn_g, fn_r, fn_i, fn_z, mag_hdr, err_hdr):
 	err_hdr = err_hdr[:-2]
 
 	# Open FITS files #
-	hdu_g = fits.open(fn_g)
-	hdu_r = fits.open(fn_r)
-	hdu_i = fits.open(fn_i)
-	hdu_z = fits.open(fn_z)
+	hdu_g = fits.open(fn_g); hdu_r = fits.open(fn_r); hdu_i = fits.open(fn_i); hdu_z = fits.open(fn_z)
 	
 	# Read data #
-	data_g = hdu_g[1].data
-	data_r = hdu_r[1].data
-	data_i = hdu_i[1].data
-	data_z = hdu_z[1].data
+	data_g = hdu_g[1].data; data_r = hdu_r[1].data; data_i = hdu_i[1].data; data_z = hdu_z[1].data
 
 	# Get magnitudes #
-	m_g = data_g[mag_hdr]
-	m_r = data_r[mag_hdr]
-	m_i = data_i[mag_hdr]
-	m_z = data_z[mag_hdr]
+	m_g = data_g[mag_hdr]; m_r = data_r[mag_hdr]; m_i = data_i[mag_hdr]; m_z = data_z[mag_hdr]
 
 	# Get magnitude errors #
-	err_g = data_g[err_hdr]
-	err_r = data_r[err_hdr]
-	err_i = data_i[err_hdr]
-	err_z = data_z[err_hdr]
+	err_g = data_g[err_hdr]; err_r = data_r[err_hdr]; err_i = data_i[err_hdr]; err_z = data_z[err_hdr]
 
 	m_griz, m_err_griz = [], []
 
@@ -2141,10 +2121,8 @@ def get_catalog(basepath, cat_type, inj, realization_number, tile_name, filter_n
                 fn = os.path.join(basepath, tile_name, 'mof', tile_name+'_mof.fits')
 
         if cat_type == 'coadd' and inj:
-		#fn = os.path.join(basepath, realization_number, tile_name, 'coadd', tile_name+'_i_cat.fits')
                 fn = os.path.join(basepath, realization_number, tile_name, 'coadd', tile_name+'_'+filter_name+'_cat.fits')
         if cat_type == 'coadd' and inj is False:
-		#fn = os.path.join(basepath, tile_name, 'coadd', tile_name+'_i_cat.fits')
                 fn = os.path.join(basepath, tile_name, 'coadd', tile_name+'_'+filter_name+'_cat.fits')
 
         return fn
@@ -2206,8 +2184,7 @@ flag_idx = []
 
 
 ### For plot names, plot titles, log file names ###
-title_piece1 = class1.title_piece
-title_piece2 = class2.title_piece
+title_piece1, title_piece2 = class1.title_piece,class2.title_piece
 MATCH_TYPE = get_match_type(title_piece1, title_piece2)
 
 ### Names for file directors (fd) ###
@@ -2433,7 +2410,7 @@ def get_coadd_matcher_catalog(basepath, cat_type, inj, realization_number, mag_h
 		fn (str) -- Filename. Is a FITS file.
 	"""
 
-	fn_new = os.path.join(outdir, str(tilename) + '_i_cat.fits')
+	fn_new = os.path.join(outdir, str(tile_name) + '_i_cat.fits')
 
 	# Check if new coadd catalog has already been created #
 	if os.path.isfile(fn_new):
@@ -2446,7 +2423,7 @@ def get_coadd_matcher_catalog(basepath, cat_type, inj, realization_number, mag_h
 		# Get list of filenames #
 		fn_griz = []
 		for f in ALL_FILTERS:
-			fn_griz.append(get_catalog(basepath=basepath, cat_type=cat_type, inj=inj, realization_number=realization, tile_name=tilename, filter_name=f))
+			fn_griz.append(get_catalog(basepath=basepath, cat_type=cat_type, inj=inj, realization_number=realization, tile_name=tile_name, filter_name=f))
 		fn_g, fn_r, fn_i, fn_z = fn_griz
 
 		# Get coadd magnitude (mag_c) and magnitude error to be of form '(m_g, m_r, m_i, m_z)'. Recall that this is a string #
@@ -2476,16 +2453,17 @@ def get_coadd_matcher_catalog(basepath, cat_type, inj, realization_number, mag_h
 
 ################################################################### Run script. 0 returned when complete. ###################################################################
 
-### Run once ###
+### !!!!! Run once. Log files are closed once 0 is returned. ###
 print make_plots(m1_hdr=m1_hdr, m2_hdr=m2_hdr, ylow=YLOW, yhigh=YHIGH)
 
 
 
 ### Loop over vertical axis limits. Suggestions: for normalized plot with star truth catalog use y=[3, 10], for normalized plot with galaxy truth catalog use y=[3, 20]. For non-normalized plot with star truth catalog or galaxy truth catalog use y=[0.5, None]. ###
-YLOOP = False
+# !!!!! Loop over vertical axis limits? #
+YLOOP = False 
 
 if YLOOP:
-	for y in [0.5, None]:
+	for y in [0.5, None]: 
 		if y is None:
 			YLOW, YHIGH = None, None
 		if y is not None:
@@ -2496,7 +2474,7 @@ if YLOOP:
 
 
 
-### Loop over possible colorbars ###
+### !!!!! Loop over possible colorbars? ###
 CBAR_LOOP = False
 
 if CBAR_LOOP:
