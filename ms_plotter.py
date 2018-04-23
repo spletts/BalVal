@@ -908,10 +908,10 @@ def normalize_plot(norm_delta_mag_list, bins, hax_mag_list):
 
 
 def one_sigma_counter(norm_delta_mag, clean_magnitude1, bins, hax_mag):
-	"""Find the number of objects within 1-sigma, where 1-sigma is calculated according to the error.
+	"""Find the number of objects within 1-sigma, where 1-sigma is calculated according to the error. This function is only called if NORMALIZE is True.
 
 	Args:
-		norm_delta_mag (list of floats) -- Normalized Delta-Magnitude. This function is only called if NORMALIZE is True.
+		norm_delta_mag (list of floats) -- Normalized Delta-Magnitude. 
         Returns:
             counter_1sig (int) -- Number of objects within 1-sigma curve.
 	"""
@@ -2121,7 +2121,7 @@ def get_catalog(basepath, cat_type, inj, realization_number, tile_name, filter_n
                 fn = os.path.join(basepath, tile_name, 'mof', tile_name+'_mof.fits')
 
         if cat_type == 'coadd' and inj:
-                fn = os.path.join(basepath, realization_number, tile_name, 'coadd', tile_name+'_'+filter_name+'_cat.fits')
+                fn = os.path.join(basepath, 'balrog_images', realization_number, tile_name, 'coadd', tile_name+'_'+filter_name+'_cat.fits')
         if cat_type == 'coadd' and inj is False:
                 fn = os.path.join(basepath, tile_name, 'coadd', tile_name+'_'+filter_name+'_cat.fits')
 
