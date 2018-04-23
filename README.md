@@ -46,9 +46,11 @@ User may need to replace `/data/des71.a/data/mspletts/balrog_validation_tests/sc
 
 # Directory structure
 
-User can change directory structure in `ms_plotter.py`; search for `User may wish to edit directory structure`. 
+If `NO_DIR_MAKE=True` the directories below will be created if they do not already exist.
 
-Directory structures depend on `outdir` `BALROG_RUN` `MATCH_TYPE`, which are defined below.
+If `NO_DIR_EXIT=True` the script will exit when a nonexistent directory is encountered to remind the user to change the directory structure to their preference. User can change directory structure in `ms_plotter.py`; search for `User may wish to edit directory structure`. 
+
+Directory stucture depends on `outdir` `BALROG_RUN` `MATCH_TYPE`, which are defined below.
 
 `outdir` is supplied at the command line.
 
