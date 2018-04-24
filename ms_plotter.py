@@ -2261,7 +2261,7 @@ def matcher(basepath, outdir, realization_number, tile_name, filter_name):
 
 		### Matching done in ms_matcher. Args: in1, in2, out, ra1, dec1, ra2, dec2, OVERWRITE ###
 		# !!!!! Ensure that path to ms_matcher is correct #
-		subprocess.call(['/data/des71.a/data/mspletts/balrog_validation_tests/scripts/ms_matcher', in1, in2, outname, ra1, dec1, ra2, dec2])
+		subprocess.call(['/data/des71.a/data/mspletts/balrog_validation_tests/scripts/BalVal/ms_matcher', in1, in2, outname, ra1, dec1, ra2, dec2])
 
         return outname
 
