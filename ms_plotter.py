@@ -1892,7 +1892,7 @@ class SOFGalTruthCat():
 
 
 class SOFCat():
-        """Declare headers and axis labels for sof catalog in /data/des71.a/data/kuropat/des2247-4414_sof/y3v02/balrog_images/${re}/${t}/sof/${t}_sof.fits and /data/des71.a/data/kuropat/sof_stars/y3v02/balrog_images/{realization}/{tile}/mof/{tile}_mof.fits"""
+        """Declare headers and axis labels for sof catalog in /data/des71.a/data/kuropat/des2247-4414_sof/y3v02/balrog_images/{realization}/{tile}/sof/{tile}_sof.fits and /data/des71.a/data/kuropat/sof_stars/y3v02/balrog_images/{realization}/{tile}/mof/{tile}_mof.fits"""
 
 	# Once matched, headers will have form 'hdr_1' or 'hdr_2' with a suffix (suf) #
         def __init__(self, inj, suf):
@@ -2248,16 +2248,20 @@ def matcher(basepath, outdir, realization_number, tile_name, filter_name):
 			print 'Making directory ', match_dir, '...\n'
 			os.makedirs(match_dir)
 
+
         outname = os.path.join(outdir, 'catalog_compare', BALROG_RUN, MATCH_TYPE, tile_name+'_'+realization_number+'_'+str(MATCH_TYPE)+'_match1and2.csv')
 
-        # Overwrite matched catalog if it already exists? This must be a str. Allowed values: 'False' 'True'. #
-        OVERWRITE = 'False'
+	# Overwrite matched catalog if it already exists? # 
+        OVERWRITE = False
 
-	print '\nMatching ', in1, in2, '...\n'
+	# Check `outname` existence #
+	if os.path.isfile(outname) is False or (os.path.isfile(outname) and OVERWRITE):
 
-	### Matching done in ms_matcher. Args: in1, in2, out, ra1, dec1, ra2, dec2, OVERWRITE ###
-	# !!!!! Ensure that path to ms_matcher is correct #
-        subprocess.call(['/data/des71.a/data/mspletts/balrog_validation_tests/scripts/ms_matcher', in1, in2, outname, ra1, dec1, ra2, dec2, OVERWRITE])
+		print '\nMatching ', in1, in2, '...\n'
+
+		### Matching done in ms_matcher. Args: in1, in2, out, ra1, dec1, ra2, dec2, OVERWRITE ###
+		# !!!!! Ensure that path to ms_matcher is correct #
+		subprocess.call(['/data/des71.a/data/mspletts/balrog_validation_tests/scripts/ms_matcher', in1, in2, outname, ra1, dec1, ra2, dec2])
 
         return outname
 
