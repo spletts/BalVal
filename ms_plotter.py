@@ -108,7 +108,7 @@ NO_DIR_MAKE = True
 
 ### For FOF analysis. To ignore FOF analysis set `RUN_TYPE=None` ###
 # !!!!! Allowed values: 'ok' 'rerun' None. 'ok' refers to FOF groups unchanged after Balrog-injection. 'rerun' refers to groups changed after Balrog-injection. #
-RUN_TYPE = 'rerun'
+RUN_TYPE = None 
 
 # !!!!! Only used if RUN_TYPE is not None #
 MOF = False
@@ -116,7 +116,7 @@ SOF = True
 
 if RUN_TYPE is not None:
 	print 'Doing FOF analysis ... \n '
-        # Overwrite MATCH_CATS #
+        # Overwrite MATCH_CATs #
         if MOF:
                 MATCH_CAT1, MATCH_CAT2 = 'mof', 'mof'
         if SOF:
@@ -145,6 +145,461 @@ if ((CM_T_S2N_COLORBAR and CM_T_ERR_COLORBAR) or (CM_T_S2N_COLORBAR and HEXBIN) 
 
 # !!!!! Check that plots will not be overwritten, etc #
 NOTICE = raw_input(' \n !! CHECK BEFORE RUNNING !! \n Save plot(s) -- ' + str(SAVE_PLOT) + '\n Showing plot(s) -- ' + str(SHOW_PLOT) + '\n Normalize plot(s) -- ' + str(NORMALIZE) + '\n Hexbin -- ' + str(HEXBIN) + '\n cm_T colorbar -- ' + str(CM_T_COLORBAR) + '\n cm_T_err colorbar -- ' + str(CM_T_ERR_COLORBAR) + '\n cm_T_s2n -- ' + str(CM_T_S2N_COLORBAR) + '\n Plot limits -- ' + str(YLOW) + ', ' + str(YHIGH) + '\n Plotting 1-sigma curve -- ' + str(PLOT_1SIG) +'\n Plotting flagged objects -- ' + str(PLOT_FLAGGED_OBJS) + '\n Print flags and flag types -- ' + str(SHOW_FLAG_TYPE) + '\n Logging flags -- ' + str(LOG_FLAGS) + '\n --> Press enter to proceed, control+c to stop...\n')
+
+
+
+
+
+
+
+
+
+################################################################### Store catalog information ###################################################################
+
+class CoaddCat():
+	"""Declare headers for coadd catalogs .../coadd/{tile}_{filter}_cat.fits. There is a separate catalog for each filter."""
+
+        # Once matched, headers will have form 'hdr_1' or 'hdr_2' with a suffix (suf) #
+	def __init__(self, inj, suf):
+		"""Declare headers.
+
+		Args:
+			inj (bool) -- Balrog injected catalog?
+			suf (int) -- Refers to order in which catalog was matched in ms_matcher. Allowed values: 1 2
+		"""
+
+		# For plot title #
+		if inj:
+			self.title_piece = 'Inj Coadd Cat'
+		if inj is False:
+			self.title_piece = 'Coadd Cat'
+		self.axlabel = 'meas'
+		# Magnitude, is one number #
+		self.mag_hdr = 'MAG_AUTO' + str(suf)
+		self.mag_axlabel = 'MAG_AUTO_meas'
+		# For error calculation #
+		self.mag_err_hdr = 'MAGERR_AUTO' + str(suf)
+		self.cm_flux_hdr = None
+		self.cm_flux_cov_hdr = None
+		# Size #
+		self.cm_t_hdr = None
+		self.cm_t_err_hdr = None
+		self.cm_t_s2n_axlabel = None
+		# Flags #
+		self.flags_hdr = 'FLAGS' + str(suf)
+		self.obj_flags_hdr = None
+		self.psf_flags_hdr = None
+		self.cm_flags_hdr = None
+		self.cm_max_flags_hdr = None
+		self.cm_mof_flags_hdr = None
+		self.cm_flags_r_hdr = None
+		# For region file #
+		self.ra_hdr = 'ALPHAWIN_J2000' + str(suf)
+		self.dec_hdr = 'DELTAWIN_J2000' + str(suf)
+		self.a_hdr = 'A_IMAGE' + str(suf)
+		self.b_hdr = 'B_IMAGE' + str(suf)
+		# For Eric Huff (EH) quality cuts #
+                self.cm_s2n_r_hdr = None
+                self.psfrec_t_hdr = None
+
+
+
+
+
+
+
+
+
+class SOFGalTruthCat():
+	"""Declare headers and axes labels for galaxy truth catalogs in the sof directory /data/des71.a/data/kuropat/des2247-4414_sof/."""
+
+	# Once matched, headers will have form 'hdr_1' or 'hdr_2' with a suffix (suf) #
+	def __init__(self, inj, suf):
+		"""Declare constants.
+
+                Args:
+                        inj (bool) -- Balrog injected catalog?
+			suf (int) -- Refers to order in which catalog was matched in ms_matcher. Allowed values: 1 2
+                """
+
+		if inj:
+			self.title_piece = 'Inj Gal Truth Cat'
+		if inj is False:
+			self.title_piece = 'Gal Truth Cat'
+		self.axlabel = 'true'
+		# Headers are the same as MOFCat class. Reproduced below for clarity in ms_plotter.py #
+		# Magnitude, is string of form '(mag_g, mag_r, mag_i, mag_z)' #
+	    	self.mag_hdr = 'cm_mag' + str(suf)
+		self.mag_axlabel = 'cm_mag_true'
+                # For error calculation #
+                self.mag_err_hdr = None
+                self.cm_flux_hdr = 'cm_flux' + str(suf)
+                self.cm_flux_cov_hdr = 'cm_flux_cov' + str(suf)
+                # Size #
+                self.cm_t_hdr = 'cm_T_'  + str(suf)
+                self.cm_t_err_hdr = 'cm_T_err_'  + str(suf)
+		self.cm_t_s2n_axlabel = 'cm_T_s2n_true'
+                # Flags #
+                self.flags_hdr = 'flags' + str(suf)
+                self.obj_flags_hdr = 'obj_flags' + str(suf)
+                self.psf_flags_hdr = 'psf_flags' + str(suf)
+                self.cm_flags_hdr = 'cm_flags' + str(suf)
+                self.cm_max_flags_hdr = 'cm_max_flags' + str(suf)
+                self.cm_flags_r_hdr = 'cm_flags_r' + str(suf)
+		self.cm_mof_flags_hdr = 'cm_mof_flags' + str(suf)
+                # For region file #
+                self.ra_hdr = 'ra' + str(suf)
+                self.dec_hdr = 'dec' + str(suf)
+                self.a_hdr, self.b_hdr = None, None
+                # For Eric Huff (EH) quality cuts #
+		self.cm_s2n_r_hdr = 'cm_s2n_r' + str(suf)
+                self.psfrec_t_hdr = 'psfrec_T' + str(suf)
+
+
+
+	
+
+
+
+
+
+class SOFCat():
+        """Declare headers and axis labels for sof catalog in /data/des71.a/data/kuropat/des2247-4414_sof/y3v02/balrog_images/{realization}/{tile}/sof/{tile}_sof.fits and /data/des71.a/data/kuropat/sof_stars/y3v02/balrog_images/{realization}/{tile}/mof/{tile}_mof.fits"""
+
+	# Once matched, headers will have form 'hdr_1' or 'hdr_2' with a suffix (suf) #
+        def __init__(self, inj, suf):
+		"""Declare constants.
+
+                Args:
+                        inj (bool) -- Balrog injected catalog?
+			suf (int) -- Refers to order in which catalog was matched in ms_matcher. Allowed values: 1 2
+                """
+
+                if inj:
+                        self.title_piece = 'Inj SOF Cat'
+                if inj is False:
+                        self.title_piece = 'SOF Cat'
+		self.axlabel = 'meas'
+                # Headers are the same as MOFCat class with the exception of cm_mof_flags_hdr. Reproduced below for clarity #
+		# Magnitude, is string of form '(mag_g, mag_r, mag_i, mag_z)' #
+		self.mag_hdr = 'cm_mag' + str(suf)
+		self.mag_axlabel = 'cm_mag_meas'
+                # For error calculation #
+                self.mag_err_hdr = None
+                self.cm_flux_hdr = 'cm_flux' + str(suf)
+                self.cm_flux_cov_hdr = 'cm_flux_cov' + str(suf)
+                # Size #
+                self.cm_t_hdr = 'cm_T_'  + str(suf)
+                self.cm_t_err_hdr = 'cm_T_err_'  + str(suf)
+                self.cm_t_s2n_axlabel = 'cm_T_s2n_meas'
+		# Flags #
+                self.flags_hdr = 'flags' + str(suf)
+                self.obj_flags_hdr = 'obj_flags' + str(suf)
+                self.psf_flags_hdr = 'psf_flags' + str(suf)
+                self.cm_flags_hdr = 'cm_flags' + str(suf)
+                self.cm_max_flags_hdr = 'cm_max_flags' + str(suf)
+                self.cm_flags_r_hdr = 'cm_flags_r' + str(suf)
+                self.cm_mof_flags_hdr = None
+                # For region file #
+                self.ra_hdr = 'ra' + str(suf)
+                self.dec_hdr = 'dec' + str(suf)
+                self.a_hdr, self.b_hdr = None, None
+                # For Eric Huff (EH) quality cuts #
+		self.cm_s2n_r_hdr = 'cm_s2n_r' + str(suf)
+                self.psfrec_t_hdr = 'psfrec_T' + str(suf)
+
+
+
+
+
+
+
+
+
+class MOFCat():
+	"""Declare headers and axes labels for MOF catalog. Currently, the galaxy truth catalogs are created using MOF and have the same headers. Works (mostly) with /data/des71.a/data/kuropat/sof_stars/y3v02/balrog_images/{realization}/{tile}/{tile}_{realization}_balrog_truth_cat_gals.fits, /data/des71.a/data/kuropat/sof_stars/y3v02/balrog_images/{realization}/{tile}/mof/{tile}_mof.fits, ..."""
+
+	# Once matched, headers will have form 'hdr_1' or 'hdr_2' with a suffix (suf) #
+        def __init__(self, inj, suf):
+		"""Declare constants.
+
+		Args:
+			inj (bool) -- Balrog injected catalog?
+			suf (int) -- Refers to order in which catalog was matched in ms_matcher. Allowed values: 1 2
+		"""
+
+		# For plot title #
+		if inj:
+			self.title_piece = 'Inj MOF Cat'
+		if inj is False:
+			self.title_piece = 'MOF Cat'
+		self.axlabel = 'meas'
+		# Magnitude, is string of form (mag_g, mag_r, mag_i, mag_z)  #
+		self.mag_hdr = 'cm_mag' + str(suf)
+		self.mag_axlabel = 'cm_mag_meas'
+		# For error calculation #
+		self.mag_err_hdr = None 
+		self.cm_flux_hdr = 'cm_flux' + str(suf)
+		self.cm_flux_cov_hdr = 'cm_flux_cov' + str(suf)
+		# Size #
+		self.cm_t_hdr = 'cm_T_'  + str(suf)
+		self.cm_t_err_hdr = 'cm_T_err_'  + str(suf)
+		self.cm_t_s2n_axlabel = 'cm_T_s2n_meas'
+		# Flags #
+		self.flags_hdr = 'flags' + str(suf)
+                self.obj_flags_hdr = 'obj_flags' + str(suf)
+                self.psf_flags_hdr = 'psf_flags' + str(suf)
+                self.cm_flags_hdr = 'cm_flags' + str(suf)
+                self.cm_max_flags_hdr = 'cm_max_flags' + str(suf)
+                self.cm_flags_r_hdr = 'cm_flags_r' + str(suf)
+		self.cm_mof_flags_hdr = 'cm_mof_flags' + str(suf)
+		# For region file #
+		self.ra_hdr = 'ra' + str(suf)
+		self.dec_hdr = 'dec' + str(suf)
+		self.a_hdr, self.b_hdr = None, None
+		# For Eric Huff (EH) quality cuts #
+                self.cm_s2n_r_hdr = 'cm_s2n_r' + str(suf) 
+                self.psfrec_t_hdr = 'psfrec_T' + str(suf) 
+
+
+
+
+
+
+
+
+
+class StarTruthCat(): #are there sep headers for MOFStarTruthCat and SOFStarTruthCat?
+        """Declare headers and axes labels for star truth catalogs in /data/des71.a/data/kuropat/sof_stars/."""
+
+	# Once matched, headers will have form 'hdr_1' or 'hdr_2' with a suffix (suf) #
+	def __init__(self, inj, suf):
+		"""Declare constants.
+	
+		Args:
+			inj (bool) -- Balrog injected catalog?
+			suf (int) -- Refers to order in which catalog was matched in ms_matcher. Allowed values: 1 2
+		"""
+		
+		if inj:
+			self.title_piece = 'Inj Star Truth Cat'
+		if inj is False:
+			self.title_piece = 'Star Truth Cat'
+		self.axlabel = 'true'
+		# Magnitude #
+		self.mag_hdr = 'g_Corr' + str(suf) 
+		self.mag_axlabel = 'mag_true' 
+		# For error calculation #
+                # Is of form 'PSF_MAG_ERR_{filter}' + str(suf) #
+		self.mag_err_hdr = 'PSF_MAG_ERR' + str(suf)
+                self.cm_flux_hdr = None
+                self.cm_flux_cov_hdr = None
+		# Size #
+		self.cm_t_hdr = None
+		self.cm_t_err_hdr = None
+		self.cm_t_s2n_axlabel = None
+		# Flags #
+		self.flags_hdr = None
+		self.obj_flags_hdr = None
+		self.psf_flags_hdr = None
+		self.cm_flags_hdr = None
+		self.cm_max_flags_hdr = None
+		self.cm_mof_flags_hdr = None
+		self.cm_flags_r_hdr = None
+		# For region file #
+		self.ra_hdr = 'RA_new' + str(suf)
+		self.dec_hdr = 'DEC_new' + str(suf)
+		self.a_hdr, self.b_hdr = None, None # Use cm_T
+		# For Eric Huff (EH) quality cuts #
+		self.cm_s2n_r_hdr = None
+		self.psfrec_t_hdr = None
+
+
+
+
+
+
+
+
+
+def get_class(cat_type, inj, suf):
+        """Get the appropriate class for the catalog type.
+
+        Args:
+                cat_type -- Catalog type. Allowed values: 'gal_truth', 'mof', 'star_truth', 'sof', 'coadd'.
+                inj (bool) -- Balrog injected catalog?
+                suf (int) -- Refers to order in which catalog was matched in ms_matcher. Allowed values: 1 2
+        Returns:
+                cat_type_class -- Points to the appropriate class which contains constants.
+        """
+
+        if cat_type == 'gal_truth':
+                cat_type_class = SOFGalTruthCat(inj=inj, suf=suf)
+
+        if cat_type == 'mof':
+                cat_type_class = MOFCat(inj=inj, suf=suf)
+
+        if cat_type == 'star_truth':
+                cat_type_class = StarTruthCat(inj=inj, suf=suf)
+
+        if cat_type == 'sof':
+                cat_type_class = SOFCat(inj=inj, suf=suf)
+
+        if cat_type == 'coadd':
+                cat_type_class = CoaddCat(inj=inj, suf=suf)
+
+        return cat_type_class
+
+
+
+
+
+
+
+
+
+def get_match_type(title_piece1, title_piece2):
+        """Transform plot title of form 'Inj MOF Cat & Truth Cat' to 'inj_mof_cat_truth_cat'.
+
+        Args:
+                title_piece1, title_piece2 (str) -- Ex: Injected MOF
+        Return:
+                match_type (str) -- Ex: injected_mof_truth_catalog
+        """
+        title_piece1, title_piece2 = title_piece1.lower(), title_piece2.lower()
+        title_piece1, title_piece2 = title_piece1.replace(' ', '_'), title_piece2.replace(' ', '_')
+        match_type = str(title_piece1)+'_'+str(title_piece2)
+
+        return match_type
+
+
+
+
+
+
+
+
+
+def get_fd_names(outdir):
+        """Generate names for the following log files: flags, magnitude bins, number of objects plotted, number of objects within one sigma.
+        Relies on directory structure: outdir/log_files/`BALROG_RUN`/`MATCH_TYPE`/
+
+        Args:
+                title_piece1, title_piece2 (str) --
+                outdir (str) -- Output directory. Files will be saved here.
+        Returns:
+                fn1, fn2, fn3, fn4 (str) -- Filenames for flag log file, magnitude log, number of objects plotted log, number of objects within 1-sigma, respectively.
+        """
+
+        # !!!!! User may wish to edit directory structure #
+        ### Check for directory existence ###
+        if RUN_TYPE is None:
+                log_dir = os.path.join(outdir, 'log_files', BALROG_RUN, MATCH_TYPE)
+        if RUN_TYPE is not None:
+                log_dir = os.path.join(outdir, 'log_files', BALROG_RUN, MATCH_TYPE, 'fof_analysis')
+
+        if os.path.isdir(log_dir) is False:
+                if NO_DIR_EXIT:
+                        sys.exit('Directory ' + str(log_dir) + ' does not exist. \n Change directory structure in ms_plotter.get_fd_names() or set `NO_DIR_MAKE=True`')
+                if NO_DIR_MAKE:
+                        print 'Making directory ', log_dir, '...\n'
+                        os.makedirs(log_dir)
+
+        fn1 = os.path.join(log_dir, 'flag_log_'+str(MATCH_TYPE)+'.csv')
+        fn2 = os.path.join(log_dir, 'magnitude_bins_'+str(MATCH_TYPE)+'.txt')
+        fn3 = os.path.join(log_dir, 'num_objs_plotted_'+str(MATCH_TYPE)+'.txt')
+        fn4 = os.path.join(log_dir, 'one_sigma_objects_'+str(MATCH_TYPE)+'.txt')
+
+        if RUN_TYPE is not None:
+                fn_all = [fn1, fn2, fn3, fn3]
+                for fn in fn_all:
+                        fn = fn[:-4] + '_' + str(RUN_TYPE) + fn[-4:]
+
+        print '-----> Saving log file for flags as: ', fn1, '\n'
+        print '-----> Saving log file for magnitude and error bins as: ', fn2, '\n'
+        print '-----> Saving log file for number of objects plotted as: ', fn3, '\n'
+        print '-----> Saving log file for number of objects within 1-sigma as: ', fn4, '\n'
+
+	return fn1, fn2, fn3, fn4
+
+
+
+
+
+
+
+
+
+################################################################### Declare necessary constants ###################################################################
+
+### For data analysis ###
+# CLASS1 refers to in1 in ms_matcher. in1 appends _1 to all the headers, hence suf=1. fof_matcher is done such that injected catalogs have no suffix #
+if RUN_TYPE is not None:
+	CLASS1 = get_class(cat_type=MATCH_CAT1, inj=INJ1, suf='')
+if RUN_TYPE is None:
+	CLASS1 = get_class(cat_type=MATCH_CAT1, inj=INJ1, suf='_1')
+CLASS2 = get_class(cat_type=MATCH_CAT2, inj=INJ2, suf='_2')
+
+# Get arguments to pass to ms_matcher. Need to transform header of form 'ra_1' to 'ra', hence [:-2] #
+RA1, RA2 = CLASS1.ra_hdr[:-2], CLASS2.ra_hdr[:-2]
+DEC1, DEC2 = CLASS1.dec_hdr[:-2], CLASS2.dec_hdr[:-2]
+
+# For plot labels #
+AXLABEL1, AXLABEL2 = CLASS1.axlabel, CLASS2.axlabel
+
+# Magnitudes #
+M_HDR1, M_HDR2 = CLASS1.mag_hdr, CLASS2.mag_hdr
+M_AXLABEL1, M_AXLABEL2 = CLASS1.mag_axlabel, CLASS2.mag_axlabel
+
+# For magnitude error calculation #
+M_ERR_HDR1, M_ERR_HDR2 = CLASS1.mag_err_hdr, CLASS2.mag_err_hdr
+CM_FLUX_HDR1, CM_FLUX_HDR2 = CLASS1.cm_flux_hdr, CLASS2.cm_flux_hdr
+CM_FLUX_COV_HDR1, CM_FLUX_COV_HDR2 = CLASS1.cm_flux_cov_hdr, CLASS2.cm_flux_cov_hdr
+
+# For signal to noise calculation #
+CM_T_HDR1, CM_T_HDR2 = CLASS1.cm_t_hdr, CLASS2.cm_t_hdr
+CM_T_ERR_HDR1, CM_T_ERR_HDR2 = CLASS1.cm_t_err_hdr, CLASS2.cm_t_err_hdr
+CM_T_S2N_AXLABEL1, CM_T_S2N_AXLABEL2 = CLASS1.cm_t_s2n_axlabel, CLASS2.cm_t_s2n_axlabel
+
+# Flags #
+FLAGS_HDR1, FLAGS_HDR2 = CLASS1.flags_hdr, CLASS2.flags_hdr
+OBJ_FLAGS_HDR1, OBJ_FLAGS_HDR2 = CLASS1.obj_flags_hdr, CLASS2.obj_flags_hdr
+# psf_flags is a string of form '(0,0,0,0)'; must pass through get_floats_from_string() if used. #
+PSF_FLAGS_HDR1, PSF_FLAGS_HDR2 = CLASS1.psf_flags_hdr, CLASS2.psf_flags_hdr
+CM_FLAGS_HDR1, CM_FLAGS_HDR2 = CLASS1.cm_flags_hdr, CLASS2.cm_flags_hdr
+CM_MAX_FLAGS_HDR1, CM_MAX_FLAGS_HDR2 = CLASS1.cm_max_flags_hdr, CLASS2.cm_max_flags_hdr
+CM_FLAGS_R_HDR1, CM_FLAGS_R_HDR2 = CLASS1.cm_flags_r_hdr, CLASS2.cm_flags_r_hdr
+CM_MOF_FLAGS_HDR1, CM_MOF_FLAGS_HDR2 = CLASS1.cm_mof_flags_hdr, CLASS2.cm_mof_flags_hdr
+
+# For quality cuts introduced by Eric Huff #
+CM_S2N_R_HDR1, CM_S2N_R_HDR2 = CLASS1.cm_s2n_r_hdr, CLASS2.cm_s2n_r_hdr
+PSFREC_T_HDR1, PSFREC_T_HDR2 = CLASS1.psfrec_t_hdr, CLASS2.psfrec_t_hdr
+
+FLAG_HDR_LIST = [ FLAGS_HDR1, FLAGS_HDR2, CM_FLAGS_HDR1, CM_FLAGS_HDR2, CM_MOF_FLAGS_HDR1, CM_MOF_FLAGS_HDR2, OBJ_FLAGS_HDR1, OBJ_FLAGS_HDR2, PSF_FLAGS_HDR1, PSF_FLAGS_HDR2, CM_MAX_FLAGS_HDR1, CM_MAX_FLAGS_HDR2, CM_FLAGS_R_HDR1, CM_FLAGS_R_HDR2 ]
+
+# Used if LOG_FLAGS is True #
+flag_idx = []
+
+
+### For plot names, plot titles, log file names ###
+TITLE_PIECE1, TITLE_PIECE2 = CLASS1.title_piece, CLASS2.title_piece
+MATCH_TYPE = get_match_type(title_piece1=TITLE_PIECE1, title_piece2=TITLE_PIECE2)
+
+### Names for file directors (fd) ###
+FD_FLAG_NAME, FD_MAG_BINS_NAME, FD_NOP_NAME, FD_1SIG_NAME = get_fd_names(outdir=outdir)
+
+# Create log file for number of objects plotted (nop) #
+FD_NOP = open(FD_NOP_NAME, 'w')
+# Create log file for number of objects within 1-sigma #
+FD_1SIG = open(FD_1SIG_NAME, 'w')
+# Create log file for magnitude bins #
+FD_MAG_BINS = open(FD_MAG_BINS_NAME, 'w')
+FD_MAG_BINS.write('NUM_OBJS_IN_BIN, BIN_LHS, BIN_RHS, MEDIAN_HAXIS_MAG, MEDIAN_ERROR \n') 
+# Create log file for flags #
+FD_FLAG = open(FD_FLAG_NAME, 'w')
+FD_FLAG.write('TILE, FILTER, TYPE, REALIZATION, FLAG1_HEADER, FLAG2_HEADER, FLAG1_VALUE, FLAG2_VALUE, MAG1, MAG2 \n')
+if LOG_FLAGS is False:
+        FD_FLAG.write('Flags not logged because LOG_FLAGS is False.')
 
 
 
@@ -261,12 +716,11 @@ def get_matrix_diagonal_element(df, filter_name, hdr):
 
 
 
-def get_good_index_using_primary_flags(df, cm_flag_hdr1, cm_flag_hdr2, flag_hdr1, flag_hdr2, full_magnitude1, full_magnitude2):
+def get_good_index_using_primary_flags(df, full_magnitude1, full_magnitude2, cm_flag_hdr1, cm_flag_hdr2, flag_hdr1, flag_hdr2):
 	"""Get indices of objects without flags as indicated by the headers 'flags' and 'cm_flags'. Also get indices of objects with  magnitudes not equal to +/- 99, +/- 9999, and 37.5. Store the bad indices as well (if PLOT_FLAGGED_OBJS is True).
 
 	Args:
 		df (pandas DataFrame)
-		cm_flag_hdr1, cm_flag_hdr2, flag_hdr1, flag_hdr2 (str) -- Headers refer to column names in the matched catalog.
 		full_magnitude1, full_magnitude2 (list of floats) -- Uncleaned lists containing magnitudes. 
 	Returns:
 		idx_good (list of ints)
@@ -322,18 +776,13 @@ def get_good_index_using_primary_flags(df, cm_flag_hdr1, cm_flag_hdr2, flag_hdr1
 
 
 
-def get_good_index_using_quality_cuts(df, flag_hdr1, flag_hdr2, full_magnitude1, full_magnitude2):
+def get_good_index_using_quality_cuts(df, full_magnitude1, full_magnitude2):
 	"""Get indices of objects that satisfy quality cuts introduced by Eric Huff. Also get indices of objects without flags as indicated by the headers 'flags' and 'cm_flags'. Also get indices of objects with  magnitudes not equal to +/- 99, +/- 9999, and 37.5. Store the bad indices as well (if PLOT_FLAGGED_OBJS is True).
 
 	Args:
 		df (pandas DataFrame)
 	        *_hdr (str) -- Headers refer to column names in the matched catalog.
-		CM_T_HDR1, CM_T_HDR2 (str) -- Header for size squared of object.
-		CM_T_ERR_HDR1, CM_T_ERR_HDR2 (str) -- Header for error on the size squared of object.
-		cm_s2n_hdr1, cm_s2n_hdr2 (str) -- Header for signal to noise of object.
-		PSFREC_T_HDR1, PSFREC_T_HDR2 (str) -- Header for PSF size.
 		full_magnitude1, full_magnitude2 (list of floats) -- Values read directly from pandas DataFrame or passed through `get_floats_from_string()`; no flags removed. 		
-		cm_t_err_AXLABEL1, cm_t_err_axlabel2 (str) -- Allowed values: 'true' or 'meas'. Value is set in classes and should not be manually set.
         Returns:
 		idx_good (list of ints) -- Indices of objects without flags and objects which met criteria for quality cuts.
 		idx_bad (list of ints) -- Is empty if PLOT_FLAGGED_OBJS is False.
@@ -394,7 +843,7 @@ def get_good_index_using_quality_cuts(df, flag_hdr1, flag_hdr2, full_magnitude1,
 					idx_bad.append(i)
 
 	if PRINTOUTS:
-		print 'Eliminated objects with magnitudes equal to +/- 9999, +/- 99, and 37.5 and objects with nonzero flags for: ', flag_hdr1, ', ', flag_hdr2, ', ', cm_flag_hdr1, ', ', cm_flag_hdr2, ' ...'
+		print 'Eliminated objects with magnitudes equal to +/- 9999, +/- 99, and 37.5 and objects with nonzero flags for: ', flag_hdr1, ', ', flag_hdr2, ', ', CM_FLAGS_HDR1, ', ', cm_flag_hdr2, ' ...'
 		print ' Eliminated objects with signal-to-noise ratio < 10 ...'
 		print ' Eliminated objects with cm_T/cm_T_err < 0.5 ...'
 		print ' Eliminated objects with cm_T/psfrec_T < 0.5 ...'
@@ -413,16 +862,14 @@ def get_good_index_using_quality_cuts(df, flag_hdr1, flag_hdr2, full_magnitude1,
 
 
 
-def handle_flags(df, filter_name, flag_hdr1, flag_hdr2, full_magnitude1, full_magnitude2, realization_number, tile_name):
+def handle_flags(df, flag_hdr1, flag_hdr2, filter_name, full_magnitude1, full_magnitude2, realization_number, tile_name):
 	"""Examine a particular flag and write to log file. Can also be used to check all flags in a list of flags.
 
 	Args:
 		df (pandas DataFrame)
 		filter_name (str) -- Allowed values: 'g' 'r' 'i' 'z'.
-		flag_hdr1, flag_hdr2 (str) -- Headers refer to column names in the matched catalog.
 		full_magnitude1, full_magnitude2 (numpy.ndarray if directly from `df[hdr]` OR list of floats if from `get_floats_from_string()`) -- Values read directly from pandas DataFrame via `df[hdr]`; no objects removed using nonzero flag values and no quality cuts performed.
 		realization_number (int) -- Allowed values: 0 1 2 None. Refers to Balrog injection and None refers to a one-realization run.
-		RUN_TYPE (str) -- Allowed values: 'ok' 'rerun' None. 'ok' refers to FOF groups unchanged after Balrog injection. 'rerun' refers to changed FOF groups.
 		tile_name (str) -- 
         Returns:
 		idx_good (list of ints) -- Indices of objects with flags values of zero.
@@ -683,7 +1130,6 @@ def bin_and_cut_measured_magnitude_error(clean_magnitude1, clean_magnitude2, err
         """Remove error values corresponding to objects where |Delta-M| > 3. Do not consider error corresponding to empty bins nor bins with a small number of objects.
 
         Args:
-		axlabel1, axlabel2 (str) -- Set in a class. Refers to truth catalog or measured catalog (MOF, SOF, coadd). Allowed values: 'true' or 'meas'.
                 clean_magnitude1, clean_magnitude2 (list of floats) -- Objects with flag values of zero and/or quality cuts performed.
                 error1, error2 (list of floats) -- 1 and 2 refer to the matched catalogs. 
         Returns:
@@ -835,7 +1281,6 @@ def normalize_plot_maintain_bin_structure(clean_magnitude1, clean_magnitude2, er
 	Args:
 		clean_magnitude1, clean_magnitude2 (list of floats) --
 		error1, error2 (list of floats) --
-		axlabel1, axlabel2 -- Allowed values: 
 	Returns:
 		norm_dm_list (list of list of floats) --
 		bins (list of floats) -- Bins used in error calculation. 
@@ -929,6 +1374,7 @@ def one_sigma_counter(norm_delta_mag, clean_magnitude1, bins, hax_mag):
 
 	Args:
 		norm_delta_mag (list of floats) -- Normalized Delta-Magnitude. 
+		#FIXME
         Returns:
             counter_1sig (int) -- Number of objects within 1-sigma curve.
 	"""
@@ -965,7 +1411,6 @@ def get_flag_type(df, k):
 
 	Args:
             df (pandas DataFrame)
-            FLAG_HDR_LIST (list of str) -- All flag headers to be examined.
             k (int) -- Counter implemented so printout is not repeated.
         Returns:
             0
@@ -1027,7 +1472,6 @@ def logger(delta_mag, tile_name, filter_name, realization_number, clean_magnitud
             clean_magnitude1 (list of floats) -- Objects with nonzero flags and/or quality cuts removed.
             full_magnitude (list of floats) -- Values read directly from pandas DataFrame via `df[hdr]`; no objects removed using nonzero flag values and no quality cuts performed.
             realization_number (int) -- Allowed values: 0 1 2 None. Refers to Balrog injection and None refers to a one-realization run.
-            RUN_TYPE (str) -- Allowed values: 'ok' 'rerun' None. 'ok' refers to FOF groups unchanged after Balrog injection. 'rerun' refers to changed FOF groups.
         Returns:
             0
 	"""
@@ -1160,10 +1604,7 @@ def get_good_data(df, hdr, idx_good, magnitude, filter_name):
 	if magnitude is False:
                 full_data = df[hdr]
 
-	clean_data = []
-
-	for i in idx_good:
-		clean_data.append(full_data[i])
+	clean_data = np.array(full_data)[idx_good]
 
 	return clean_data
 
@@ -1175,7 +1616,6 @@ def get_good_data(df, hdr, idx_good, magnitude, filter_name):
 
 
 
-#FIXME pass arg mag_axlabel1,2 ?
 def get_plot_variables(filter_name, df, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, realization_number, tile_name, mag_axlabel1, mag_axlabel2):
 	"""Get quantities needed for plotter() and subplotter().
 
@@ -1183,7 +1623,6 @@ def get_plot_variables(filter_name, df, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_er
 		df (pandas DataFrame)
 		
 		*_hdr (str) -- Can be None.
-		RUN_TYPE (str) -- Allowed values: 'ok' 'rerun' None. 'ok' refers to FOF groups unchanged after Balrog injection. 'rerun' refers to changed FOF groups.
 	Returns:
 	"""
 
@@ -1233,10 +1672,10 @@ def get_plot_variables(filter_name, df, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_er
 
 	### Clean the data: removed flags and/or perform quality cuts ###
 	if EH_CUTS:
-		idx_good = get_good_index_using_quality_cuts(cm_flag_hdr1=FLAG_HDR_LIST[2], cm_flag_hdr2=FLAG_HDR_LIST[3], df=df, flag_hdr1=FLAG_HDR_LIST[0], flag_hdr2=FLAG_HDR_LIST[1], full_magnitude1=fullmag1, full_magnitude2=fullmag2)[0]
+		idx_good = get_good_index_using_quality_cuts(df, full_magnitude1=fullmag1, full_magnitude2=fullmag2, cm_flag_hdr1=CM_FLAGS_HDR1, cm_flag_hdr2=CM_FLAGS_HDR2, flag_hdr1=FLAGS_HDR1, flag_hdr2=FLAGS_HDR2)[0]
 	
 	if EH_CUTS is False:
-                idx_good = get_good_index_using_primary_flags(df=df, cm_flag_hdr1=FLAG_HDR_LIST[2], cm_flag_hdr2=FLAG_HDR_LIST[3], flag_hdr1=FLAG_HDR_LIST[0], flag_hdr2=FLAG_HDR_LIST[1], full_magnitude1=fullmag1, full_magnitude2=fullmag2)[0]
+                idx_good = get_good_index_using_primary_flags(df=df, full_magnitude1=fullmag1, full_magnitude2=fullmag2, cm_flag_hdr1=CM_FLAGS_HDR1, cm_flag_hdr2=CM_FLAGS_HDR2, flag_hdr1=FLAGS_HDR1, flag_hdr2=FLAGS_HDR2)[0]
 
 	cleanmag1 = get_good_data(df=df, hdr=mag_hdr1, idx_good=idx_good, magnitude=True, filter_name=filter_name)
 	cleanmag2 = get_good_data(df=df, hdr=mag_hdr2, idx_good=idx_good, magnitude=True, filter_name=filter_name)
@@ -1284,7 +1723,6 @@ def plotter(mag_hdr1, mag_hdr2, cbar_val, error1, error2, filter_name, clean_mag
 	Args:
             full_magnitude1, full_magnitude2 (numpy.ndarray if directly from `df` OR list of floats if from `get_floats_from_string()`) -- Values read directly from pandas DataFrame via `df[hdr]`; no objects removed using nonzero flag values and no quality cuts performed.
             realization_number (str) -- Allowed values: 0 1 2 None. Refers to Balrog injection and None refers to a one-realization run.
-            RUN_TYPE (str) -- Allowed values: 'ok' 'rerun' None. 'ok' refers to FOF groups unchanged after Balrog injection. 'rerun' refers to changed FOF groups.
         Returns:
 		0
 	"""
@@ -1579,78 +2017,6 @@ def subplotter(df, flag_idx, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, plo
 
 
 
-def get_match_type(title_piece1, title_piece2):
-        """Transform plot title of form 'Inj MOF Cat & Truth Cat' to 'inj_mof_cat_truth_cat'.
-
-        Args:
-                title_piece1, title_piece2 (str) -- Ex: Injected MOF
-        Return:
-                match_type (str) -- Ex: injected_mof_truth_catalog
-        """
-	title_piece1, title_piece2 = title_piece1.lower(), title_piece2.lower()
-	title_piece1, title_piece2 = title_piece1.replace(' ', '_'), title_piece2.replace(' ', '_')
-        match_type = str(title_piece1)+'_'+str(title_piece2)
-
-        return match_type
-
-
-
-
-
-
-
-
-
-def get_fd_names(outdir):
-        """Generate names for the following log files: flags, magnitude bins, number of objects plotted, number of objects within one sigma.
-	Relies on directory structure: outdir/log_files/`BALROG_RUN`/`MATCH_TYPE`/
-
-        Args:
-                title_piece1, title_piece2 (str) --
-                outdir (str) -- Output directory. Files will be saved here.
-        Returns:
-                fn1, fn2, fn3, fn4 (str) -- Filenames for flag log file, magnitude log, number of objects plotted log, number of objects within 1-sigma, respectively.
-        """
-
-	# !!!!! User may wish to edit directory structure #
-	### Check for directory existence ###
-	if RUN_TYPE is None:
-		log_dir = os.path.join(outdir, 'log_files', BALROG_RUN, MATCH_TYPE)
-	if RUN_TYPE is not None:
-		log_dir = os.path.join(outdir, 'log_files', BALROG_RUN, MATCH_TYPE, 'fof_analysis')
-
-	if os.path.isdir(log_dir) is False:
-		if NO_DIR_EXIT:
-			sys.exit('Directory ' + str(log_dir) + ' does not exist. \n Change directory structure in ms_plotter.get_fd_names() or set `NO_DIR_MAKE=True`')
-		if NO_DIR_MAKE:
-			print 'Making directory ', log_dir, '...\n'
-			os.makedirs(log_dir)
-	
-	fn1 = os.path.join(log_dir, 'flag_log_'+str(MATCH_TYPE)+'.csv')
-	fn2 = os.path.join(log_dir, 'magnitude_bins_'+str(MATCH_TYPE)+'.txt')
-	fn3 = os.path.join(log_dir, 'num_objs_plotted_'+str(MATCH_TYPE)+'.txt')
-	fn4 = os.path.join(log_dir, 'one_sigma_objects_'+str(MATCH_TYPE)+'.txt')
-
-	if RUN_TYPE is not None:
-		fn_all = [fn1, fn2, fn3, fn3]
-		for fn in fn_all:
-			fn = fn[:-4] + '_' + str(RUN_TYPE) + fn[-4:]
-
-	print '-----> Saving log file for flags as: ', fn1, '\n'
-	print '-----> Saving log file for magnitude and error bins as: ', fn2, '\n'
-	print '-----> Saving log file for number of objects plotted as: ', fn3, '\n'
-	print '-----> Saving log file for number of objects within 1-sigma as: ', fn4, '\n' 
-
-	return fn1, fn2, fn3, fn4
-
-
-
-
-
-
-
-
-
 def get_plot_suptitle(realization_number, tile_name):
 	"""Generate plot title.
 
@@ -1658,7 +2024,6 @@ def get_plot_suptitle(realization_number, tile_name):
 		match_type (str) -- Ex: inj_mof_vs_truth_cat 
 		realization_number (str) -- Allowed values: '0' '1' '2' ... 'stacked'.
 		tile_name (str)
-		RUN_TYPE (str) -- Allowed values: 'ok' 'rerun' None. 'ok' refers to FOF groups unchanged after Balrog injection. 'rerun' refers to changed FOF groups.
 	Returns:
 		title (str) -- Ex: 'Inj MOF Cat & Truth Cat' 
 	"""
@@ -1764,7 +2129,8 @@ def get_coadd_mag_and_mag_err(fn_g, fn_r, fn_i, fn_z, mag_hdr, err_hdr):
 		fn -- Filenames. Must be FITS files.
 		hdr (str) -- Header for the magnitude. Headers refer to columns in the matched catalog.
 	Returns:
-		m_griz (list of str) -- Stores magnitudes of each filter in form '(mag_g, mag_r, mag_i, mag_z)'
+		m_griz (list of str) -- Stores magnitude of each filter in form '(mag_g, mag_r, mag_i, mag_z)'
+		m_err_griz (list of str) -- Stores error in magnitude of each filter in form '(mag_g, mag_r, mag_i, mag_z)'
 	"""
 
 	# Files have not yet been matched, and do not have hdr_1 #
@@ -1831,310 +2197,6 @@ def get_star_mag(df):
 
 
 
-################################################################### Store catalog information ###################################################################
-
-class CoaddCat():
-	"""Declare headers for coadd catalogs .../coadd/{tile}_{filter}_cat.fits. There is a separate catalog for each filter."""
-
-        # Once matched, headers will have form 'hdr_1' or 'hdr_2' with a suffix (suf) #
-	def __init__(self, inj, suf):
-		"""Declare headers.
-
-		Args:
-			inj (bool) -- Balrog injected catalog?
-			suf (int) -- Refers to order in which catalog was matched in ms_matcher. Allowed values: 1 2
-		"""
-
-		# For plot title #
-		if inj:
-			self.title_piece = 'Inj Coadd Cat'
-		if inj is False:
-			self.title_piece = 'Coadd Cat'
-		self.axlabel = 'meas'
-		# Magnitude, is one number #
-		self.mag_hdr = 'MAG_AUTO' + str(suf)
-		self.mag_axlabel = 'MAG_AUTO_meas'
-		# For error calculation #
-		self.mag_err_hdr = 'MAGERR_AUTO' + str(suf)
-		self.cm_flux_hdr = None
-		self.cm_flux_cov_hdr = None
-		# Size #
-		self.cm_t_hdr = None
-		self.cm_t_err_hdr = None
-		self.cm_t_s2n_axlabel = None
-		# Flags #
-		self.flags_hdr = 'FLAGS' + str(suf)
-		self.obj_flags_hdr = None
-		self.psf_flags_hdr = None
-		self.cm_flags_hdr = None
-		self.cm_max_flags_hdr = None
-		self.cm_mof_flags_hdr = None
-		self.cm_flags_r_hdr = None
-		# For region file #
-		self.ra_hdr = 'ALPHAWIN_J2000' + str(suf)
-		self.dec_hdr = 'DELTAWIN_J2000' + str(suf)
-		self.a_hdr = 'A_IMAGE' + str(suf)
-		self.b_hdr = 'B_IMAGE' + str(suf)
-		# For Eric Huff (EH) quality cuts #
-                self.cm_s2n_r_hdr = None
-                self.psfrec_t_hdr = None
-
-
-
-
-
-
-
-
-
-class SOFGalTruthCat():
-	"""Declare headers and axes labels for galaxy truth catalogs in the sof directory /data/des71.a/data/kuropat/des2247-4414_sof/."""
-
-	# Once matched, headers will have form 'hdr_1' or 'hdr_2' with a suffix (suf) #
-	def __init__(self, inj, suf):
-		"""Declare constants.
-
-                Args:
-                        inj (bool) -- Balrog injected catalog?
-			suf (int) -- Refers to order in which catalog was matched in ms_matcher. Allowed values: 1 2
-                """
-
-		if inj:
-			self.title_piece = 'Inj Gal Truth Cat'
-		if inj is False:
-			self.title_piece = 'Gal Truth Cat'
-		self.axlabel = 'true'
-		# Headers are the same as MOFCat class. Reproduced below for clarity in ms_plotter.py #
-		# Magnitude, is string of form '(mag_g, mag_r, mag_i, mag_z)' #
-	    	self.mag_hdr = 'cm_mag' + str(suf)
-		self.mag_axlabel = 'cm_mag_true'
-                # For error calculation #
-                self.mag_err_hdr = None
-                self.cm_flux_hdr = 'cm_flux' + str(suf)
-                self.cm_flux_cov_hdr = 'cm_flux_cov' + str(suf)
-                # Size #
-                self.cm_t_hdr = 'cm_T_'  + str(suf)
-                self.cm_t_err_hdr = 'cm_T_err_'  + str(suf)
-		self.cm_t_s2n_axlabel = 'cm_T_s2n_true'
-                # Flags #
-                self.flags_hdr = 'flags' + str(suf)
-                self.obj_flags_hdr = 'obj_flags' + str(suf)
-                self.psf_flags_hdr = 'psf_flags' + str(suf)
-                self.cm_flags_hdr = 'cm_flags' + str(suf)
-                self.cm_max_flags_hdr = 'cm_max_flags' + str(suf)
-                self.cm_flags_r_hdr = 'cm_flags_r' + str(suf)
-		self.cm_mof_flags_hdr = 'cm_mof_flags' + str(suf)
-                # For region file #
-                self.ra_hdr = 'ra' + str(suf)
-                self.dec_hdr = 'dec' + str(suf)
-                self.a_hdr, self.b_hdr = None, None
-                # For Eric Huff (EH) quality cuts #
-		self.cm_s2n_r_hdr = 'cm_s2n_r' + str(suf)
-                self.psfrec_t_hdr = 'psfrec_T' + str(suf)
-
-
-
-	
-
-
-
-
-
-class SOFCat():
-        """Declare headers and axis labels for sof catalog in /data/des71.a/data/kuropat/des2247-4414_sof/y3v02/balrog_images/{realization}/{tile}/sof/{tile}_sof.fits and /data/des71.a/data/kuropat/sof_stars/y3v02/balrog_images/{realization}/{tile}/mof/{tile}_mof.fits"""
-
-	# Once matched, headers will have form 'hdr_1' or 'hdr_2' with a suffix (suf) #
-        def __init__(self, inj, suf):
-		"""Declare constants.
-
-                Args:
-                        inj (bool) -- Balrog injected catalog?
-			suf (int) -- Refers to order in which catalog was matched in ms_matcher. Allowed values: 1 2
-                """
-
-                if inj:
-                        self.title_piece = 'Inj SOF Cat'
-                if inj is False:
-                        self.title_piece = 'SOF Cat'
-		self.axlabel = 'meas'
-                # Headers are the same as MOFCat class with the exception of cm_mof_flags_hdr. Reproduced below for clarity #
-		# Magnitude, is string of form '(mag_g, mag_r, mag_i, mag_z)' #
-		self.mag_hdr = 'cm_mag' + str(suf)
-		self.mag_axlabel = 'cm_mag_meas'
-                # For error calculation #
-                self.mag_err_hdr = None
-                self.cm_flux_hdr = 'cm_flux' + str(suf)
-                self.cm_flux_cov_hdr = 'cm_flux_cov' + str(suf)
-                # Size #
-                self.cm_t_hdr = 'cm_T_'  + str(suf)
-                self.cm_t_err_hdr = 'cm_T_err_'  + str(suf)
-                self.cm_t_s2n_axlabel = 'cm_T_s2n_meas'
-		# Flags #
-                self.flags_hdr = 'flags' + str(suf)
-                self.obj_flags_hdr = 'obj_flags' + str(suf)
-                self.psf_flags_hdr = 'psf_flags' + str(suf)
-                self.cm_flags_hdr = 'cm_flags' + str(suf)
-                self.cm_max_flags_hdr = 'cm_max_flags' + str(suf)
-                self.cm_flags_r_hdr = 'cm_flags_r' + str(suf)
-                self.cm_mof_flags_hdr = None
-                # For region file #
-                self.ra_hdr = 'ra' + str(suf)
-                self.dec_hdr = 'dec' + str(suf)
-                self.a_hdr, self.b_hdr = None, None
-                # For Eric Huff (EH) quality cuts #
-		self.cm_s2n_r_hdr = 'cm_s2n_r' + str(suf)
-                self.psfrec_t_hdr = 'psfrec_T' + str(suf)
-
-
-
-
-
-
-
-
-
-class MOFCat():
-	"""Declare headers and axes labels for MOF catalog. Currently, the galaxy truth catalogs are created using MOF and have the same headers. Works (mostly) with /data/des71.a/data/kuropat/sof_stars/y3v02/balrog_images/{realization}/{tile}/{tile}_{realization}_balrog_truth_cat_gals.fits, /data/des71.a/data/kuropat/sof_stars/y3v02/balrog_images/{realization}/{tile}/mof/{tile}_mof.fits, ..."""
-
-	# Once matched, headers will have form 'hdr_1' or 'hdr_2' with a suffix (suf) #
-        def __init__(self, inj, suf):
-		"""Declare constants.
-
-		Args:
-			inj (bool) -- Balrog injected catalog?
-			suf (int) -- Refers to order in which catalog was matched in ms_matcher. Allowed values: 1 2
-		"""
-
-		# For plot title #
-		if inj:
-			self.title_piece = 'Inj MOF Cat'
-		if inj is False:
-			self.title_piece = 'MOF Cat'
-		self.axlabel = 'meas'
-		# Magnitude, is string of form (mag_g, mag_r, mag_i, mag_z)  #
-		self.mag_hdr = 'cm_mag' + str(suf)
-		self.mag_axlabel = 'cm_mag_meas'
-		# For error calculation #
-		self.mag_err_hdr = None 
-		self.cm_flux_hdr = 'cm_flux' + str(suf)
-		self.cm_flux_cov_hdr = 'cm_flux_cov' + str(suf)
-		# Size #
-		self.cm_t_hdr = 'cm_T_'  + str(suf)
-		self.cm_t_err_hdr = 'cm_T_err_'  + str(suf)
-		self.cm_t_s2n_axlabel = 'cm_T_s2n_meas'
-		# Flags #
-		self.flags_hdr = 'flags' + str(suf)
-                self.obj_flags_hdr = 'obj_flags' + str(suf)
-                self.psf_flags_hdr = 'psf_flags' + str(suf)
-                self.cm_flags_hdr = 'cm_flags' + str(suf)
-                self.cm_max_flags_hdr = 'cm_max_flags' + str(suf)
-                self.cm_flags_r_hdr = 'cm_flags_r' + str(suf)
-		self.cm_mof_flags_hdr = 'cm_mof_flags' + str(suf)
-		# For region file #
-		self.ra_hdr = 'ra' + str(suf)
-		self.dec_hdr = 'dec' + str(suf)
-		self.a_hdr, self.b_hdr = None, None
-		# For Eric Huff (EH) quality cuts #
-                self.cm_s2n_r_hdr = 'cm_s2n_r' + str(suf) 
-                self.psfrec_t_hdr = 'psfrec_T' + str(suf) 
-
-
-
-
-
-
-
-
-
-class StarTruthCat(): #are there sep headers for MOFStarTruthCat and SOFStarTruthCat?
-        """Declare headers and axes labels for star truth catalogs in /data/des71.a/data/kuropat/sof_stars/."""
-
-	# Once matched, headers will have form 'hdr_1' or 'hdr_2' with a suffix (suf) #
-	def __init__(self, inj, suf):
-		"""Declare constants.
-	
-		Args:
-			inj (bool) -- Balrog injected catalog?
-			suf (int) -- Refers to order in which catalog was matched in ms_matcher. Allowed values: 1 2
-		"""
-		
-		if inj:
-			self.title_piece = 'Inj Star Truth Cat'
-		if inj is False:
-			self.title_piece = 'Star Truth Cat'
-		self.axlabel = 'true'
-		# Magnitude #
-		self.mag_hdr = 'g_Corr' + str(suf) 
-		self.mag_axlabel = 'mag_true' 
-		# For error calculation #
-                # Is of form 'PSF_MAG_ERR_{filter}' + str(suf) #
-		self.mag_err_hdr = 'PSF_MAG_ERR' + str(suf)
-                self.cm_flux_hdr = None
-                self.cm_flux_cov_hdr = None
-		# Size #
-		self.cm_t_hdr = None
-		self.cm_t_err_hdr = None
-		self.cm_t_s2n_axlabel = None
-		# Flags #
-		self.flags_hdr = None
-		self.obj_flags_hdr = None
-		self.psf_flags_hdr = None
-		self.cm_flags_hdr = None
-		self.cm_max_flags_hdr = None
-		self.cm_mof_flags_hdr = None
-		self.cm_flags_r_hdr = None
-		# For region file #
-		self.ra_hdr = 'RA_new' + str(suf)
-		self.dec_hdr = 'DEC_new' + str(suf)
-		self.a_hdr, self.b_hdr = None, None # Use cm_T
-		# For Eric Huff (EH) quality cuts #
-		self.cm_s2n_r_hdr = None
-		self.psfrec_t_hdr = None
-		
-
-
-
-
-
-
-
-
-def get_class(cat_type, inj, suf):
-        """Get the appropriate class for the catalog type.
-
-        Args:
-                cat_type -- Catalog type. Allowed values: 'gal_truth', 'mof', 'star_truth', 'sof', 'coadd'.
-		inj (bool) -- Balrog injected catalog?
-		suf (int) -- Refers to order in which catalog was matched in ms_matcher. Allowed values: 1 2
-        Returns:
-                cat_type_class -- Points to the appropriate class which contains constants.
-        """
-
-        if cat_type == 'gal_truth':
-                cat_type_class = SOFGalTruthCat(inj=inj, suf=suf)
-
-        if cat_type == 'mof':
-                cat_type_class = MOFCat(inj=inj, suf=suf)
-
-        if cat_type == 'star_truth':
-                cat_type_class = StarTruthCat(inj=inj, suf=suf)
-
-        if cat_type == 'sof':
-                cat_type_class = SOFCat(inj=inj, suf=suf)
-
-        if cat_type == 'coadd':
-                cat_type_class = CoaddCat(inj=inj, suf=suf)
-
-        return cat_type_class
-
-
-
-
-
-
-
-
-
 def get_catalog(basepath, cat_type, inj, realization_number, tile_name, filter_name):
         """Get catalog to analyze.
 	
@@ -2175,85 +2237,6 @@ def get_catalog(basepath, cat_type, inj, realization_number, tile_name, filter_n
                 fn = os.path.join(basepath, tile_name, 'coadd', tile_name+'_'+filter_name+'_cat.fits')
 
         return fn
-
-
-
-
-
-
-
-
-
-################################################################### Declare necessary constants ###################################################################
-
-### For data analysis ###
-# CLASS1 refers to in1 in ms_matcher. in1 appends _1 to all the headers, hence suf=1. fof_matcher is done such that injected catalogs have no suffix #
-if RUN_TYPE is not None:
-	CLASS1 = get_class(cat_type=MATCH_CAT1, inj=INJ1, suf='')
-if RUN_TYPE is None:
-	CLASS1 = get_class(cat_type=MATCH_CAT1, inj=INJ1, suf='_1')
-CLASS2 = get_class(cat_type=MATCH_CAT2, inj=INJ2, suf='_2')
-
-# Get arguments to pass to ms_matcher. Need to transform header of form 'ra_1' to 'ra', hence [:-2] #
-RA1, RA2 = CLASS1.ra_hdr[:-2], CLASS2.ra_hdr[:-2]
-DEC1, DEC2 = CLASS1.dec_hdr[:-2], CLASS2.dec_hdr[:-2]
-
-# For plot labels #
-AXLABEL1, AXLABEL2 = CLASS1.axlabel, CLASS2.axlabel
-
-# Magnitudes #
-M_HDR1, M_HDR2 = CLASS1.mag_hdr, CLASS2.mag_hdr
-M_AXLABEL1, M_AXLABEL2 = CLASS1.mag_axlabel, CLASS2.mag_axlabel
-
-# For magnitude error calculation #
-M_ERR_HDR1, M_ERR_HDR2 = CLASS1.mag_err_hdr, CLASS2.mag_err_hdr
-CM_FLUX_HDR1, CM_FLUX_HDR2 = CLASS1.cm_flux_hdr, CLASS2.cm_flux_hdr
-CM_FLUX_COV_HDR1, CM_FLUX_COV_HDR2 = CLASS1.cm_flux_cov_hdr, CLASS2.cm_flux_cov_hdr
-
-# For signal to noise calculation #
-CM_T_HDR1, CM_T_HDR2 = CLASS1.cm_t_hdr, CLASS2.cm_t_hdr
-CM_T_ERR_HDR1, CM_T_ERR_HDR2 = CLASS1.cm_t_err_hdr, CLASS2.cm_t_err_hdr
-CM_T_S2N_AXLABEL1, CM_T_S2N_AXLABEL2 = CLASS1.cm_t_s2n_axlabel, CLASS2.cm_t_s2n_axlabel
-
-# Flags #
-FLAGS_HDR1, FLAGS_HDR2 = CLASS1.flags_hdr, CLASS2.flags_hdr
-OBJ_FLAGS_HDR1, OBJ_FLAGS_HDR2 = CLASS1.obj_flags_hdr, CLASS2.obj_flags_hdr
-# psf_flags is a string of form '(0,0,0,0)'; must pass through get_floats_from_string() if used. #
-PSF_FLAGS_HDR1, PSF_FLAGS_HDR2 = CLASS1.psf_flags_hdr, CLASS2.psf_flags_hdr
-CM_FLAGS_HDR1, CM_FLAGS_HDR2 = CLASS1.cm_flags_hdr, CLASS2.cm_flags_hdr
-CM_MAX_FLAGS_HDR1, CM_MAX_FLAGS_HDR2 = CLASS1.cm_max_flags_hdr, CLASS2.cm_max_flags_hdr
-CM_FLAGS_R_HDR1, CM_FLAGS_R_HDR2 = CLASS1.cm_flags_r_hdr, CLASS2.cm_flags_r_hdr
-CM_MOF_FLAGS_HDR1, CM_MOF_FLAGS_HDR2 = CLASS1.cm_mof_flags_hdr, CLASS2.cm_mof_flags_hdr
-
-# For quality cuts introduced by Eric Huff #
-CM_S2N_R_HDR1, CM_S2N_R_HDR2 = CLASS1.cm_s2n_r_hdr, CLASS2.cm_s2n_r_hdr
-PSFREC_T_HDR1, PSFREC_T_HDR2 = CLASS1.psfrec_t_hdr, CLASS2.psfrec_t_hdr
-
-FLAG_HDR_LIST = [ FLAGS_HDR1, FLAGS_HDR2, CM_FLAGS_HDR1, CM_FLAGS_HDR2, CM_MOF_FLAGS_HDR1, CM_MOF_FLAGS_HDR2, OBJ_FLAGS_HDR1, OBJ_FLAGS_HDR2, PSF_FLAGS_HDR1, PSF_FLAGS_HDR2, CM_MAX_FLAGS_HDR1, CM_MAX_FLAGS_HDR2, CM_FLAGS_R_HDR1, CM_FLAGS_R_HDR2 ]
-
-# Used if LOG_FLAGS is True #
-flag_idx = []
-
-
-### For plot names, plot titles, log file names ###
-TITLE_PIECE1, TITLE_PIECE2 = CLASS1.title_piece, CLASS2.title_piece
-MATCH_TYPE = get_match_type(title_piece1=TITLE_PIECE1, title_piece2=TITLE_PIECE2)
-
-### Names for file directors (fd) ###
-FD_FLAG_NAME, FD_MAG_BINS_NAME, FD_NOP_NAME, FD_1SIG_NAME = get_fd_names(outdir=outdir)
-
-# Create log file for number of objects plotted (nop) #
-FD_NOP = open(FD_NOP_NAME, 'w')
-# Create log file for number of objects within 1-sigma #
-FD_1SIG = open(FD_1SIG_NAME, 'w')
-# Create log file for magnitude bins #
-FD_MAG_BINS = open(FD_MAG_BINS_NAME, 'w')
-FD_MAG_BINS.write('NUM_OBJS_IN_BIN, BIN_LHS, BIN_RHS, MEDIAN_HAXIS_MAG, MEDIAN_ERROR \n') 
-# Create log file for flags #
-FD_FLAG = open(FD_FLAG_NAME, 'w')
-FD_FLAG.write('TILE, FILTER, TYPE, REALIZATION, FLAG1_HEADER, FLAG2_HEADER, FLAG1_VALUE, FLAG2_VALUE, MAG1, MAG2 \n')
-if LOG_FLAGS is False:
-        FD_FLAG.write('Flags not logged because LOG_FLAGS is False.')
 
 
 
@@ -2327,19 +2310,14 @@ def fof_matcher(basepath, outdir, realization_number, tile_name): #TODO add RUN_
         """Get catalogs to analyze. Return FOF-analysed catalogs.
 
         Args:
-                basepath
+                basepath (str)
+		outdir (str) 
                 realization_number (str) -- Allowed values: '0' '1' '2' ...
                 tile_name -- Different allowed values depending on catalog.
         Returns:
-                .. -- Filenames
+                fn_* -- Filenames
         """
 
-        '''
-        if cat_type == 'sof' and inj:
-                fn = os.path.join(basepath, 'balrog_images', realization_number, tile_name, 'sof', tile_name+'_sof.fits')
-        if cat_type == 'sof' and inj is False:
-                fn = os.path.join(basepath, tile_name, 'sof', tile_name+'_sof.fits')
-        '''
 
         ### Filenames for input catalogs used in fof_matcher ###
 	# FOF #
@@ -2420,7 +2398,8 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 	"""Makes plots.
 
 	Args:
-		mag_hdr1, mag_hdr2 (str) -- Headers for magnitudes. May be altered, hence passed as parameters.
+		mag_hdr1, mag_hdr2 (str) -- Headers for magnitude. May be altered, hence passed as parameters.
+		mag_err_hdr1, mag_err_hdr2 (str) -- Headers for magnitude error. May be altered, hence passed as parameters.
 	Returns:
 		0
 	"""
