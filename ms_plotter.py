@@ -124,6 +124,9 @@ if RUN_TYPE is not None:
         INJ1, INJ2 = True, False
 
 
+### !!!!! Make region files? #
+MAKE_REG = True
+
 ### Miscellaneous ###
 # Print progress? #
 PRINTOUTS = True
@@ -165,7 +168,7 @@ class CoaddCat():
 
 		Args:
 			inj (bool) -- Balrog injected catalog?
-			suf (int) -- Refers to order in which catalog was matched in ms_matcher. Allowed values: 1 2
+			suf (int) -- Refers to order in which catalog was matched in ms_matcher. Allowed values: '_1' '_2'
 		"""
 
 		# For plot title #
@@ -196,6 +199,7 @@ class CoaddCat():
 		# For region file #
 		self.ra_hdr = 'ALPHAWIN_J2000' + str(suf)
 		self.dec_hdr = 'DELTAWIN_J2000' + str(suf)
+		# Units: pixels #
 		self.a_hdr = 'A_IMAGE' + str(suf)
 		self.b_hdr = 'B_IMAGE' + str(suf)
 		# For Eric Huff (EH) quality cuts #
@@ -219,7 +223,7 @@ class SOFGalTruthCat():
 
                 Args:
                         inj (bool) -- Balrog injected catalog?
-			suf (int) -- Refers to order in which catalog was matched in ms_matcher. Allowed values: 1 2
+			suf (int) -- Refers to order in which catalog was matched in ms_matcher. Allowed values: '_1' '_2'
                 """
 
 		if inj:
@@ -235,9 +239,9 @@ class SOFGalTruthCat():
                 self.mag_err_hdr = None
                 self.cm_flux_hdr = 'cm_flux' + str(suf)
                 self.cm_flux_cov_hdr = 'cm_flux_cov' + str(suf)
-                # Size #
-                self.cm_t_hdr = 'cm_T_'  + str(suf)
-                self.cm_t_err_hdr = 'cm_T_err_'  + str(suf)
+                # Size. cm_T units: arcseconds squared. #
+                self.cm_t_hdr = 'cm_T'  + str(suf)
+                self.cm_t_err_hdr = 'cm_T_err'  + str(suf)
 		self.cm_t_s2n_axlabel = 'cm_T_s2n_true'
                 # Flags #
                 self.flags_hdr = 'flags' + str(suf)
@@ -272,7 +276,7 @@ class SOFCat():
 
                 Args:
                         inj (bool) -- Balrog injected catalog?
-			suf (int) -- Refers to order in which catalog was matched in ms_matcher. Allowed values: 1 2
+			suf (int) -- Refers to order in which catalog was matched in ms_matcher. Allowed values: '_1' '_2'
                 """
 
                 if inj:
@@ -289,8 +293,8 @@ class SOFCat():
                 self.cm_flux_hdr = 'cm_flux' + str(suf)
                 self.cm_flux_cov_hdr = 'cm_flux_cov' + str(suf)
                 # Size #
-                self.cm_t_hdr = 'cm_T_'  + str(suf)
-                self.cm_t_err_hdr = 'cm_T_err_'  + str(suf)
+                self.cm_t_hdr = 'cm_T'  + str(suf)
+                self.cm_t_err_hdr = 'cm_T_err'  + str(suf)
                 self.cm_t_s2n_axlabel = 'cm_T_s2n_meas'
 		# Flags #
                 self.flags_hdr = 'flags' + str(suf)
@@ -325,7 +329,7 @@ class MOFCat():
 
 		Args:
 			inj (bool) -- Balrog injected catalog?
-			suf (int) -- Refers to order in which catalog was matched in ms_matcher. Allowed values: 1 2
+			suf (int) -- Refers to order in which catalog was matched in ms_matcher. Allowed values: '_1' '_2'
 		"""
 
 		# For plot title #
@@ -342,8 +346,8 @@ class MOFCat():
 		self.cm_flux_hdr = 'cm_flux' + str(suf)
 		self.cm_flux_cov_hdr = 'cm_flux_cov' + str(suf)
 		# Size #
-		self.cm_t_hdr = 'cm_T_'  + str(suf)
-		self.cm_t_err_hdr = 'cm_T_err_'  + str(suf)
+		self.cm_t_hdr = 'cm_T'  + str(suf)
+		self.cm_t_err_hdr = 'cm_T_err'  + str(suf)
 		self.cm_t_s2n_axlabel = 'cm_T_s2n_meas'
 		# Flags #
 		self.flags_hdr = 'flags' + str(suf)
@@ -378,7 +382,7 @@ class StarTruthCat(): #are there sep headers for MOFStarTruthCat and SOFStarTrut
 	
 		Args:
 			inj (bool) -- Balrog injected catalog?
-			suf (int) -- Refers to order in which catalog was matched in ms_matcher. Allowed values: 1 2
+			suf (int) -- Refers to order in which catalog was matched in ms_matcher. Allowed values: '_1' '_2'
 		"""
 		
 		if inj:
@@ -428,7 +432,7 @@ def get_class(cat_type, inj, suf):
         Args:
                 cat_type -- Catalog type. Allowed values: 'gal_truth', 'mof', 'star_truth', 'sof', 'coadd'.
                 inj (bool) -- Balrog injected catalog?
-                suf (int) -- Refers to order in which catalog was matched in ms_matcher. Allowed values: 1 2
+		suf (int) -- Refers to order in which catalog was matched in ms_matcher. Allowed values: '_1' '_2'
         Returns:
                 cat_type_class -- Points to the appropriate class which contains constants.
         """
@@ -485,7 +489,6 @@ def get_fd_names(outdir):
         Relies on directory structure: outdir/log_files/`BALROG_RUN`/`MATCH_TYPE`/
 
         Args:
-                title_piece1, title_piece2 (str) --
                 outdir (str) -- Output directory. Files will be saved here.
         Returns:
                 fn1, fn2, fn3, fn4 (str) -- Filenames for flag log file, magnitude log, number of objects plotted log, number of objects within 1-sigma, respectively.
@@ -511,9 +514,8 @@ def get_fd_names(outdir):
         fn4 = os.path.join(log_dir, 'one_sigma_objects_'+str(MATCH_TYPE)+'.txt')
 
         if RUN_TYPE is not None:
-                fn_all = [fn1, fn2, fn3, fn3]
-                for fn in fn_all:
-                        fn = fn[:-4] + '_' + str(RUN_TYPE) + fn[-4:]
+		fn1 = fn1[:-4] + '_' + str(RUN_TYPE) + fn1[-4:]; fn2 = fn2[:-4] + '_' + str(RUN_TYPE) + fn2[-4:]
+		fn3 = fn3[:-4] + '_' + str(RUN_TYPE) + fn3[-4:]; fn4 = fn4[:-4] + '_' + str(RUN_TYPE) + fn4[-4:]
 
         print '-----> Saving log file for flags as: ', fn1, '\n'
         print '-----> Saving log file for magnitude and error bins as: ', fn2, '\n'
@@ -523,6 +525,49 @@ def get_fd_names(outdir):
 	return fn1, fn2, fn3, fn4
 
 
+
+
+
+
+
+
+
+
+def get_reg_names(outdir):
+	"""Generate names for region files of different join types in STILTS script ms_matcher or fof_matcher.
+
+        Args:
+                outdir (str) -- Output directory. Files will be saved here.
+        Returns:
+                fn1, fn2, fn3, (str) -- Filenames for join=1and2, join=1not2, join=2not1, respectively. 
+        """
+
+        # !!!!! User may wish to edit directory structure #
+        ### Check for directory existence ###
+        if RUN_TYPE is None:
+                reg_dir = os.path.join(outdir, 'region_files', BALROG_RUN, MATCH_TYPE)
+        if RUN_TYPE is not None:
+                reg_dir = os.path.join(outdir, 'region_files', BALROG_RUN, MATCH_TYPE, 'fof_analysis')
+
+
+        if os.path.isdir(reg_dir) is False:
+                if NO_DIR_EXIT:
+                        sys.exit('Directory ' + str(reg_dir) + ' does not exist. \n Change directory structure in ms_plotter.get_fd_names() or set `NO_DIR_MAKE=True`')
+                if NO_DIR_MAKE:
+                        print 'Making directory ', reg_dir, '...\n'
+                        os.makedirs(reg_dir)
+
+
+        fn1 = os.path.join(reg_dir, str(MATCH_TYPE)+'_match1and2.reg')
+        fn2 = os.path.join(reg_dir, str(MATCH_TYPE)+'_match1not2.reg')
+        fn3 = os.path.join(reg_dir, str(MATCH_TYPE)+'_match2not1.reg')
+
+
+	if RUN_TYPE is not None:
+		fn1 = fn1[:-15] + '_' + str(RUN_TYPE) + fn1[-15:]; fn2 = fn2[:-15] + '_' + str(RUN_TYPE) + fn2[-15:]; fn3 = fn3[:-15] + '_' + str(RUN_TYPE) + fn3[-15:]
+
+
+	return fn1, fn2, fn3
 
 
 
@@ -541,9 +586,8 @@ if RUN_TYPE is None:
 CLASS2 = get_class(cat_type=MATCH_CAT2, inj=INJ2, suf='_2')
 
 # Get arguments to pass to ms_matcher. Need to transform header of form 'ra_1' to 'ra', hence [:-2] #
-RA1, RA2 = CLASS1.ra_hdr[:-2], CLASS2.ra_hdr[:-2]
-DEC1, DEC2 = CLASS1.dec_hdr[:-2], CLASS2.dec_hdr[:-2]
-
+RA_HDR1, RA_HDR2 = CLASS1.ra_hdr[:-2], CLASS2.ra_hdr[:-2]
+DEC_HDR1, DEC_HDR2 = CLASS1.dec_hdr[:-2], CLASS2.dec_hdr[:-2]
 # For plot labels #
 AXLABEL1, AXLABEL2 = CLASS1.axlabel, CLASS2.axlabel
 
@@ -574,6 +618,10 @@ CM_MOF_FLAGS_HDR1, CM_MOF_FLAGS_HDR2 = CLASS1.cm_mof_flags_hdr, CLASS2.cm_mof_fl
 # For quality cuts introduced by Eric Huff #
 CM_S2N_R_HDR1, CM_S2N_R_HDR2 = CLASS1.cm_s2n_r_hdr, CLASS2.cm_s2n_r_hdr
 PSFREC_T_HDR1, PSFREC_T_HDR2 = CLASS1.psfrec_t_hdr, CLASS2.psfrec_t_hdr
+
+# For region file #
+MAJOR_AX_HDR1, MAJOR_AX_HDR2 = CLASS1.a_hdr, CLASS2.a_hdr 
+MINOR_AX_HDR1, MINOR_AX_HDR2 = CLASS1.b_hdr, CLASS2.b_hdr
 
 FLAG_HDR_LIST = [ FLAGS_HDR1, FLAGS_HDR2, CM_FLAGS_HDR1, CM_FLAGS_HDR2, CM_MOF_FLAGS_HDR1, CM_MOF_FLAGS_HDR2, OBJ_FLAGS_HDR1, OBJ_FLAGS_HDR2, PSF_FLAGS_HDR1, PSF_FLAGS_HDR2, CM_MAX_FLAGS_HDR1, CM_MAX_FLAGS_HDR2, CM_FLAGS_R_HDR1, CM_FLAGS_R_HDR2 ]
 
@@ -1156,7 +1204,7 @@ def bin_and_cut_measured_magnitude_error(clean_magnitude1, clean_magnitude2, err
 			print 'Using measured catalog (catalog1 AND catalog2) for error calculation ... '
 
 	if 'true' in AXLABEL1 and 'true' in AXLABEL2:
-		sys.exit('Erros are to be computed using the measured catalog(s), not the truth catalog(s).')
+		sys.exit('Errors are to be computed using the measured catalog(s), not the truth catalog(s).')
 
 
 	### Define bins ###
@@ -2282,23 +2330,23 @@ def matcher(basepath, outdir, realization_number, tile_name, filter_name):
 			os.makedirs(match_dir)
 
 
-        outname = os.path.join(outdir, 'catalog_compare', BALROG_RUN, MATCH_TYPE, tile_name+'_'+realization_number+'_'+str(MATCH_TYPE)+'_match1and2.csv')
+        outname_match = os.path.join(outdir, 'catalog_compare', BALROG_RUN, MATCH_TYPE, tile_name+'_'+realization_number+'_'+str(MATCH_TYPE)+'_match1and2.csv')
+	outname_1not2 = os.path.join(outdir, 'catalog_compare', BALROG_RUN, MATCH_TYPE, tile_name+'_'+realization_number+'_'+str(MATCH_TYPE)+'_match1not2.csv')
+	outname_2not1 = os.path.join(outdir, 'catalog_compare', BALROG_RUN, MATCH_TYPE, tile_name+'_'+realization_number+'_'+str(MATCH_TYPE)+'_match2not1.csv')
 
-	# Overwrite matched catalog if it already exists? # 
+	# Overwrite matched catalogs if one already exists? # 
         OVERWRITE = False
 
 	# Check `outname` existence #
-	if os.path.isfile(outname) is False or (os.path.isfile(outname) and OVERWRITE):
+	if os.path.isfile(outname_2not1) is False or (os.path.isfile(outname_2not1) and OVERWRITE):
 
 		print '\nMatching ', in1, in2, '...\n'
 
-		### Matching done in ms_matcher. Args: in1, in2, out, RA1, DEC1, RA2, DEC2, OVERWRITE ###
+		### Matching done in ms_matcher. Args: in1, in2, out, RA_HDR1, DEC_HDR1, RA_HDR2, DEC_HDR2, OVERWRITE ###
 		# !!!!! Ensure that path to ms_matcher is correct #
-		subprocess.call(['/data/des71.a/data/mspletts/balrog_validation_tests/scripts/BalVal/ms_matcher', in1, in2, outname, RA1, DEC1, RA2, DEC2])
+		subprocess.call(['/data/des71.a/data/mspletts/balrog_validation_tests/scripts/BalVal/ms_matcher', in1, in2, outname_match, outname_1not2, outname_2not1, RA_HDR1, DEC_HDR1, RA_HDR2, DEC_HDR2])
 
-        return outname
-
-
+        return outname_match, outname_1not2, outname_2not1
 
 
 
@@ -2306,7 +2354,9 @@ def matcher(basepath, outdir, realization_number, tile_name, filter_name):
 
 
 
-def fof_matcher(basepath, outdir, realization_number, tile_name): #TODO add RUN_TYPE and return only one catalog?
+
+
+def fof_matcher(basepath, outdir, realization_number, tile_name):
         """Get catalogs to analyze. Return FOF-analysed catalogs.
 
         Args:
@@ -2365,26 +2415,33 @@ def fof_matcher(basepath, outdir, realization_number, tile_name): #TODO add RUN_
         rerun_inj_mof = os.path.join(inj_outdir, inj_outname + '_rerun_inj_mof.csv')
         ok_mof = os.path.join(inj_outdir, inj_outname + '_ok_mof.csv')
         rerun_mof = os.path.join(inj_outdir, inj_outname + '_rerun_mof.csv')
+
         ok_match = os.path.join(inj_outdir, inj_outname + '_ok_inj_mof_ok_mof_match1and2.csv')
+	ok_1not2 = os.path.join(inj_outdir, inj_outname + '_ok_inj_mof_ok_mof_match1not2.csv')
+        ok_2not1 = os.path.join(inj_outdir, inj_outname + '_ok_inj_mof_ok_mof_match2not1.csv')
+
         rerun_match = os.path.join(inj_outdir, inj_outname + '_rerun_inj_mof_rerun_mof_match1and2.csv')
+	rerun_1not2 = os.path.join(inj_outdir, inj_outname + '_rerun_inj_mof_rerun_mof_match1not2.csv')
+	rerun_2not1 = os.path.join(inj_outdir, inj_outname + '_rerun_inj_mof_rerun_mof_match2not1.csv')
+
         # Output directory for files made in par.py #
         parpy_outdir = os.path.join(inj_outdir, inj_outname)
 
 
         # May need to overwrite if matching was interupted #
-        OVERWRITE = False
+        overwrite = False 
 
         ### Check file existence of last file made in fof_matcher ###
-        if os.path.isfile(rerun_match) is False or (os.path.isfile(rerun_match) and OVERWRITE):
+        if os.path.isfile(rerun_match) is False or (os.path.isfile(rerun_match) and overwrite):
 
                 ### Run fof_matcher ###
-                subprocess.call(['/data/des71.a/data/mspletts/balrog_validation_tests/scripts/fof_analysis/fof_matcher', fof, inj_fof, mof, inj_mof, coadd, inj_coadd, parpy_outdir, fofcoadd, fofgroups, inj_fofcoadd, inj_fofgroups, origfof_injfof, ok, rerun, ok_inj_mof, rerun_inj_mof, ok_mof, rerun_mof, ok_match, rerun_match])
+                subprocess.call(['/data/des71.a/data/mspletts/balrog_validation_tests/scripts/BalVal/fof_matcher', fof, inj_fof, mof, inj_mof, coadd, inj_coadd, parpy_outdir, fofcoadd, fofgroups, inj_fofcoadd, inj_fofgroups, origfof_injfof, ok, rerun, ok_inj_mof, rerun_inj_mof, ok_mof, rerun_mof, ok_match, rerun_match, ok_1not2, rerun_1not2, ok_2not1, ok_2not1])
 
 
 	if RUN_TYPE == 'ok':
-		return ok_match
+		return ok_match, ok_1not2, ok_2not1
 	if RUN_TYPE == 'rerun':
-		return rerun_match
+		return rerun_match, rerun_1not2, ok_2not1
 
 
 
@@ -2415,24 +2472,24 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 			# Check if stacked realization file already exists #
 			if os.path.isfile(fn_stack):
 				print 'Stacked realization catalog exists. Not overwriting ... \n'
-				df = pd.read_csv(fn_stack)
+				df1and2 = pd.read_csv(fn_stack)
 			
 			# Combine all realizations for one tile into a single catalog. Catalogs combined AFTER matching. #
 			if os.path.isfile(fn_stack) is False:
 				all_fn = []
 				for r in ALL_REALIZATIONS:
 					if RUN_TYPE is None:
-						fn = matcher(basepath=basepath, outdir=outdir, realization_number=r, tile_name=t, filter_name=None)
+						fn = matcher(basepath=basepath, outdir=outdir, realization_number=r, tile_name=t, filter_name=None)[0]
 					if RUN_TYPE is not None:
-						fn = fof_matcher(basepath=basepath, outdir=outdir, realization_number=r, tile_name=t)
+						fn = fof_matcher(basepath=basepath, outdir=outdir, realization_number=r, tile_name=t)[0]
 					all_fn.append(fn)
 
 				print 'Stacking realizations. ', len(all_fn), 'files ...'
-				df = pd.concat((pd.read_csv(fn) for fn in all_fn))
+				df1and2 = pd.concat((pd.read_csv(fn) for fn in all_fn))
 				print 'Stacking complete ... \n'
 
 				# Save stacked catalog as DataFrame #
-				df.to_csv(fn_stack, sep=',')
+				df1and2.to_csv(fn_stack, sep=',')
 				print '-----> Saving stacked realization catalog as ', fn_stack
 
 			# Name for plt.savefig() #
@@ -2445,9 +2502,9 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 			### Handle star truth catalogs ###
 			if MATCH_CAT1 == 'star_truth' or MATCH_CAT2 == 'star_truth':
 				print 'Adding new column to matched csv ...'
-				star_mag = get_star_mag(df=df)
+				star_mag = get_star_mag(df=df1and2)
 				# 'mag_a' short for mag_all. New header must be of the form {base}_x where x is a single character because of the way m_axlabel is created from m_hdr #
-				df.insert(len(df.columns), 'mag_a', star_mag)
+				df1and2.insert(len(df1and2.columns), 'mag_a', star_mag)
 
 			if MATCH_CAT1 == 'star_truth':
 				mag_hdr1 = 'mag_a'
@@ -2463,7 +2520,7 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
                                 mag_err_hdr2 = 'mag_err_c_2'
 
 
-			subplotter(df=df, flag_idx=flag_idx, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, plot_name=fn, plot_title=title, realization_number='stacked', tile_name=t) 
+			subplotter(df=df1and2, flag_idx=flag_idx, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, plot_name=fn, plot_title=title, realization_number='stacked', tile_name=t) 
 
 
 
@@ -2477,11 +2534,18 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 			
 			# Filename #
 			if RUN_TYPE is None:
-				fn = matcher(basepath=basepath, outdir=outdir, realization_number=r, tile_name=t, filter_name=None)
+				fn_match, fn_1not2, fn_2not1 = matcher(basepath=basepath, outdir=outdir, realization_number=r, tile_name=t, filter_name=None)
 			if RUN_TYPE is not None:
-				fn = fof_matcher(basepath=basepath, outdir=outdir, realization_number=r, tile_name=t)
+				fn_match, fn_1not2, fn_2not1 = fof_matcher(basepath=basepath, outdir=outdir, realization_number=r, tile_name=t)
 			# DataFrame #
-                        df = pd.read_csv(fn)
+                        df1and2 = pd.read_csv(fn_match)
+			df1not2 = pd.read_csv(fn_1not2)
+			df2not1 = pd.read_csv(fn_2not1)
+
+			### ####
+			if MAKE_REG:
+				make_region_file(df_match=df1and2, df_1not2=df1not2, df_2not1=df2not1, outdir=outdir)
+
 
                         # Name for plt.savefig() #
                         fn = get_plot_save_name(outdir=outdir, realization_number=r, tile_name=t)
@@ -2493,8 +2557,8 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 			### Handle star truth catalogs ###
                         if MATCH_CAT1 == 'star_truth' or MATCH_CAT2 == 'star_truth':
                                 print 'Adding new column to matched csv ... \n'
-                                star_mag = get_star_mag(df=df)
-                                df.insert(len(df.columns), 'mag_a', star_mag)
+                                star_mag = get_star_mag(df=df1and2)
+                                df1and2.insert(len(df1and2.columns), 'mag_a', star_mag)
 
 			# Star truth catalogs matched then combined # #FIXME rename to mag_s for mag_star 
                         if MATCH_CAT1 == 'star_truth':
@@ -2512,7 +2576,7 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 				mag_err_hdr2 = 'mag_err_c_2'
 
 
-			subplotter(df=df, flag_idx=flag_idx, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, plot_name=fn, plot_title=title, realization_number=r, tile_name=t) 
+			subplotter(df=df1and2, flag_idx=flag_idx, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, plot_name=fn, plot_title=title, realization_number=r, tile_name=t) 
 
 
 	return 0
@@ -2571,6 +2635,94 @@ def get_coadd_matcher_catalog(basepath, cat_type, inj, realization_number, mag_h
 
 	return fn_new 
 
+
+
+
+
+
+
+
+
+#TODO accept idx_good as input param? Will only be used for df_match. df for fof ok and fof rerun? Run make_region_file twice # 
+def make_region_file(df_match, df_1not2, df_2not1, outdir):
+	"""Make DS9 region file for matched catalog. #TODO make .reg for join=1not2 and 2not1
+
+	Args:
+		df
+	Returns:
+		fn -- Filename
+	"""
+
+	### Get filenames and open files ###
+	fn_match, fn_1not2, fn_2not1 = get_reg_names(outdir=outdir)
+
+	overwrite = False
+	
+	if os.path.isfile(fn_2not1) and overwrite is False:
+		print 'Region files already exist. Not overwriting ...'
+	
+
+	if os.path.isfile(fn_2not1) is False or (os.path.isfile(fn_2not1) and overwrite):
+		fd_match = open(fn_match, 'w'); fd_1not2 = open(fn_1not2, 'w'); fd_2not1 = open(fn_2not1, 'w')
+		# Write coordinate system #
+		fd_match.write('J20000 \n'); fd_1not2.write('J20000 \n'), fd_2not1.write('J20000 \n')
+
+		# Handle matched catalog #
+		if RUN_TYPE is None:
+			ra1 = RA_HDR1 + str('_1'); dec1 = DEC_HDR1 + str('_1')
+			ra2 = RA_HDR2 + str('_2'); dec2 = DEC_HDR2 + str('_2')
+		if RUN_TYPE is not None:
+			# MOF or SOF catalogs #
+			ra1 = 'ra'; dec1 = 'dec'
+			ra2 = 'ra_2'; dec2 = 'dec_2' 
+
+		### Get position. Arbitrarily using MATCH_CAT1 for RA and DEC ###
+		ra_match, dec_match = df_match[ra2], df_match[dec2] 
+		ra_1not2, dec_1not2 = df_1not2[ra1], df_1not2[dec1]
+		ra_2not1, dec_2not1 = df_2not1[ra2], df_2not1[dec2]
+
+		### Write to region file for matched catalog. Units are arcseconds. ###
+		# Coadds allow for elliptical regions #
+		if MATCH_CAT1 == 'coadd' or MATCH_CAT2 == 'coadd':
+			### Get semimajor and semiminor axes (a and b, respectively). Coadds have these values. ###
+			a_match, b_match = df_match[MAJOR_AX_HDR1], df_match[MINOR_AX_HDR1]
+			a_1not2, b_1not2 = df_1not2[MAJOR_AX_HDR1], df_1not2[MINOR_AX_HDR1]
+			a_2not1, b_2not2 = df_2not1[MAJOR_AX_HDR2], df_2not1[MINOR_AX_HDR2]
+
+			for i in np.arange(0, len(ra_match)):
+				fd_match.write('ellipse ' + str(ra_match[i]) + ' ' + str(dec_match[i]) + ' ' + str(a_match[i]) + '" ' + str(b_match[i]) + '" #color=green width=3 \n')
+			for i in np.arange(0, len(ra_1not2)):
+				fd_1not2.write('ellipse ' + str(ra_1not2[i]) + ' ' + str(dec_1not2[i]) + ' ' + str(a_1not2[i]) + '" ' + str(b_1not2[i]) + '" #color=yellow width=3 \n')
+			for i in np.arange(0, len(ra_2not1)):
+				fd_2not1.write('ellipse ' + str(ra_2not1[i]) + ' ' + str(dec_2not1[i]) + ' ' + str(a_2not1[i]) + '" ' + str(b_2not1[i]) + '" #color=blue width=3 \n')
+
+
+		# Non-coadd catalogs allow for circular regions #
+		if MATCH_CAT1 != 'coadd' and MATCH_CAT2 != 'coadd':
+			size_sq_match = df_match[CM_T_HDR1]
+			size_sq_1not2 = df_1not2[CM_T_HDR1]
+			size_sq_2not1 = df_2not1[CM_T_HDR2]
+
+			# Use a typical radius of 2 arcsec? #
+
+			for i in np.arange(0, len(ra_match)):
+				if size_sq_match[i] > 0:# and np.isnan(size_sq_match[i]) is False:
+					fd_match.write('circle ' + str(ra_match[i]) + ' ' + str(dec_match[i]) + ' ' + str(size_sq_match[i]**0.5) + '" #color=green width=3 \n')
+			for i in np.arange(0, len(ra_1not2)):
+				if size_sq_1not2[i] > 0: # and np.isnan(size_sq_1not2[i]) is False:
+					fd_1not2.write('circle ' + str(ra_1not2[i]) + ' ' + str(dec_1not2[i]) + ' ' + str(size_sq_1not2[i]**0.5) + '" #color=yellow width=3 \n')
+			for i in np.arange(0, len(ra_2not1)):
+				if size_sq_2not1[i] > 0: # and np.isnan(size_sq_2not1[i]) is False:
+					fd_2not1.write('circle ' + str(ra_2not1[i]) + ' ' + str(dec_2not1[i]) + ' ' + str(size_sq_2not1[i]**0.5) + '" #color=blue width=3 \n')
+
+		# Close files #
+		fd_match.close(); fd_1not2.close(); fd_2not1.close()
+
+	print '-----> Saving region files as: ', fn_match
+	print ' -----> ', fn_1not2
+	print ' ----->', fn_2not1
+
+	return 0 
 
 
 
