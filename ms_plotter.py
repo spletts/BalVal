@@ -33,13 +33,13 @@ import sys
 
 
 ### Command line args ###
-basepath, outdir, realizations, tiles = sys.argv[1], sys.argv[2], sys.argv[3].split(','), sys.argv[4].split(',')
+BASEPATH, OUTDIR, realizations, tiles = sys.argv[1], sys.argv[2], sys.argv[3].split(','), sys.argv[4].split(',')
 # Catch error from inadequate number of command line args #
 if len(sys.argv) != 5:
         sys.exit("Args: basepath (location of catalogs), output directory, realizations (can be 'all'), tiles (can be 'all') \n")
 
 
-BALROG_RUN = basepath[basepath.replace('/', ';', 4).find('/')+1:basepath.replace('/', ';', 5).find('/')]
+BALROG_RUN = BASEPATH[BASEPATH.replace('/', ';', 4).find('/')+1:BASEPATH.replace('/', ';', 5).find('/')]
 
 ALL_FILTERS = [ 'g', 'r', 'i', 'z' ]
 
@@ -108,7 +108,7 @@ NO_DIR_MAKE = True
 
 ### For FOF analysis. To ignore FOF analysis set `RUN_TYPE=None` ###
 # !!!!! Allowed values: 'ok' 'rerun' None. 'ok' refers to FOF groups unchanged after Balrog-injection. 'rerun' refers to groups changed after Balrog-injection. #
-RUN_TYPE = None 
+RUN_TYPE = None
 
 # !!!!! Only used if RUN_TYPE is not None #
 MOF = False
@@ -125,7 +125,7 @@ if RUN_TYPE is not None:
 
 
 ### !!!!! Make region files? #
-MAKE_REG = True
+MAKE_REG = False 
 
 ### Miscellaneous ###
 # Print progress? #
@@ -484,7 +484,7 @@ def get_match_type(title_piece1, title_piece2):
 
 
 
-def get_fd_names(outdir):
+def get_fd_names():
         """Generate names for the following log files: flags, magnitude bins, number of objects plotted, number of objects within one sigma.
         Relies on directory structure: outdir/log_files/`BALROG_RUN`/`MATCH_TYPE`/
 
@@ -497,9 +497,9 @@ def get_fd_names(outdir):
         # !!!!! User may wish to edit directory structure #
         ### Check for directory existence ###
         if RUN_TYPE is None:
-                log_dir = os.path.join(outdir, 'log_files', BALROG_RUN, MATCH_TYPE)
+                log_dir = os.path.join(OUTDIR, 'log_files', BALROG_RUN, MATCH_TYPE)
         if RUN_TYPE is not None:
-                log_dir = os.path.join(outdir, 'log_files', BALROG_RUN, MATCH_TYPE, 'fof_analysis')
+                log_dir = os.path.join(OUTDIR, 'log_files', BALROG_RUN, MATCH_TYPE, 'fof_analysis')
 
         if os.path.isdir(log_dir) is False:
                 if NO_DIR_EXIT:
@@ -533,7 +533,7 @@ def get_fd_names(outdir):
 
 
 
-def get_reg_names(outdir):
+def get_reg_names(tile_name, realization_number):
 	"""Generate names for region files of different join types in STILTS script ms_matcher or fof_matcher.
 
         Args:
@@ -545,9 +545,9 @@ def get_reg_names(outdir):
         # !!!!! User may wish to edit directory structure #
         ### Check for directory existence ###
         if RUN_TYPE is None:
-                reg_dir = os.path.join(outdir, 'region_files', BALROG_RUN, MATCH_TYPE)
+                reg_dir = os.path.join(OUTDIR, 'region_files', BALROG_RUN, MATCH_TYPE, tile_name, realization_number)
         if RUN_TYPE is not None:
-                reg_dir = os.path.join(outdir, 'region_files', BALROG_RUN, MATCH_TYPE, 'fof_analysis')
+                reg_dir = os.path.join(OUTDIR, 'region_files', BALROG_RUN, MATCH_TYPE, tile_name, realization_number, 'fof_analysis')
 
 
         if os.path.isdir(reg_dir) is False:
@@ -558,9 +558,9 @@ def get_reg_names(outdir):
                         os.makedirs(reg_dir)
 
 
-        fn1 = os.path.join(reg_dir, str(MATCH_TYPE)+'_match1and2.reg')
-        fn2 = os.path.join(reg_dir, str(MATCH_TYPE)+'_match1not2.reg')
-        fn3 = os.path.join(reg_dir, str(MATCH_TYPE)+'_match2not1.reg')
+        fn1 = os.path.join(reg_dir, str(tile_name) + '_' + str(realization_number) + '_' + str(MATCH_TYPE)+'_match1and2.reg')
+        fn2 = os.path.join(reg_dir, str(tile_name) + '_' + str(realization_number) + '_' + str(MATCH_TYPE)+'_match1not2.reg')
+        fn3 = os.path.join(reg_dir, str(tile_name) + '_' + str(realization_number) + '_' + str(MATCH_TYPE)+'_match2not1.reg')
 
 
 	if RUN_TYPE is not None:
@@ -634,7 +634,7 @@ TITLE_PIECE1, TITLE_PIECE2 = CLASS1.title_piece, CLASS2.title_piece
 MATCH_TYPE = get_match_type(title_piece1=TITLE_PIECE1, title_piece2=TITLE_PIECE2)
 
 ### Names for file directors (fd) ###
-FD_FLAG_NAME, FD_MAG_BINS_NAME, FD_NOP_NAME, FD_1SIG_NAME = get_fd_names(outdir=outdir)
+FD_FLAG_NAME, FD_MAG_BINS_NAME, FD_NOP_NAME, FD_1SIG_NAME = get_fd_names()
 
 # Create log file for number of objects plotted (nop) #
 FD_NOP = open(FD_NOP_NAME, 'w')
@@ -1422,7 +1422,6 @@ def one_sigma_counter(norm_delta_mag, clean_magnitude1, bins, hax_mag):
 
 	Args:
 		norm_delta_mag (list of floats) -- Normalized Delta-Magnitude. 
-		#FIXME
         Returns:
             counter_1sig (int) -- Number of objects within 1-sigma curve.
 	"""
@@ -2096,7 +2095,7 @@ def get_plot_suptitle(realization_number, tile_name):
 
 
 
-def get_plot_save_name(outdir, realization_number, tile_name):
+def get_plot_save_name(realization_number, tile_name):
         """Generate name of the plot that will be used in plt.savefig().
 	Relies on directory structure: outdir/plots/`BALROG_RUN`/`MATCH_TYPE`/{tile}/{plot_type}/{realization}/ where allowed values for plot_type are: 'normalized' 'scatter'. 
 
@@ -2118,7 +2117,7 @@ def get_plot_save_name(outdir, realization_number, tile_name):
 	if RUN_TYPE is None:	
 		endname = str(tile_name) + '_' + str(realization_number) + '_griz_' + str(MATCH_TYPE) + '_' + str(ylim) + '.png'
 	if RUN_TYPE is not None:
-		endname = str(tile_name) + '_' + str(realization_number) + '_griz_' + str(MATCH_TYPE) + '_' + str(RUN_TYPE) + str(ylim) + '.png'
+		endname = str(tile_name) + '_' + str(realization_number) + '_griz_' + str(MATCH_TYPE) + '_' + str(RUN_TYPE) + '_' + str(ylim) + '.png'
 
 	# dm = delta magnitude #	
         if CM_T_S2N_COLORBAR:
@@ -2136,9 +2135,9 @@ def get_plot_save_name(outdir, realization_number, tile_name):
 	# !!!!! User may wish to edit directory structure #
 	### Check for directory existence ###
 	if RUN_TYPE is not None:
-		plot_dir_pref = os.path.join(outdir, 'plots', BALROG_RUN, MATCH_TYPE, tile_name, 'fof_analysis') #TODO add RUN_TYPE subdir?
+		plot_dir_pref = os.path.join(OUTDIR, 'plots', BALROG_RUN, MATCH_TYPE, tile_name, 'fof_analysis') 
 	if RUN_TYPE is None:
-		plot_dir_pref = os.path.join(outdir, 'plots', BALROG_RUN, MATCH_TYPE, tile_name)
+		plot_dir_pref = os.path.join(OUTDIR, 'plots', BALROG_RUN, MATCH_TYPE, tile_name)
 
 	if NORMALIZE:
 		plot_dir = os.path.join(plot_dir_pref, 'normalized', realization_number)
@@ -2245,11 +2244,10 @@ def get_star_mag(df):
 
 
 
-def get_catalog(basepath, cat_type, inj, realization_number, tile_name, filter_name):
+def get_catalog(cat_type, inj, realization_number, tile_name, filter_name):
         """Get catalog to analyze.
 	
         Args:
-                basepath
                 cat_type -- Catalog type. Allowed values: 'gal_truth', 'mof', 'star_truth', 'sof', 'coadd'.
                 inj (bool)
                 realization_number (str) -- Allowed values: '0' '1' '2' ...
@@ -2260,29 +2258,29 @@ def get_catalog(basepath, cat_type, inj, realization_number, tile_name, filter_n
         """
 
         if cat_type == 'gal_truth' and inj:
-                fn = os.path.join(basepath, 'balrog_images', realization_number, tile_name, tile_name+'_'+realization_number+'_balrog_truth_cat_gals.fits')
+                fn = os.path.join(BASEPATH, 'balrog_images', realization_number, tile_name, tile_name+'_'+realization_number+'_balrog_truth_cat_gals.fits')
         if cat_type == 'gal_truth' and inj is False:
                 sys.exit('No non-injected truth catalog exists.')
 
         if cat_type == 'star_truth' and inj:
-                fn = os.path.join(basepath, 'balrog_images', realization_number, tile_name, tile_name+'_'+realization_number+'_balrog_truth_cat_stars.fits')
+                fn = os.path.join(BASEPATH, 'balrog_images', realization_number, tile_name, tile_name+'_'+realization_number+'_balrog_truth_cat_stars.fits')
         if cat_type == 'star_truth' and inj is False:
 		sys.exit('No non-injected truth catalog exists.')
 
         if cat_type == 'sof' and inj:
-                fn = os.path.join(basepath, 'balrog_images', realization_number, tile_name, 'sof', tile_name+'_sof.fits')
+                fn = os.path.join(BASEPATH, 'balrog_images', realization_number, tile_name, 'sof', tile_name+'_sof.fits')
         if cat_type == 'sof' and inj is False:
-                fn = os.path.join(basepath, tile_name, 'sof', tile_name+'_sof.fits')
+                fn = os.path.join(BASEPATH, tile_name, 'sof', tile_name+'_sof.fits')
 
         if cat_type == 'mof' and inj:
-                fn = os.path.join(basepath, 'balrog_images', realization_number, tile_name, 'mof', tile_name+'_mof.fits')
+                fn = os.path.join(BASEPATH, 'balrog_images', realization_number, tile_name, 'mof', tile_name+'_mof.fits')
         if cat_type == 'mof' and inj is False:
-                fn = os.path.join(basepath, tile_name, 'mof', tile_name+'_mof.fits')
+                fn = os.path.join(BASEPATH, tile_name, 'mof', tile_name+'_mof.fits')
 
         if cat_type == 'coadd' and inj:
-                fn = os.path.join(basepath, 'balrog_images', realization_number, tile_name, 'coadd', tile_name+'_'+filter_name+'_cat.fits')
+                fn = os.path.join(BASEPATH, 'balrog_images', realization_number, tile_name, 'coadd', tile_name+'_'+filter_name+'_cat.fits')
         if cat_type == 'coadd' and inj is False:
-                fn = os.path.join(basepath, tile_name, 'coadd', tile_name+'_'+filter_name+'_cat.fits')
+                fn = os.path.join(BASEPATH, tile_name, 'coadd', tile_name+'_'+filter_name+'_cat.fits')
 
         return fn
 
@@ -2294,11 +2292,10 @@ def get_catalog(basepath, cat_type, inj, realization_number, tile_name, filter_n
 
 
 
-def matcher(basepath, outdir, realization_number, tile_name, filter_name):
+def matcher(realization_number, tile_name, filter_name):
         """Match two catalogs on RA and DEC with a tolerance of 1 arcsecond via STILTS.
 
         Args:
-                basepath (str) -- Path to catalogs to match. Ex: /data/des71.a/data/kuropat/sof_stars/y3v02/.
                 outdir (str) -- Path to where matched catalogs are saved.
                 realization_number (str or int) -- Currently allowed values: 0 1 2 3 4 5 6 7 8 9 depending on the basepath.
                 tile_name (str) -- Currently allowed values: DES0347-5540  DES2329-5622  DES2357-6456 DES2247-4414 depending on the basepath.
@@ -2310,18 +2307,18 @@ def matcher(basepath, outdir, realization_number, tile_name, filter_name):
 
         # Input catalogs for STILTS #
 	if MATCH_CAT1 is not 'coadd':
-		in1 = get_catalog(basepath=basepath, cat_type=MATCH_CAT1, inj=INJ1, realization_number=realization_number, tile_name=tile_name, filter_name=filter_name)
+		in1 = get_catalog(cat_type=MATCH_CAT1, inj=INJ1, realization_number=realization_number, tile_name=tile_name, filter_name=filter_name)
 	if MATCH_CAT1 == 'coadd':
-		in1 =  get_coadd_matcher_catalog(basepath=basepath, cat_type=MATCH_CAT1, inj=INJ1, realization_number=realization_number, tile_name=tile_name, mag_hdr=M_HDR1, err_hdr=mag_err_hdr1)
+		in1 =  get_coadd_matcher_catalog(cat_type=MATCH_CAT1, inj=INJ1, realization_number=realization_number, tile_name=tile_name, mag_hdr=M_HDR1, err_hdr=mag_err_hdr1)
 
 	if MATCH_CAT2 is not 'coadd':
-		in2 = get_catalog(basepath=basepath, cat_type=MATCH_CAT2, inj=INJ2, realization_number=realization_number, tile_name=tile_name, filter_name=filter_name)
+		in2 = get_catalog(cat_type=MATCH_CAT2, inj=INJ2, realization_number=realization_number, tile_name=tile_name, filter_name=filter_name)
 	if MATCH_CAT2 == 'coadd':
-		in2 =  get_coadd_matcher_catalog(basepath=basepath, cat_type=MATCH_CAT2, inj=INJ2, realization_number=realization_number, tile_name=tile_name, mag_hdr=M_HDR2, err_hdr=mag_err_hdr2)
+		in2 =  get_coadd_matcher_catalog(cat_type=MATCH_CAT2, inj=INJ2, realization_number=realization_number, tile_name=tile_name, mag_hdr=M_HDR2, err_hdr=mag_err_hdr2)
 
         # !!!!! User may wish to edit directory structure. Output catalog name for STILTS #
 	### Check for directory existence ###
-	match_dir = os.path.join(outdir, 'catalog_compare', BALROG_RUN, MATCH_TYPE)
+	match_dir = os.path.join(OUTDIR, 'catalog_compare', BALROG_RUN, MATCH_TYPE)
 	if os.path.isdir(match_dir) is False:
 		if NO_DIR_EXIT:
 			sys.exit('Directory ' + str(match_dir) + ' does not exist. \n Change directory structure in ms_plotter.matcher() or set `NO_DIR_MAKE=True`')
@@ -2330,19 +2327,19 @@ def matcher(basepath, outdir, realization_number, tile_name, filter_name):
 			os.makedirs(match_dir)
 
 
-        outname_match = os.path.join(outdir, 'catalog_compare', BALROG_RUN, MATCH_TYPE, tile_name+'_'+realization_number+'_'+str(MATCH_TYPE)+'_match1and2.csv')
-	outname_1not2 = os.path.join(outdir, 'catalog_compare', BALROG_RUN, MATCH_TYPE, tile_name+'_'+realization_number+'_'+str(MATCH_TYPE)+'_match1not2.csv')
-	outname_2not1 = os.path.join(outdir, 'catalog_compare', BALROG_RUN, MATCH_TYPE, tile_name+'_'+realization_number+'_'+str(MATCH_TYPE)+'_match2not1.csv')
+        outname_match = os.path.join(match_dir, tile_name+'_'+realization_number+'_'+str(MATCH_TYPE)+'_match1and2.csv')
+	outname_1not2 = os.path.join(match_dir, tile_name+'_'+realization_number+'_'+str(MATCH_TYPE)+'_match1not2.csv')
+	outname_2not1 = os.path.join(match_dir, tile_name+'_'+realization_number+'_'+str(MATCH_TYPE)+'_match2not1.csv')
 
 	# Overwrite matched catalogs if one already exists? # 
-        OVERWRITE = False
+        overwrite = False
 
 	# Check `outname` existence #
-	if os.path.isfile(outname_2not1) is False or (os.path.isfile(outname_2not1) and OVERWRITE):
+	if os.path.isfile(outname_2not1) is False or (os.path.isfile(outname_2not1) and overwrite):
 
 		print '\nMatching ', in1, in2, '...\n'
 
-		### Matching done in ms_matcher. Args: in1, in2, out, RA_HDR1, DEC_HDR1, RA_HDR2, DEC_HDR2, OVERWRITE ###
+		### Matching done in ms_matcher. Args: in1, in2, out, RA_HDR1, DEC_HDR1, RA_HDR2, DEC_HDR2, overwrite ###
 		# !!!!! Ensure that path to ms_matcher is correct #
 		subprocess.call(['/data/des71.a/data/mspletts/balrog_validation_tests/scripts/BalVal/ms_matcher', in1, in2, outname_match, outname_1not2, outname_2not1, RA_HDR1, DEC_HDR1, RA_HDR2, DEC_HDR2])
 
@@ -2356,11 +2353,10 @@ def matcher(basepath, outdir, realization_number, tile_name, filter_name):
 
 
 
-def fof_matcher(basepath, outdir, realization_number, tile_name):
+def fof_matcher(realization_number, tile_name):
         """Get catalogs to analyze. Return FOF-analysed catalogs.
 
         Args:
-                basepath (str)
 		outdir (str) 
                 realization_number (str) -- Allowed values: '0' '1' '2' ...
                 tile_name -- Different allowed values depending on catalog.
@@ -2371,27 +2367,27 @@ def fof_matcher(basepath, outdir, realization_number, tile_name):
 
         ### Filenames for input catalogs used in fof_matcher ###
 	# FOF #
-        fof = os.path.join(basepath, tile_name, 'mof', tile_name+'_fofslist.fits')
-        inj_fof = os.path.join(basepath, 'balrog_images', realization_number, tile_name, 'mof', tile_name+'_fofslist.fits')
+        fof = os.path.join(BASEPATH, tile_name, 'mof', tile_name+'_fofslist.fits')
+        inj_fof = os.path.join(BASEPATH, 'balrog_images', realization_number, tile_name, 'mof', tile_name+'_fofslist.fits')
         # MOF or SOF #
         if MOF:
-                mof = os.path.join(basepath, tile_name, 'mof', tile_name+'_mof.fits')
-                inj_mof = os.path.join(basepath, 'balrog_images', realization_number, tile_name, 'mof', tile_name+'_mof.fits')
-                fof = os.path.join(basepath, tile_name, 'mof', tile_name+'_fofslist.fits')
-                inj_fof = os.path.join(basepath, 'balrog_images', realization_number, tile_name, 'mof', tile_name+'_fofslist.fits')
+                mof = os.path.join(BASEPATH, tile_name, 'mof', tile_name+'_mof.fits')
+                inj_mof = os.path.join(BASEPATH, 'balrog_images', realization_number, tile_name, 'mof', tile_name+'_mof.fits')
+                fof = os.path.join(BASEPATH, tile_name, 'mof', tile_name+'_fofslist.fits')
+                inj_fof = os.path.join(BASEPATH, 'balrog_images', realization_number, tile_name, 'mof', tile_name+'_fofslist.fits')
         if SOF:
-                mof = os.path.join(basepath, tile_name, 'sof', tile_name+'_sof.fits')
-                inj_mof = os.path.join(basepath, 'balrog_images', realization_number, tile_name, 'sof', tile_name+'_sof.fits')
-                fof = os.path.join(basepath, tile_name, 'sof', tile_name+'_fofslist.fits')
-                inj_fof = os.path.join(basepath, 'balrog_images', realization_number, tile_name, 'sof', tile_name+'_fofslist.fits')
+                mof = os.path.join(BASEPATH, tile_name, 'sof', tile_name+'_sof.fits')
+                inj_mof = os.path.join(BASEPATH, 'balrog_images', realization_number, tile_name, 'sof', tile_name+'_sof.fits')
+                fof = os.path.join(BASEPATH, tile_name, 'sof', tile_name+'_fofslist.fits')
+                inj_fof = os.path.join(BASEPATH, 'balrog_images', realization_number, tile_name, 'sof', tile_name+'_fofslist.fits')
         # Coadds. Using i-band #
-        coadd = os.path.join(basepath, tile_name, 'coadd', tile_name+'_i_cat.fits')
-        inj_coadd = os.path.join(basepath, 'balrog_images', realization_number, tile_name, 'coadd', tile_name+'_i_cat.fits')
+        coadd = os.path.join(BASEPATH, tile_name, 'coadd', tile_name+'_i_cat.fits')
+        inj_coadd = os.path.join(BASEPATH, 'balrog_images', realization_number, tile_name, 'coadd', tile_name+'_i_cat.fits')
 
 
         ### Filenames for outputs of fof_matcher ###
         #TODO relies on certain directory structure. make note of this in README.md #
-        outdir = os.path.join(outdir, BALROG_RUN, 'fof_analysis_catalog_compare') 
+        outdir = os.path.join(OUTDIR, 'fof_analysis_catalog_compare', BALROG_RUN) 
         # Repeated #
         inj_outdir = os.path.join(outdir, tile_name, realization_number)
         inj_outname = tile_name + '_' + realization_number
@@ -2467,7 +2463,7 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 		if STACK_REALIZATIONS:
 
 			# Filename #
-			fn_stack = os.path.join(outdir, t+'_stacked_'+str(MATCH_TYPE)+'_match1and2.csv')
+			fn_stack = os.path.join(OUTDIR, t+'_stacked_'+str(MATCH_TYPE)+'_match1and2.csv')
 			
 			# Check if stacked realization file already exists #
 			if os.path.isfile(fn_stack):
@@ -2479,9 +2475,9 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 				all_fn = []
 				for r in ALL_REALIZATIONS:
 					if RUN_TYPE is None:
-						fn = matcher(basepath=basepath, outdir=outdir, realization_number=r, tile_name=t, filter_name=None)[0]
+						fn = matcher(realization_number=r, tile_name=t, filter_name=None)[0]
 					if RUN_TYPE is not None:
-						fn = fof_matcher(basepath=basepath, outdir=outdir, realization_number=r, tile_name=t)[0]
+						fn = fof_matcher(realization_number=r, tile_name=t)[0]
 					all_fn.append(fn)
 
 				print 'Stacking realizations. ', len(all_fn), 'files ...'
@@ -2493,7 +2489,7 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 				print '-----> Saving stacked realization catalog as ', fn_stack
 
 			# Name for plt.savefig() #
-			fn = get_plot_save_name(outdir=outdir, realization_number='stacked_realizations', tile_name=t) 
+			fn = get_plot_save_name(realization_number='stacked_realizations', tile_name=t) 
 
 			# Title for plot #
 			title = get_plot_suptitle(realization_number='stacked '+str(len(ALL_REALIZATIONS)), tile_name=t) 
@@ -2534,9 +2530,9 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 			
 			# Filename #
 			if RUN_TYPE is None:
-				fn_match, fn_1not2, fn_2not1 = matcher(basepath=basepath, outdir=outdir, realization_number=r, tile_name=t, filter_name=None)
+				fn_match, fn_1not2, fn_2not1 = matcher(realization_number=r, tile_name=t, filter_name=None)
 			if RUN_TYPE is not None:
-				fn_match, fn_1not2, fn_2not1 = fof_matcher(basepath=basepath, outdir=outdir, realization_number=r, tile_name=t)
+				fn_match, fn_1not2, fn_2not1 = fof_matcher(realization_number=r, tile_name=t)
 			# DataFrame #
                         df1and2 = pd.read_csv(fn_match)
 			df1not2 = pd.read_csv(fn_1not2)
@@ -2544,11 +2540,11 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 
 			### ####
 			if MAKE_REG:
-				make_region_file(df_match=df1and2, df_1not2=df1not2, df_2not1=df2not1, outdir=outdir)
+				make_region_file(df_match=df1and2, df_1not2=df1not2, df_2not1=df2not1, realization_number=r, tile_name=t)
 
 
                         # Name for plt.savefig() #
-                        fn = get_plot_save_name(outdir=outdir, realization_number=r, tile_name=t)
+                        fn = get_plot_save_name(realization_number=r, tile_name=t)
 
                         # Title for plot #
                         title = get_plot_suptitle(realization_number=r, tile_name=t) 
@@ -2587,11 +2583,10 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 
 
 
-def get_coadd_matcher_catalog(basepath, cat_type, inj, realization_number, mag_hdr, err_hdr, tile_name):
+def get_coadd_matcher_catalog(cat_type, inj, realization_number, mag_hdr, err_hdr, tile_name):
 	"""Make FITS file that includes a column of form '(m_g, m_r, m_i, m_z)' where m is magnitude. Column will be added to '..._i_cat.fits'. This will be used in matcher().
 
 	Args:
-		basepath (str) -- String to catalogs.
 		cat_type (str) -- Catalog type. Allowed values: mof, sof, coadd, gal_truth, star_truth.
 		inj (bool) -- Is the catalog (`cat_type`) injected?
 		realization_number (str)
@@ -2602,7 +2597,7 @@ def get_coadd_matcher_catalog(basepath, cat_type, inj, realization_number, mag_h
 		fn (str) -- Filename. Is a FITS file.
 	"""
 
-	fn_new = os.path.join(outdir, str(tile_name) + '_i_cat.fits')
+	fn_new = os.path.join(OUTDIR, str(tile_name) + '_i_cat.fits')
 
 	# Check if new coadd catalog has already been created #
 	if os.path.isfile(fn_new):
@@ -2615,7 +2610,7 @@ def get_coadd_matcher_catalog(basepath, cat_type, inj, realization_number, mag_h
 		# Get list of filenames #
 		fn_griz = []
 		for f in ALL_FILTERS:
-			fn_griz.append(get_catalog(basepath=basepath, cat_type=cat_type, inj=inj, realization_number=realization, tile_name=tile_name, filter_name=f))
+			fn_griz.append(get_catalog(cat_type=cat_type, inj=inj, realization_number=realization, tile_name=tile_name, filter_name=f))
 		fn_g, fn_r, fn_i, fn_z = fn_griz
 
 		# Get coadd magnitude (mag_c) and magnitude error to be of form '(m_g, m_r, m_i, m_z)'. Recall that this is a string #
@@ -2643,18 +2638,18 @@ def get_coadd_matcher_catalog(basepath, cat_type, inj, realization_number, mag_h
 
 
 
-#TODO accept idx_good as input param? Will only be used for df_match. df for fof ok and fof rerun? Run make_region_file twice # 
-def make_region_file(df_match, df_1not2, df_2not1, outdir):
-	"""Make DS9 region file for matched catalog. #TODO make .reg for join=1not2 and 2not1
+#TODO accept idx_good as input param? Will only be used for df_match. 
+def make_region_file(df_match, df_1not2, df_2not1, realization_number, tile_name):
+	"""Make DS9 region files for catalogs matched via join=1and2, join=1not2, and 2not1.
 
 	Args:
-		df
+		df_* (pandas DataFrame)
 	Returns:
-		fn -- Filename
+		fn_* -- Filenames
 	"""
 
 	### Get filenames and open files ###
-	fn_match, fn_1not2, fn_2not1 = get_reg_names(outdir=outdir)
+	fn_match, fn_1not2, fn_2not1 = get_reg_names(tile_name=tile_name, realization_number=realization_number)
 
 	overwrite = False
 	
@@ -2767,9 +2762,14 @@ if CBAR_LOOP:
 
 
 
-RUN_TYPE_LOOP = False #TODO
+RUN_TYPE_LOOP = False 
 
-RUN_TYPE_list = [None, 'ok', 'rerun']
+if RUN_TYPE_LOOP:
+	run_type_list = [None, 'ok', 'rerun']
+	for run_type in run_type_list:
+		RUN_TYPE = run_type
+		make_plots(mag_hdr1=M_HDR1, mag_hdr2=M_HDR2, mag_err_hdr1=M_ERR_HDR1, mag_err_hdr2=M_ERR_HDR2)
+
 
 ### Close log files ###
 FD_1SIG.close()
