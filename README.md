@@ -7,7 +7,9 @@ ___
 
 `ms_matcher` matches two catalogs using STILTS.
 
-`ms_plotter.py` calls `ms_matcher`, analyzes the matched catalog, and produces various magnitude versus Delta-magnitude plots.
+`fof_matcher` and `par.py` analyse FOF groups.
+
+`ms_plotter.py` calls `ms_matcher` or `fof_matcher` (which calls `par.py`), analyzes the matched catalog, and produces various magnitude versus Delta-magnitude plots.
 
 ___
 
@@ -38,9 +40,24 @@ Catalogs are specified using:
 
 `INJ1` `INJ2` (Booleans) which describe if the catalog is Balrog-injected `INJ=True` or non-injected/original `INJ=False`.
 
+
+**FOF analysis**
+
+FOF groups changed after Balrog-injection are plotted if `RUN_TYPE='rerun'`. 
+
+FOF groups *un*changed after Balrog-injection are plotted examined if `RUN_TYPE='ok'`
+
+If `RUN_TYPE='rerun'` or `RUN_TYPE=ok` then `MATCH_CAT1` `MATCH_CAT2` `INJ1` and `INJ2` will be overwritten.
+
+To ignore FOF analysis set `RUN_TYPE=None`. 
+
+**Region files**
+
+Region files are created if `MAKE_REG=True`. 
+
 **Warnings**
 
-User may need to replace `/data/des71.a/data/mspletts/balrog_validation_tests/scripts/ms_matcher` (in `ms_plotter.matcher()`) with the correct path to `ms_matcher`.
+User may need to replace `/data/des71.a/data/mspletts/balrog_validation_tests/scripts/BalVal/ms_matcher` (in `ms_plotter.matcher()`) with the correct path to `ms_matcher`. Similarly for `fof_matcher`.
 
 ---
 
@@ -62,21 +79,34 @@ If `MATCH_CAT1, MATCH_CAT2, INJ1, INJ2 = 'gal_truth', 'sof', True, True` then `M
 
 **Matched catalogs**
 
-Matched catalogs are saved in: `outdir/catalog_compare/BALROG_RUN/MATCH_TYPE/`
+Matched catalogs are saved in: `/outdir/catalog_compare/BALROG_RUN/MATCH_TYPE/`
+
+Matched catalogs used for FOF analysis are saved in: `/outdir/'fof_analysis_catalog_compare'/`
 
 
-**Log Files**
+**Log files**
 
-Log files are saved in: `outdir/log_files/BALROG_RUN/MATCH_TYPE/`
+Log files are saved in: `/outdir/log_files/BALROG_RUN/MATCH_TYPE/`
+
+Log files for `ok` and `rerun` FOF groups are saved in: `/outdir/log_files/BALROG_RUN/MATCH_TYPE/'fof_analysis'`
 
 
 **Plots**
 
-Plots are saved in: `outdir/plots/BALROG_RUN/MATCH_TYPE/{tile}/{plot_type}/{realization}/`
+Plots are saved in: `/outdir/plots/BALROG_RUN/MATCH_TYPE/{tile}/{realization}/{plot_type}/`
+
+Plots for `ok` and `rerun` FOF groups are saved in: `/outdir/plots/BALROG_RUN/MATCH_TYPE/{tile}/{realization}/'fof_analysis'/{plot_type}/`
+
+Allowed values for `{realization}`: `0` `1` ... `stacked`.
 
 Allowed values for `{plot_type}`: `normalized` `scatter`.
 
-Allowed values for `{realization}`: `0` `1` ... `stacked`.
+
+**Region files**
+
+Region files are saved in: `/outdir/'region_files'/BALROG_RUN/MATCH_TYPE/{tile}/{realization}/`
+
+Region files for `ok` and `rerun` FOF groups are saved in: `/outdir/'region_files'/BALROG_RUN/MATCH_TYPE/{tile}/{realization}/'fof_analysis'/`
 
 
 **Defaults**
