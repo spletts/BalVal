@@ -9,7 +9,7 @@ ___
 
 `fof_matcher` and `par.py` analyse FOF groups. `fof_matcher` uses STILTS.
 
-`ms_plotter.py` calls `ms_matcher` or `fof_matcher` (which calls `par.py`), analyzes the matched catalog, and produces various magnitude versus Delta-magnitude plots.
+`ms_plotter.py` calls `ms_matcher` or `fof_matcher` (which calls `par.py`), analyses the matched catalog, and produces various magnitude versus Delta-magnitude plots.
 
 ___
 
