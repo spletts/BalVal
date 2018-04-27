@@ -67,9 +67,9 @@ If `NO_DIR_MAKE=True` the directories below will be created if they do not alrea
 
 If `NO_DIR_EXIT=True` the script will exit when a nonexistent directory is encountered to remind the user to change the directory structure to their preference. User can change directory structure in `ms_plotter.py`; search for `User may wish to edit directory structure`. 
 
-Directory stucture depends on `outdir` `BALROG_RUN` `MATCH_TYPE`, which are defined below.
+Directory stucture depends on `OUTDIR` `BALROG_RUN` `MATCH_TYPE`, which are defined below.
 
-`outdir` is supplied at the command line.
+`OUTDIR` is supplied at the command line.
 
 `BALROG_RUN` `MATCH_TYPE` are defined in `ms_plotter.py` as follows:
 
@@ -79,23 +79,23 @@ If `MATCH_CAT1, MATCH_CAT2, INJ1, INJ2 = 'gal_truth', 'sof', True, True` then `M
 
 **Matched catalogs**
 
-Matched catalogs are saved in: `/outdir/catalog_compare/BALROG_RUN/MATCH_TYPE/`
+Matched catalogs are saved in: `/OUTDIR/catalog_compare/BALROG_RUN/MATCH_TYPE/`
 
-Matched catalogs used for FOF analysis are saved in: `/outdir/'fof_analysis_catalog_compare'/`
+Matched catalogs used for FOF analysis are saved in: `/OUTDIR/'fof_analysis_catalog_compare'/`
 
 
 **Log files**
 
-Log files are saved in: `/outdir/log_files/BALROG_RUN/MATCH_TYPE/`
+Log files are saved in: `/OUTDIR/log_files/BALROG_RUN/MATCH_TYPE/`
 
-Log files for `ok` and `rerun` FOF groups are saved in: `/outdir/log_files/BALROG_RUN/MATCH_TYPE/'fof_analysis'`
+Log files for `ok` and `rerun` FOF groups are saved in: `/OUTDIR/log_files/BALROG_RUN/MATCH_TYPE/'fof_analysis'`
 
 
 **Plots**
 
-Plots are saved in: `/outdir/plots/BALROG_RUN/MATCH_TYPE/{tile}/{realization}/{plot_type}/`
+Plots are saved in: `/OUTDIR/plots/BALROG_RUN/MATCH_TYPE/{tile}/{realization}/{plot_type}/`
 
-Plots for `ok` and `rerun` FOF groups are saved in: `/outdir/plots/BALROG_RUN/MATCH_TYPE/{tile}/{realization}/'fof_analysis'/{plot_type}/`
+Plots for `ok` and `rerun` FOF groups are saved in: `/OUTDIR/plots/BALROG_RUN/MATCH_TYPE/{tile}/{realization}/'fof_analysis'/{plot_type}/`
 
 Allowed values for `{realization}`: `0` `1` ... `stacked`.
 
@@ -104,9 +104,9 @@ Allowed values for `{plot_type}`: `normalized` `scatter`.
 
 **Region files**
 
-Region files are saved in: `/outdir/'region_files'/BALROG_RUN/MATCH_TYPE/{tile}/{realization}/`
+Region files are saved in: `/OUTDIR/'region_files'/BALROG_RUN/MATCH_TYPE/{tile}/{realization}/`
 
-Region files for `ok` and `rerun` FOF groups are saved in: `/outdir/'region_files'/BALROG_RUN/MATCH_TYPE/{tile}/{realization}/'fof_analysis'/`
+Region files for `ok` and `rerun` FOF groups are saved in: `/OUTDIR/'region_files'/BALROG_RUN/MATCH_TYPE/{tile}/{realization}/'fof_analysis'/`
 
 
 **Defaults**
