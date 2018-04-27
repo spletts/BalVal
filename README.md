@@ -81,21 +81,21 @@ If `MATCH_CAT1, MATCH_CAT2, INJ1, INJ2 = 'gal_truth', 'sof', True, True` then `M
 
 Matched catalogs are saved in: `/OUTDIR/catalog_compare/BALROG_RUN/MATCH_TYPE/`
 
-Matched catalogs used for FOF analysis are saved in: `/OUTDIR/'fof_analysis_catalog_compare'/`
+Matched catalogs used for FOF analysis are saved in: `/OUTDIR/fof_analysis_catalog_compare/`
 
 
 **Log files**
 
 Log files are saved in: `/OUTDIR/log_files/BALROG_RUN/MATCH_TYPE/`
 
-Log files for `ok` and `rerun` FOF groups are saved in: `/OUTDIR/log_files/BALROG_RUN/MATCH_TYPE/'fof_analysis'`
+Log files for `ok` and `rerun` FOF groups are saved in: `/OUTDIR/log_files/BALROG_RUN/MATCH_TYPE/fof_analysis`
 
 
 **Plots**
 
 Plots are saved in: `/OUTDIR/plots/BALROG_RUN/MATCH_TYPE/{tile}/{realization}/{plot_type}/`
 
-Plots for `ok` and `rerun` FOF groups are saved in: `/OUTDIR/plots/BALROG_RUN/MATCH_TYPE/{tile}/{realization}/'fof_analysis'/{plot_type}/`
+Plots for `ok` and `rerun` FOF groups are saved in: `/OUTDIR/plots/BALROG_RUN/MATCH_TYPE/{tile}/{realization}/fof_analysis/{plot_type}/`
 
 Allowed values for `{realization}`: `0` `1` ... `stacked`.
 
@@ -104,9 +104,9 @@ Allowed values for `{plot_type}`: `normalized` `scatter`.
 
 **Region files**
 
-Region files are saved in: `/OUTDIR/'region_files'/BALROG_RUN/MATCH_TYPE/{tile}/{realization}/`
+Region files are saved in: `/OUTDIR/region_files/BALROG_RUN/MATCH_TYPE/{tile}/{realization}/`
 
-Region files for `ok` and `rerun` FOF groups are saved in: `/OUTDIR/'region_files'/BALROG_RUN/MATCH_TYPE/{tile}/{realization}/'fof_analysis'/`
+Region files for `ok` and `rerun` FOF groups are saved in: `/OUTDIR/region_files/BALROG_RUN/MATCH_TYPE/{tile}/{realization}/fof_analysis/`
 
 
 **Defaults**
