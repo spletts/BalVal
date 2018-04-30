@@ -19,7 +19,7 @@ General: `$python ms_plotter.py base_path_to_catalogs output_directory realizati
 
 Ex: `$python ms_plotter.py /data/des71.a/data/kuropat/des2247-4414_sof/y3v02/ /BalVal/ 0,1 DES2247-4414`
 
-`all` is an allowed value for both `realizations` and `tiles`. If `all` is used ensure that `ALL_TILES` and `ALL_REALIZATIONS` are set correctly in `ms_plotter.py`. Alternatively, one can list realizations at the command line with commas and *no* spaces separating the realizations (similarly for tiles).
+`all` is an allowed value for both `realizations` and `tiles`. If `all` is used ensure that `ALL_TILES` and `ALL_REALIZATIONS` are set correctly in `ms_plotter.py`. Alternatively, one can list realizations at the command line with commas and _no_ spaces separating the realizations (similarly for tiles).
 
 After the above command is issued, a prompt will appear so that the user can confirm plot attributes. This is to prevent plots from being overwritten when testing new additions to the script. User can comment `NOTICE` to remove prompt. 
 
@@ -47,7 +47,7 @@ FOF groups changed after Balrog-injection are plotted if `RUN_TYPE='rerun'`.
 
 FOF groups *un*changed after Balrog-injection are plotted examined if `RUN_TYPE='ok'`
 
-If `RUN_TYPE='rerun'` or `RUN_TYPE=ok` then `MATCH_CAT1` `MATCH_CAT2` `INJ1` and `INJ2` will be overwritten.
+If `RUN_TYPE='rerun'` or `RUN_TYPE='ok'` then `MATCH_CAT1` `MATCH_CAT2` `INJ1` and `INJ2` will be overwritten.
 
 To ignore FOF analysis set `RUN_TYPE=None`. 
 
