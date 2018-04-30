@@ -23,37 +23,34 @@ Ex: `$python ms_plotter.py /data/des71.a/data/kuropat/des2247-4414_sof/y3v02/ /B
 
 After the above command is issued, a prompt will appear so that the user can confirm plot attributes. This is to prevent plots from being overwritten when testing new additions to the script. User can comment `NOTICE` to remove prompt. 
 
-User sets plot attributes and catalog attributes within `ms_plotter.py`.
+User sets plot attributes and catalog attributes within `ms_plotter.py`. A table of user-set attributes is below.
 
-**Plot attributes**
+**Plot and catalog attributes**
 
-Examples of plot attributes, which are explained in `ms_plotter.py` are:
+Parameter(s) | Type | Allowed values (if Type not bool) | Description
+--- | --- | --- | ---
+`MATCH_CAT1` `MATCH_CAT2` | str | `mof` `sof` `star_truth` `gal_truth` `coadd`  | Type of catalogs to analyse
+`INJ1` `INJ2` | bool | | Are `MATCH_CAT1` `MATCH_CAT2` Balrog-injected? | 
+| `RUN_TYPE` | str | `None` `'ok'` `'rerun'` | `'ok'`: FOF groups *un*changed after Balrog-injection. `'rerun'`: FOF groups changed after Balrog-injection. `None`: FOF analysis not conducted. If `RUN_TYPE='rerun'` or `RUN_TYPE='ok'` then `MATCH_CAT1` `MATCH_CAT2` `INJ1` and `INJ2` will be overwritten.
+| `NORMALIZE` | bool | | Normalize plot to 1-sigma magnitude error? Error calculation uses measured catalogs only.
+|`HEXBIN` | bool | | Plot density via `hexbin()`?
+|`CM_T_S2N_COLORBAR` | bool | | Plot a colorbar according to cm_T signal-to-noise?
+|`CM_T_COLORBAR` | bool | | Plot a colorbar according to cm_T?
+| `CM_T_ERR_COLORBAR` | bool | | Plot a colorbar according to cm_T error?
+| `BIN_CM_T_S2N` | bool | | Bin cm_T signal-to-noise? Default bins are `[0, 1, 9, 20, max(cm_t_s2n)]`
+| `PLOT_1SIG` | bool | | Plot the 1-sigma curve? Errors refer to magnitude errors
+| `YLOW` `YHIGH` | int or float | `None` and any real number | Limits for the vertical axis of plot. `None` results in default scaling
+| `STACK_REALIZATIONS` | bool | | If `True` catalogs are matched, then stacked and plotted on a single plot. Must be used with `realizations=all` at command line
+| `SUBPLOT` | bool | | If `True` four subplots (one for each griz filter) are created in a 2x2 grid. If `False` plots are made individually
+| `MOF` | bool | | Only used if `RUN_TYPE` is not `None`. Does `BASEPATH` entered at command line contain MOF (`MOF=TRue` or SOF `MOF=False` catalogs?
+| `MAKE_REG`| bool | | If `True`, three DS9 region files created: 1) objects in both catalogs, 2) objects in the first not second catalog, 3) objects in second not first  
+| `NO_DIR_MAKE` | bool| | If `True` nonexistent dirs will be created. If `False`, `sys.exit()` invoked when nonexistent dirs encountered.
+| `SWAP_HAX` | bool | | If `False` (default) `MATCH_CAT1` values are plotted on the horizontal axis. If `True` `MATCH_CAT2` values are plotted on the horizontal axis.
+| `SAVE_PLOT` | bool | | Save plot?
+| `SHOW_PLOT` | bool | | Show plot?
+| `EH_CUTS` | bool | | Apply quality cuts introduced by Eric Huff?
+| `overwrite` | bool | | Exists within the following: `ms_plotter.matcher()` `ms_plotter.fof_matcher()` `ms_plotter.make_region_files()`. If `True` existing matched catalogs or region files are overwritten.
 
-`NORMALIZE` `HEXBIN` `CM_T_S2N_COLORBAR` `CM_T_COLORBAR`  `PLOT_1SIG` (Booleans).
-
-
-**Catalog attributes**
-
-Catalogs are specified using:
-
-`MATCH_CAT1` `MATCH_CAT2` with allowed values: `mof` `sof` `star_truth` `gal_truth` `coadd`.
-
-`INJ1` `INJ2` (Booleans) which describe if the catalog is Balrog-injected `INJ=True` or non-injected/original `INJ=False`.
-
-
-**FOF analysis**
-
-FOF groups changed after Balrog-injection are plotted if `RUN_TYPE='rerun'`. 
-
-FOF groups *un*changed after Balrog-injection are plotted examined if `RUN_TYPE='ok'`
-
-If `RUN_TYPE='rerun'` or `RUN_TYPE='ok'` then `MATCH_CAT1` `MATCH_CAT2` `INJ1` and `INJ2` will be overwritten.
-
-To ignore FOF analysis set `RUN_TYPE=None`. 
-
-**Region files**
-
-Region files are created if `MAKE_REG=True`. 
 
 **Warnings**
 
