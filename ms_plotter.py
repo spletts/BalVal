@@ -94,7 +94,7 @@ MATCH_CAT1, MATCH_CAT2 = 'star_truth', 'sof'
 # !!!!! Booleans. Examine injected catalogs? #
 INJ1, INJ2 = True, True
 # !!!!! Must be used with realization=all at command line #
-STACK_REALIZATIONS = True
+STACK_REALIZATIONS = False
 
 # !!!!! Make 2x2 subplots of each griz filter? Or make individual plots? #
 SUBPLOT = True
@@ -140,11 +140,11 @@ SHOW_FLAG_TYPE = False
 
 # Catch errors from plot attributes #
 if ((CM_T_S2N_COLORBAR and CM_T_ERR_COLORBAR) or (CM_T_S2N_COLORBAR and HEXBIN) or (CM_T_ERR_COLORBAR and HEXBIN) or (CM_T_COLORBAR and CM_T_ERR_COLORBAR) or (CM_T_COLORBAR and CM_T_S2N_COLORBAR) or (CM_T_COLORBAR and HEXBIN)) or (NORMALIZE and PLOT_1SIG is False) or (YLOW is not None and YHIGH is not None and YHIGH == YLOW) or (NORMALIZE and (CM_T_S2N_COLORBAR or CM_T_ERR_COLORBAR or CM_T_COLORBAR)) or (STACK_REALIZATIONS and realizations[0] != 'all'): 
-	sys.exit('ERROR: Only of of the following may be True at a time: CM_T, CM_T_S2N_COLORBAR, CM_T_ERR_COLORBAR, HEXBIN. Otherwise, colorbar will be overwritten. \nERROR: If NORMALIZE is True so must be PLOT_1SIG. \nERROR: YHIGH cannot be equal to YLOW. \n NORMALIZE must be False if any of: CM_T_S2N_COLORBAR CM_T_ERR_COLORBAR CM_T_S2N_COLORBAR are True.\nERROR: STACK_REALIZATIONS is True must be used with realization = all. \n')
+	sys.exit('ERROR: Only of of the following may be True at a time: CM_T, CM_T_S2N_COLORBAR, CM_T_ERR_COLORBAR, HEXBIN. Otherwise, colorbar will be overwritten. \nERROR: If NORMALIZE is True so must be PLOT_1SIG. \nERROR: YHIGH cannot be equal to YLOW. \nNORMALIZE must be False if any of: CM_T_S2N_COLORBAR CM_T_ERR_COLORBAR CM_T_S2N_COLORBAR are True.\nERROR: STACK_REALIZATIONS is True must be used with realization = all. \n')
 
 
 # !!!!! Check that plots will not be overwritten, etc #
-NOTICE = raw_input(' \n !! CHECK BEFORE RUNNING !! \n Save plot(s) -- ' + str(SAVE_PLOT) + '\n Showing plot(s) -- ' + str(SHOW_PLOT) + '\n Normalize plot(s) -- ' + str(NORMALIZE) + '\n Hexbin -- ' + str(HEXBIN) + '\n cm_T colorbar -- ' + str(CM_T_COLORBAR) + '\n cm_T_err colorbar -- ' + str(CM_T_ERR_COLORBAR) + '\n cm_T_s2n -- ' + str(CM_T_S2N_COLORBAR) + '\n Plot limits -- ' + str(YLOW) + ', ' + str(YHIGH) + '\n Plotting 1-sigma curve -- ' + str(PLOT_1SIG) +'\n Plotting flagged objects -- ' + str(PLOT_FLAGGED_OBJS) + '\n Print flags and flag types -- ' + str(SHOW_FLAG_TYPE) + '\n Logging flags -- ' + str(LOG_FLAGS) + '\n --> Press enter to proceed, control+c to stop...\n')
+NOTICE = raw_input(' \n !! CHECK BEFORE RUNNING !! \n Using catalogs -- ' + str(MATCH_CAT1) + ' & ' + str(MATCH_CAT2) + '\n Injected catalogs -- ' + str(INJ1) + ' & ' + str(INJ2) + ' \n Save plot(s) -- ' + str(SAVE_PLOT) + '\n Showing plot(s) -- ' + str(SHOW_PLOT) + '\n Normalize plot(s) -- ' + str(NORMALIZE) + '\n Hexbin -- ' + str(HEXBIN) + '\n cm_T colorbar -- ' + str(CM_T_COLORBAR) + '\n cm_T_err colorbar -- ' + str(CM_T_ERR_COLORBAR) + '\n cm_T_s2n -- ' + str(CM_T_S2N_COLORBAR) + '\n Plot limits -- ' + str(YLOW) + ', ' + str(YHIGH) + '\n Plotting 1-sigma curve -- ' + str(PLOT_1SIG) +'\n Plotting flagged objects -- ' + str(PLOT_FLAGGED_OBJS) + '\n Print flags and flag types -- ' + str(SHOW_FLAG_TYPE) + '\n Logging flags -- ' + str(LOG_FLAGS) + '\n --> Press enter to proceed, control+c to stop...\n')
 
 
 
@@ -1440,7 +1440,46 @@ def normalize_plot(norm_delta_mag_list, bins, hax_mag_list):
 
 
 
-def one_sigma_counter(norm_delta_mag, clean_magnitude1, bins, hax_mag):
+def one_sigma_counter(delta_mag, clean_magnitude1, bins, hax_mag, error):
+	"""Find the number of objects within 1-sigma, where 1-sigma is calculated according to the error. This function is only called if NORMALIZE is False.
+
+	Args:
+                delta_mag (list of floats) -- NON-normalized Delta-Magnitude.
+
+	Returns:
+		counter_1sig (int) -- Number of objects within 1-sigma curve.
+        """
+
+	counter_1sig = 0
+
+	# Cutoffs were introduced in error calculation. Consider only points not cutoff #
+        maglow, maghigh = min(bins), max(bins)
+        hax_mag, delta_mag = np.array(hax_mag), np.array(delta_mag)
+        delta_mag = delta_mag[(hax_mag >= maglow) & (hax_mag <= maghigh)]
+	hax_mag = hax_mag[(hax_mag >= maglow) & (hax_mag <= maghigh)]
+
+	for b in np.arange(0, len(bins)-1):
+
+		if bins[b] != None:
+
+			for i in np.arange(0, len(hax_mag)):
+	
+				if hax_mag[i] > bins[b] and hax_mag[i] < bins[b+1]:
+
+					if abs(delta_mag[i]) < error[b]:
+						counter_1sig += 1
+
+	return counter_1sig		
+
+
+
+
+
+
+
+
+
+def norm_one_sigma_counter(norm_delta_mag, clean_magnitude1, bins, hax_mag):
 	"""Find the number of objects within 1-sigma, where 1-sigma is calculated according to the error. This function is only called if NORMALIZE is True.
 
 	Args:
@@ -1534,7 +1573,7 @@ def get_color(filter_name):
 
 
 
-def logger(delta_mag, tile_name, filter_name, realization_number, clean_magnitude1, full_magnitude1, bins, hax_mag, fd_nop, fd_1sig):
+def logger(delta_mag, tile_name, filter_name, realization_number, clean_magnitude1, full_magnitude1, bins, hax_mag, fd_nop, fd_1sig, error):
 	"""Write to log files to record number of objects plotted and number of objects within 1sigma.
 
 	Args:
@@ -1547,7 +1586,9 @@ def logger(delta_mag, tile_name, filter_name, realization_number, clean_magnitud
 	"""
 
 	if NORMALIZE:
-		num_1sig = one_sigma_counter(norm_delta_mag=delta_mag, clean_magnitude1=clean_magnitude1, bins=bins, hax_mag=hax_mag)
+		num_1sig = norm_one_sigma_counter(norm_delta_mag=delta_mag, clean_magnitude1=clean_magnitude1, bins=bins, hax_mag=hax_mag)
+	if NORMALIZE is False:
+		num_1sig = one_sigma_counter(delta_mag=delta_mag, clean_magnitude1=clean_magnitude1, bins=bins, hax_mag=hax_mag, error=error) 
 
 		# Record number of objects plotted within 1sigma #
 		fd_1sig.write('Number of objects within 1sigma for tile ' + str(tile_name) + ', filter ' + str(filter_name) + ', type ' + str(RUN_TYPE) + ', realization ' + str(realization_number) + ' : ' + str(num_1sig) + ' / ' + str(len(clean_magnitude1)) + ' = ' + str(float(num_1sig) / len(clean_magnitude1)) + '\n')
@@ -1800,6 +1841,7 @@ def plotter(mag_hdr1, mag_hdr2, cbar_val, error1, error2, filter_name, clean_mag
 
 	### Values to plot for normalized plot ###
 	if NORMALIZE:
+		
 		# Args needed to call normalize_plot() #
 		norm_dm_list, bins, hax_mag_list = normalize_plot_maintain_bin_structure(clean_magnitude1=clean_magnitude1, clean_magnitude2=clean_magnitude2, error1=error1, error2=error2, filter_name=filter_name, tile_name=tile_name, realization_number=realization_number, fd_mag_bins=fd_mag_bins) 
 
@@ -1904,6 +1946,9 @@ def plotter(mag_hdr1, mag_hdr2, cbar_val, error1, error2, filter_name, clean_mag
 		if PLOT_1SIG:
 			hax, vax, err, bins = bin_and_cut_measured_magnitude_error(error1=error1, error2=error2, clean_magnitude1=clean_magnitude1, clean_magnitude2=clean_magnitude2, filter_name=filter_name, tile_name=tile_name, realization_number=realization_number, fd_mag_bins=fd_mag_bins)[:4]
 
+			# For logger() #
+			err_logger = err[:] 
+
 			### Remove zeros from x, y, and err (zeros were placeholders for instances in which there were no objects in a particular magnitude bin) ###
 			err[:] = [temp for temp in err if temp is not None]
 			hax[:] = [temp for temp in hax if temp is not None]
@@ -1914,7 +1959,11 @@ def plotter(mag_hdr1, mag_hdr2, cbar_val, error1, error2, filter_name, clean_mag
 
 
 	### Write to log files to record the number of objects plotted and the number of objects within 1sigma ###
-	logger(delta_mag=deltam, filter_name=filter_name, clean_magnitude1=clean_magnitude1, full_magnitude1=full_magnitude1, realization_number=realization_number, tile_name=tile_name, bins=bins, hax_mag=hax_mag, fd_nop=fd_nop, fd_1sig=fd_1sig)
+	if NORMALIZE:
+		# `err_logger` will not be used if `NORMALIZE` is True #
+		err_logger = None
+
+	logger(delta_mag=deltam, filter_name=filter_name, clean_magnitude1=clean_magnitude1, full_magnitude1=full_magnitude1, realization_number=realization_number, tile_name=tile_name, bins=bins, hax_mag=hax_mag, fd_nop=fd_nop, fd_1sig=fd_1sig, error=err_logger)
 
 
 	if PRINTOUTS:
