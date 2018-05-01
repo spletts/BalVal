@@ -69,7 +69,7 @@ CM_T_ERR_COLORBAR = False
 CM_T_COLORBAR = False
 BIN_CM_T_S2N = False
 # Normalizes plot to 1-sigma magnitude error. If NORMALIZE is True, PLOT_1SIG must be True else errors will not be computed and normalization cannot be performed #
-NORMALIZE = True 
+NORMALIZE = False
 
 # Use quality cuts introduced by Eric Huff? Link: https://github.com/sweverett/Balrog-GalSim/blob/master/plots/balrog_catalog_tests.py. Can only be performed if catalog has all the necessary headers: cm_s2n_r, cm_T, cm_T_err, and psfrec_T. #
 EH_CUTS = False
@@ -82,7 +82,7 @@ SAVE_PLOT = False
 SHOW_PLOT = True
 
 # !!!!! Limits for the vertical axis. 'None' is an allowed value and will result in default scaling #
-YLOW, YHIGH = None, None
+YLOW, YHIGH = None, None 
 
 # Swap horizontal axis? Default is magnitude1. Matching script ms_matcher determines which catalog is 1 and which is 2. Generally SWAP_HAX does not need to be changed unless the truth catalog values are not on the horizontal axis. #
 SWAP_HAX = False
@@ -90,7 +90,7 @@ SWAP_HAX = False
 
 ### Catalog attributes ###
 # !!!!! Allowed values: sof, mof, star_truth, gal_truth, coadd. Both can be 'sof' and both can be 'mof' if INJ1 and INJ2 are different. Note that truth catalogs always have INJ=True. #
-MATCH_CAT1, MATCH_CAT2 = 'gal_truth', 'sof'
+MATCH_CAT1, MATCH_CAT2 = 'star_truth', 'sof'
 # !!!!! Booleans. Examine injected catalogs? #
 INJ1, INJ2 = True, True
 # !!!!! Must be used with realization=all at command line #
@@ -197,6 +197,7 @@ class CoaddCat():
 		# For region file #
 		self.ra_hdr = 'ALPHAWIN_J2000' + str(suf)
 		self.dec_hdr = 'DELTAWIN_J2000' + str(suf)
+		self.angle = 'THETA_J2000' + str(suf)
 		# Units: pixels #
 		self.a_hdr = 'A_IMAGE' + str(suf)
 		self.b_hdr = 'B_IMAGE' + str(suf)
@@ -253,6 +254,7 @@ class SOFGalTruthCat():
                 self.ra_hdr = 'ra' + str(suf)
                 self.dec_hdr = 'dec' + str(suf)
                 self.a_hdr, self.b_hdr = None, None
+		self.angle = None
                 # For Eric Huff (EH) quality cuts #
 		self.cm_s2n_r_hdr = 'cm_s2n_r' + str(suf)
                 self.psfrec_t_hdr = 'psfrec_T' + str(suf)
@@ -306,6 +308,7 @@ class SOFCat():
                 self.ra_hdr = 'ra' + str(suf)
                 self.dec_hdr = 'dec' + str(suf)
                 self.a_hdr, self.b_hdr = None, None
+		self.angle = None
                 # For Eric Huff (EH) quality cuts #
 		self.cm_s2n_r_hdr = 'cm_s2n_r' + str(suf)
                 self.psfrec_t_hdr = 'psfrec_T' + str(suf)
@@ -359,6 +362,7 @@ class MOFCat():
 		self.ra_hdr = 'ra' + str(suf)
 		self.dec_hdr = 'dec' + str(suf)
 		self.a_hdr, self.b_hdr = None, None
+		self.angle = None
 		# For Eric Huff (EH) quality cuts #
                 self.cm_s2n_r_hdr = 'cm_s2n_r' + str(suf) 
                 self.psfrec_t_hdr = 'psfrec_T' + str(suf) 
@@ -412,6 +416,7 @@ class StarTruthCat(): #are there sep headers for MOFStarTruthCat and SOFStarTrut
 		self.ra_hdr = 'RA_new' + str(suf)
 		self.dec_hdr = 'DEC_new' + str(suf)
 		self.a_hdr, self.b_hdr = None, None # Use cm_T
+		self.angle = None
 		# For Eric Huff (EH) quality cuts #
 		self.cm_s2n_r_hdr = None
 		self.psfrec_t_hdr = None
@@ -617,6 +622,7 @@ PSFREC_T_HDR1, PSFREC_T_HDR2 = CLASS1.psfrec_t_hdr, CLASS2.psfrec_t_hdr
 # For region file #
 MAJOR_AX_HDR1, MAJOR_AX_HDR2 = CLASS1.a_hdr, CLASS2.a_hdr 
 MINOR_AX_HDR1, MINOR_AX_HDR2 = CLASS1.b_hdr, CLASS2.b_hdr
+ANGLE1, ANGLE2 = CLASS1.angle, CLASS2.angle
 
 FLAG_HDR_LIST = [ FLAGS_HDR1, FLAGS_HDR2, CM_FLAGS_HDR1, CM_FLAGS_HDR2, CM_MOF_FLAGS_HDR1, CM_MOF_FLAGS_HDR2, OBJ_FLAGS_HDR1, OBJ_FLAGS_HDR2, PSF_FLAGS_HDR1, PSF_FLAGS_HDR2, CM_MAX_FLAGS_HDR1, CM_MAX_FLAGS_HDR2, CM_FLAGS_R_HDR1, CM_FLAGS_R_HDR2 ]
 
@@ -2692,13 +2698,14 @@ def make_region_files(df_match, df_1not2, df_2not1, realization_number, tile_nam
 		### Write to region file for matched catalog. Units are arcseconds. ###
 		# Coadds allow for elliptical regions #
 		if MATCH_CAT1 == 'coadd' or MATCH_CAT2 == 'coadd':
-			### Get semimajor and semiminor axes (a and b, respectively). Coadds have these values. ###
+			### Get semimajor and semiminor axes (a and b, respectively) and orientation. Coadds have these values. ###
 			a_match, b_match = df_match[MAJOR_AX_HDR1], df_match[MINOR_AX_HDR1]
 			a_1not2, b_1not2 = df_1not2[MAJOR_AX_HDR1], df_1not2[MINOR_AX_HDR1]
 			a_2not1, b_2not2 = df_2not1[MAJOR_AX_HDR2], df_2not1[MINOR_AX_HDR2]
-
+			orientation_match, orientation_1not2, orientation_2not1 = df_match[ANGLE1], df_1not2[ANGLE1], df_2not1[ANGLE1]
+			
 			for i in np.arange(0, len(ra_match)):
-				fd_match.write('ellipse ' + str(ra_match[i]) + ' ' + str(dec_match[i]) + ' ' + str(a_match[i]) + '" ' + str(b_match[i]) + '" #color=green width=3 \n')
+				fd_match.write('ellipse ' + str(ra_match[i]) + ' ' + str(dec_match[i]) + ' ' + str(a_match[i]) + '" ' + str(b_match[i]) + '" ' + str(90+orientation[i]) + ' #color=green width=3 \n')
 			for i in np.arange(0, len(ra_1not2)):
 				fd_1not2.write('ellipse ' + str(ra_1not2[i]) + ' ' + str(dec_1not2[i]) + ' ' + str(a_1not2[i]) + '" ' + str(b_1not2[i]) + '" #color=yellow width=3 \n')
 			for i in np.arange(0, len(ra_2not1)):
@@ -2741,17 +2748,18 @@ def make_region_files(df_match, df_1not2, df_2not1, realization_number, tile_nam
 
 ################################################################### Run script. 0 returned when complete. ###################################################################
 
+
+YLOOP = False
+
 ### !!!!! Run once. Log files are closed once 0 is returned. ###
-print make_plots(mag_hdr1=M_HDR1, mag_hdr2=M_HDR2, mag_err_hdr1=M_ERR_HDR1, mag_err_hdr2=M_ERR_HDR2)
-
-
+if YLOOP is False:
+	print make_plots(mag_hdr1=M_HDR1, mag_hdr2=M_HDR2, mag_err_hdr1=M_ERR_HDR1, mag_err_hdr2=M_ERR_HDR2)
 
 ### Loop over vertical axis limits. Suggestions: for normalized plot with star truth catalog use y=[3, 10], for normalized plot with galaxy truth catalog use y=[3, 20]. For non-normalized plot with star truth catalog or galaxy truth catalog use y=[0.5, None]. ###
 # !!!!! Loop over vertical axis limits? #
-YLOOP = False 
 
 if YLOOP:
-	for y in [0.5, None]: 
+	for y in [0.5, 1]: 
 		if y is None:
 			YLOW, YHIGH = None, None
 		if y is not None:
