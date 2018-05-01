@@ -69,7 +69,7 @@ CM_T_ERR_COLORBAR = False
 CM_T_COLORBAR = False
 BIN_CM_T_S2N = False
 # Normalizes plot to 1-sigma magnitude error. If NORMALIZE is True, PLOT_1SIG must be True else errors will not be computed and normalization cannot be performed #
-NORMALIZE = False 
+NORMALIZE = True 
 
 # Use quality cuts introduced by Eric Huff? Link: https://github.com/sweverett/Balrog-GalSim/blob/master/plots/balrog_catalog_tests.py. Can only be performed if catalog has all the necessary headers: cm_s2n_r, cm_T, cm_T_err, and psfrec_T. #
 EH_CUTS = False
@@ -99,8 +99,7 @@ STACK_REALIZATIONS = False
 # !!!!! Make 2x2 subplots of each griz filter? Or make individual plots? #
 SUBPLOT = True
 
-# !!!!! If directories do no exist, make them or force sys.exit() to edit dirs within script? NO_DIR_EXIT is invoked first, so sys.exit() will exit if NO_DIR_EXIT = True and NO_DIR_MAKE = True #
-NO_DIR_EXIT = False
+# !!!!! If directories do no exist, make them or force sys.exit() to edit dirs within script? # 
 NO_DIR_MAKE = True
 
 
@@ -112,14 +111,13 @@ RUN_TYPE = None
 
 # !!!!! Only used if RUN_TYPE is not None #
 MOF = False
-SOF = True
 
 if RUN_TYPE is not None:
 	print 'Doing FOF analysis ... \n '
         # Overwrite MATCH_CATs #
         if MOF:
                 MATCH_CAT1, MATCH_CAT2 = 'mof', 'mof'
-        if SOF:
+        if MOF is False:
                 MATCH_CAT1, MATCH_CAT2 = 'sof', 'sof'
         INJ1, INJ2 = True, False
 
@@ -142,8 +140,8 @@ SHOW_FLAG_TYPE = False
 
 
 # Catch errors from plot attributes #
-if ((CM_T_S2N_COLORBAR and CM_T_ERR_COLORBAR) or (CM_T_S2N_COLORBAR and HEXBIN) or (CM_T_ERR_COLORBAR and HEXBIN) or (CM_T_COLORBAR and CM_T_ERR_COLORBAR) or (CM_T_COLORBAR and CM_T_S2N_COLORBAR) or (CM_T_COLORBAR and HEXBIN)) or (NORMALIZE and PLOT_1SIG is False) or (YLOW is not None and YHIGH is not None and YHIGH == YLOW) or (NORMALIZE and (CM_T_S2N_COLORBAR or CM_T_ERR_COLORBAR or CM_T_COLORBAR)) or (STACK_REALIZATIONS and realization != 'all') or (MOF and SOF):
-	sys.exit('ERROR: Only of of the following may be True at a time: CM_T, CM_T_S2N_COLORBAR, CM_T_ERR_COLORBAR, HEXBIN. Otherwise, colorbar will be overwritten. \nERROR: If NORMALIZE is True so must be PLOT_1SIG. \nERROR: YHIGH cannot be equal to YLOW. \n NORMALIZE must be False if any of: CM_T_S2N_COLORBAR CM_T_ERR_COLORBAR CM_T_S2N_COLORBAR are True.\nERROR: STACK_REALIZATIONS is True must be used with realization = all. \nERROR: MOF and SOF cannot be simultaneously True. \n')
+if ((CM_T_S2N_COLORBAR and CM_T_ERR_COLORBAR) or (CM_T_S2N_COLORBAR and HEXBIN) or (CM_T_ERR_COLORBAR and HEXBIN) or (CM_T_COLORBAR and CM_T_ERR_COLORBAR) or (CM_T_COLORBAR and CM_T_S2N_COLORBAR) or (CM_T_COLORBAR and HEXBIN)) or (NORMALIZE and PLOT_1SIG is False) or (YLOW is not None and YHIGH is not None and YHIGH == YLOW) or (NORMALIZE and (CM_T_S2N_COLORBAR or CM_T_ERR_COLORBAR or CM_T_COLORBAR)) or (STACK_REALIZATIONS and realization != 'all'): 
+	sys.exit('ERROR: Only of of the following may be True at a time: CM_T, CM_T_S2N_COLORBAR, CM_T_ERR_COLORBAR, HEXBIN. Otherwise, colorbar will be overwritten. \nERROR: If NORMALIZE is True so must be PLOT_1SIG. \nERROR: YHIGH cannot be equal to YLOW. \n NORMALIZE must be False if any of: CM_T_S2N_COLORBAR CM_T_ERR_COLORBAR CM_T_S2N_COLORBAR are True.\nERROR: STACK_REALIZATIONS is True must be used with realization = all. \n')
 
 
 # !!!!! Check that plots will not be overwritten, etc #
@@ -484,7 +482,7 @@ def get_match_type(title_piece1, title_piece2):
 
 
 
-def get_fd_names():
+def get_log_file_names(tile_name, realization_number):
         """Generate names for the following log files: flags, magnitude bins, number of objects plotted, number of objects within one sigma.
         Relies on directory structure: outdir/log_files/`BALROG_RUN`/`MATCH_TYPE`/
 
@@ -495,23 +493,22 @@ def get_fd_names():
         """
 
         # !!!!! User may wish to edit directory structure #
-        ### Check for directory existence ###
-        if RUN_TYPE is None:
-                log_dir = os.path.join(OUTDIR, 'log_files', BALROG_RUN, MATCH_TYPE)
+	log_dir = os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, tile_name, realization_number, 'log_files') 
         if RUN_TYPE is not None:
-                log_dir = os.path.join(OUTDIR, 'log_files', BALROG_RUN, MATCH_TYPE, 'fof_analysis')
+		log_dir = os.path.join(log_dir, 'fof_analysis')
 
+	### Check for directory existence ###
         if os.path.isdir(log_dir) is False:
-                if NO_DIR_EXIT:
-                        sys.exit('Directory ' + str(log_dir) + ' does not exist. \n Change directory structure in ms_plotter.get_fd_names() or set `NO_DIR_MAKE=True`')
+                if NO_DIR_MAKE is False:
+                        sys.exit('Directory ' + str(log_dir) + ' does not exist. \n Change directory structure in ms_plotter.get_log_file_names() or set `NO_DIR_MAKE=True`')
                 if NO_DIR_MAKE:
                         print 'Making directory ', log_dir, '...\n'
                         os.makedirs(log_dir)
 
-        fn1 = os.path.join(log_dir, 'flag_log_'+str(MATCH_TYPE)+'.csv')
-        fn2 = os.path.join(log_dir, 'magnitude_bins_'+str(MATCH_TYPE)+'.txt')
-        fn3 = os.path.join(log_dir, 'num_objs_plotted_'+str(MATCH_TYPE)+'.txt')
-        fn4 = os.path.join(log_dir, 'one_sigma_objects_'+str(MATCH_TYPE)+'.txt')
+        fn1 = os.path.join(log_dir, 'flag_log_'+str(tile_name)+'_'+str(realization_number)+'_'+str(MATCH_TYPE)+'.csv')
+        fn2 = os.path.join(log_dir, 'magnitude_bins_'+str(tile_name)+'_'+str(realization_number)+'_'+str(MATCH_TYPE)+'.txt')
+        fn3 = os.path.join(log_dir, 'num_objs_plotted_'+str(tile_name)+'_'+str(realization_number)+'_'+str(MATCH_TYPE)+'.txt')
+        fn4 = os.path.join(log_dir, 'one_sigma_objects_'+str(tile_name)+'_'+str(realization_number)+'_'+str(MATCH_TYPE)+'.txt')
 
         if RUN_TYPE is not None:
 		fn1 = fn1[:-4] + '_' + str(RUN_TYPE) + fn1[-4:]; fn2 = fn2[:-4] + '_' + str(RUN_TYPE) + fn2[-4:]
@@ -543,16 +540,14 @@ def get_reg_names(tile_name, realization_number):
         """
 
         # !!!!! User may wish to edit directory structure #
-        ### Check for directory existence ###
-        if RUN_TYPE is None:
-                reg_dir = os.path.join(OUTDIR, 'region_files', BALROG_RUN, MATCH_TYPE, tile_name, realization_number)
+	reg_dir = os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, tile_name, realization_number, 'region_files')
         if RUN_TYPE is not None:
-                reg_dir = os.path.join(OUTDIR, 'region_files', BALROG_RUN, MATCH_TYPE, tile_name, realization_number, 'fof_analysis')
+		reg_dir = os.path.join(reg_dir, 'fof_analysis')
 
-
+	### Check for directory existence ###
         if os.path.isdir(reg_dir) is False:
-                if NO_DIR_EXIT:
-                        sys.exit('Directory ' + str(reg_dir) + ' does not exist. \n Change directory structure in ms_plotter.get_fd_names() or set `NO_DIR_MAKE=True`')
+                if NO_DIR_MAKE is False:
+                        sys.exit('Directory ' + str(reg_dir) + ' does not exist. \n Change directory structure in ms_plotter.get_log_file_names() or set `NO_DIR_MAKE=True`')
                 if NO_DIR_MAKE:
                         print 'Making directory ', reg_dir, '...\n'
                         os.makedirs(reg_dir)
@@ -633,8 +628,9 @@ flag_idx = []
 TITLE_PIECE1, TITLE_PIECE2 = CLASS1.title_piece, CLASS2.title_piece
 MATCH_TYPE = get_match_type(title_piece1=TITLE_PIECE1, title_piece2=TITLE_PIECE2)
 
+'''
 ### Names for file directors (fd) ###
-FD_FLAG_NAME, FD_MAG_BINS_NAME, FD_NOP_NAME, FD_1SIG_NAME = get_fd_names()
+FD_FLAG_NAME, FD_MAG_BINS_NAME, FD_NOP_NAME, FD_1SIG_NAME = get_log_file_names(tile_name, realization_number)
 
 # Create log file for number of objects plotted (nop) #
 FD_NOP = open(FD_NOP_NAME, 'w')
@@ -642,15 +638,40 @@ FD_NOP = open(FD_NOP_NAME, 'w')
 FD_1SIG = open(FD_1SIG_NAME, 'w')
 # Create log file for magnitude bins #
 FD_MAG_BINS = open(FD_MAG_BINS_NAME, 'w')
-FD_MAG_BINS.write('NUM_OBJS_IN_BIN, BIN_LHS, BIN_RHS, MEDIAN_HAXIS_MAG, MEDIAN_ERROR \n') 
+FD_MAG_BINS.write('TILE, REALIZATION, FILTER, NUM_OBJS_IN_BIN, BIN_LHS, BIN_RHS, MEDIAN_HAXIS_MAG, MEDIAN_ERROR \n') 
 # Create log file for flags #
 FD_FLAG = open(FD_FLAG_NAME, 'w')
-FD_FLAG.write('TILE, FILTER, TYPE, REALIZATION, FLAG1_HEADER, FLAG2_HEADER, FLAG1_VALUE, FLAG2_VALUE, MAG1, MAG2 \n')
+FD_FLAG.write('TILE, REALIZATION, FILTER, RUN_TYPE, FLAG1_HEADER, FLAG2_HEADER, FLAG1_VALUE, FLAG2_VALUE, MAG1, MAG2 \n')
 if LOG_FLAGS is False:
         FD_FLAG.write('Flags not logged because LOG_FLAGS is False.')
+'''
 
 
 
+
+
+
+def fd_first_write(fn_nop, fn_1sig, fn_mag_bins, fn_flag):
+	"""First write. Return file descriptors.
+
+	Args:
+		names
+	Returns:
+		Filenames
+	"""
+
+	### Open files ###
+	fd_nop = open(fn_nop, 'w'); fd_1sig = open(fn_1sig, 'w'); fd_mag_bins = open(fn_mag_bins, 'w'); fd_flag = open(fn_flag, 'w')
+
+	### Write ###
+	fd_mag_bins.write('TILE, REALIZATION, FILTER, NUM_OBJS_IN_BIN, BIN_LHS, BIN_RHS, MEDIAN_HAXIS_MAG, MEDIAN_ERROR \n')
+
+	fd_flag.write('TILE, REALIZATION, FILTER, RUN_TYPE, FLAG1_HEADER, FLAG2_HEADER, FLAG1_VALUE, FLAG2_VALUE, MAG1, MAG2 \n')
+
+	if LOG_FLAGS is False:
+		fd_flag.write('Flags not logged because LOG_FLAGS is False.')
+
+	return fd_nop, fd_1sig, fd_mag_bins, fd_flag
 
 
 
@@ -910,7 +931,7 @@ def get_good_index_using_quality_cuts(df, full_magnitude1, full_magnitude2):
 
 
 
-def handle_flags(df, flag_hdr1, flag_hdr2, filter_name, full_magnitude1, full_magnitude2, realization_number, tile_name):
+def handle_flags(df, flag_hdr1, flag_hdr2, filter_name, full_magnitude1, full_magnitude2, realization_number, tile_name, fd_flag):
 	"""Examine a particular flag and write to log file. Can also be used to check all flags in a list of flags.
 
 	Args:
@@ -956,8 +977,8 @@ def handle_flags(df, flag_hdr1, flag_hdr2, filter_name, full_magnitude1, full_ma
 				idx_bad.append(i)
                                 counter_idx_bad += 1
 
-				### Write flags to file with headers TILE, FILTER, TYPE, REALIZATION, FLAG1_HEADER, FLAG2_HEADER, FLAG1_VALUE, FLAG2_VALUE, MAG1, MAG2 ###
-				FD_FLAG.write(str(tile_name) + '\t' + str(filter_name) + '\t' + str(RUN_TYPE) + '\t' + str(realization_number) + '\t' + str(flag_hdr1) + '\t' + str(flag_hdr2) + '\t' + str(flag1[i]) + '\t' + str(flag2[i]) + '\t' + str(full_magnitude1[i]) + '\t' + str(full_magnitude2[i]) +'\n')
+				### Write flags to file with headers TILE, REALIZATION, FILTER, RUN_TYPE, FLAG1_HEADER, FLAG2_HEADER, FLAG1_VALUE, FLAG2_VALUE, MAG1, MAG2 ### 
+				fd_flag.write(str(tile_name) + str(realization_number) + '\t' + str(filter_name) + '\t' + str(RUN_TYPE) + '\t' + str(flag_hdr1) + '\t' + str(flag_hdr2) + '\t' + str(flag1[i]) + '\t' + str(flag2[i]) + '\t' + str(full_magnitude1[i]) + '\t' + str(full_magnitude2[i]) +'\n')
 
 
 
@@ -1174,7 +1195,7 @@ def get_68percentile_from_normalized_data(norm_dm_list, bins, hax_mag_list):
 
 
 
-def bin_and_cut_measured_magnitude_error(clean_magnitude1, clean_magnitude2, error1, error2, filter_name):
+def bin_and_cut_measured_magnitude_error(clean_magnitude1, clean_magnitude2, error1, error2, filter_name, tile_name, realization_number, fd_mag_bins):
         """Remove error values corresponding to objects where |Delta-M| > 3. Do not consider error corresponding to empty bins nor bins with a small number of objects.
 
         Args:
@@ -1244,10 +1265,6 @@ def bin_and_cut_measured_magnitude_error(clean_magnitude1, clean_magnitude2, err
 	vax_mag = np.array(clean_magnitude1) - np.array(clean_magnitude2)
 
 
-	### Write filter header to log file ###
-	FD_MAG_BINS.write('Filter: ' + str(filter_name) + '\n')
-
-
 	### Populate each bin ###
 	for j in np.arange(limlow, limhigh, step):
 
@@ -1272,7 +1289,8 @@ def bin_and_cut_measured_magnitude_error(clean_magnitude1, clean_magnitude2, err
 			write_median, write_err = None, None
 		if counter_err > 0:
 			write_median, write_err = np.median(binned_hax_mag_temp), np.median(binned_err_temp)
-		FD_MAG_BINS.write(str(counter_err) + '\t' + str(round(j, 2)) + '\t' + str(round(j+step, 2)) + '\t' + str(write_median)+ '\t' + str(write_err) + '\n')
+		# TILE, REALIZATION, FILTER, NUM_OBJS_IN_BIN, BIN_LHS, BIN_RHS, MEDIAN_HAXIS_MAG, MEDIAN_ERROR #
+		fd_mag_bins.write( str(tile_name) + '\t' + str(realization_number) + '\t' + str(filter_name) + '\t' + str(counter_err) + '\t' + str(round(j, 2)) + '\t' + str(round(j+step, 2)) + '\t' + str(write_median)+ '\t' + str(write_err) + '\n')
 
 
                 ### Tame error calculation and normalization by adding zeros to empty bins and bins with a small number of points ###
@@ -1323,7 +1341,7 @@ def bin_and_cut_measured_magnitude_error(clean_magnitude1, clean_magnitude2, err
 
 
 
-def normalize_plot_maintain_bin_structure(clean_magnitude1, clean_magnitude2, error1, error2, filter_name):
+def normalize_plot_maintain_bin_structure(clean_magnitude1, clean_magnitude2, error1, error2, filter_name, tile_name, realization_number, fd_mag_bins):
 	"""Normalize the vertical axis using error and uphold the bin structure. 
 
 	Args:
@@ -1338,7 +1356,7 @@ def normalize_plot_maintain_bin_structure(clean_magnitude1, clean_magnitude2, er
 	norm_dm_list, hax_mag_list = [], []
 
 	# binned_err_median: stores median of vales in bin. *_list: stores all values in each bin #
-	binned_err_median, bins, binned_hax_mag_list, binned_vax_mag_list = bin_and_cut_measured_magnitude_error(clean_magnitude1=clean_magnitude1, clean_magnitude2=clean_magnitude2, error1=error1, error2=error2, filter_name=filter_name)[2:-1]
+	binned_err_median, bins, binned_hax_mag_list, binned_vax_mag_list = bin_and_cut_measured_magnitude_error(clean_magnitude1=clean_magnitude1, clean_magnitude2=clean_magnitude2, error1=error1, error2=error2, filter_name=filter_name, tile_name=tile_name, realization_number=realization_number, fd_mag_bins=fd_mag_bins)[2:-1]
 
 
 	# Loop through bins (b) #
@@ -1511,7 +1529,7 @@ def get_color(filter_name):
 
 
 
-def logger(delta_mag, tile_name, filter_name, realization_number, clean_magnitude1, full_magnitude1, bins, hax_mag):
+def logger(delta_mag, tile_name, filter_name, realization_number, clean_magnitude1, full_magnitude1, bins, hax_mag, fd_nop, fd_1sig):
 	"""Write to log files to record number of objects plotted and number of objects within 1sigma.
 
 	Args:
@@ -1527,11 +1545,11 @@ def logger(delta_mag, tile_name, filter_name, realization_number, clean_magnitud
 		num_1sig = one_sigma_counter(norm_delta_mag=delta_mag, clean_magnitude1=clean_magnitude1, bins=bins, hax_mag=hax_mag)
 
 		# Record number of objects plotted within 1sigma #
-		FD_1SIG.write('Number of objects within 1sigma for tile ' + str(tile_name) + ', filter ' + str(filter_name) + ', type ' + str(RUN_TYPE) + ', realization ' + str(realization_number) + ' : ' + str(num_1sig) + ' / ' + str(len(clean_magnitude1)) + ' = ' + str(float(num_1sig) / len(clean_magnitude1)) + '\n')
+		fd_1sig.write('Number of objects within 1sigma for tile ' + str(tile_name) + ', filter ' + str(filter_name) + ', type ' + str(RUN_TYPE) + ', realization ' + str(realization_number) + ' : ' + str(num_1sig) + ' / ' + str(len(clean_magnitude1)) + ' = ' + str(float(num_1sig) / len(clean_magnitude1)) + '\n')
 
 
 	# Record number of objects plotted (nop) #
-	FD_NOP.write('Number of objects plotted after flag cuts for tile ' + str(tile_name) + ', filter ' + str(filter_name) + ', type ' + str(RUN_TYPE) + ', realization ' + str(realization_number) + ' : ' + str(len(clean_magnitude1)) + ' / ' + str(len(full_magnitude1)) + ' = ' + str(float(len(clean_magnitude1)) / len(full_magnitude1)) + '\n')
+	fd_nop.write('Number of objects plotted after flag cuts for tile ' + str(tile_name) + ', filter ' + str(filter_name) + ', type ' + str(RUN_TYPE) + ', realization ' + str(realization_number) + ' : ' + str(len(clean_magnitude1)) + ' / ' + str(len(full_magnitude1)) + ' = ' + str(float(len(clean_magnitude1)) / len(full_magnitude1)) + '\n')
 
 
         return 0
@@ -1663,7 +1681,7 @@ def get_good_data(df, hdr, idx_good, magnitude, filter_name):
 
 
 
-def get_plot_variables(filter_name, df, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, realization_number, tile_name, mag_axlabel1, mag_axlabel2):
+def get_plot_variables(filter_name, df, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, realization_number, tile_name, mag_axlabel1, mag_axlabel2, fd_flag):
 	"""Get quantities needed for plotter() and subplotter().
 
 	Args:
@@ -1740,7 +1758,7 @@ def get_plot_variables(filter_name, df, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_er
 	if LOG_FLAGS:
 		for i in np.arange(0, len(FLAG_HDR_LIST), 2):
 			# Bad index #
-			temp_idx = handle_flags(df=df, filter_name=f, realization_number=realization_number, flag_hdr1=FLAG_HDR_LIST[i], flag_hdr2=FLAG_HDR_LIST[i+1], full_magnitude1=fullmag1, full_magnitude2=fullmag2, tile_name=tile_name)[1]
+			temp_idx = handle_flags(df=df, filter_name=f, realization_number=realization_number, flag_hdr1=FLAG_HDR_LIST[i], flag_hdr2=FLAG_HDR_LIST[i+1], full_magnitude1=fullmag1, full_magnitude2=fullmag2, tile_name=tile_name, fd_flag=fd_flag)[1]
 		#flag_idx.append(temp_idx)
 		FLAG_HDR_LIST.extend(temp_idx)
 		if SHOW_PLOT is False and SAVE_PLOT is False:
@@ -1764,7 +1782,7 @@ def get_plot_variables(filter_name, df, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_er
 
 
 
-def plotter(mag_hdr1, mag_hdr2, cbar_val, error1, error2, filter_name, clean_magnitude1, full_magnitude1, mag_axlabel1, clean_magnitude2, mag_axlabel2, plot_title, realization_number, tile_name, idx_list, bins, cbar_axlabel, plot_name):
+def plotter(mag_hdr1, mag_hdr2, cbar_val, error1, error2, filter_name, clean_magnitude1, full_magnitude1, mag_axlabel1, clean_magnitude2, mag_axlabel2, plot_title, realization_number, tile_name, idx_list, bins, cbar_axlabel, plot_name, fd_nop, fd_1sig, fd_mag_bins):
 	"""Plot a single magnitude versus delta-magnitude plot.
 
 	Args:
@@ -1774,30 +1792,11 @@ def plotter(mag_hdr1, mag_hdr2, cbar_val, error1, error2, filter_name, clean_mag
 		0
 	"""
 
-	### Get labels for vertical and horizontal axes. ###
-	'''
-   	# Rewrite mag_axlabels. Transform, for example, cm_mag_true to cm_mag_{filter}_true or psf_mag_meas to psf_mag_{filter}_meas #
-        if RUN_TYPE is None:
-                mag_axlabel1 = str(mag_hdr1[:-2]) + '_' + str(AXLABEL1)
-        if RUN_TYPE is not None:
-                mag_axlabel1 = str(mag_hdr1) + '_' + str(AXLABEL1)
-        mag_axlabel2 = str(mag_hdr2[:-2]) + '_' + str(AXLABEL2)
-
-	# Transform, for example, cm_mag_true to cm_mag_{filter}_true, or psf_mag_meas to psf_mag_{filter}_meas #
-        mag_axlabel1 = mag_axlabel1[:-4] + str(filter_name) + '_' + mag_axlabel1[-4:]
-        mag_axlabel2 = mag_axlabel2[:-4] + str(filter_name) + '_' + mag_axlabel2[-4:]
-	if INJ1:
-		mag_axlabel1 = 'inj_' + mag_axlabel1
-	if INJ2:
-		mag_axlabel2 = 'inj_' + mag_axlabel2
-
-	'''
-
 
 	### Values to plot for normalized plot ###
 	if NORMALIZE:
 		# Args needed to call normalize_plot() #
-		norm_dm_list, bins, hax_mag_list = normalize_plot_maintain_bin_structure(clean_magnitude1=clean_magnitude1, clean_magnitude2=clean_magnitude2, error1=error1, error2=error2, filter_name=filter_name) 
+		norm_dm_list, bins, hax_mag_list = normalize_plot_maintain_bin_structure(clean_magnitude1=clean_magnitude1, clean_magnitude2=clean_magnitude2, error1=error1, error2=error2, filter_name=filter_name, tile_name=tile_name, realization_number=realization_number, fd_mag_bins=fd_mag_bins) 
 
 
 		PLOT_68P, PLOT_34P_SPLIT = True, True
@@ -1898,7 +1897,7 @@ def plotter(mag_hdr1, mag_hdr2, cbar_val, error1, error2, filter_name, clean_mag
 		plt.ylabel(str(mag_axlabel1) + ' - ' + str(mag_axlabel2), fontsize=9)
 		### 1-sigma curve ###
 		if PLOT_1SIG:
-			hax, vax, err, bins = bin_and_cut_measured_magnitude_error(error1=error1, error2=error2, clean_magnitude1=clean_magnitude1, clean_magnitude2=clean_magnitude2, filter_name=filter_name)[:4]
+			hax, vax, err, bins = bin_and_cut_measured_magnitude_error(error1=error1, error2=error2, clean_magnitude1=clean_magnitude1, clean_magnitude2=clean_magnitude2, filter_name=filter_name, tile_name=tile_name, realization_number=realization_number, fd_mag_bins=fd_mag_bins)[:4]
 
 			### Remove zeros from x, y, and err (zeros were placeholders for instances in which there were no objects in a particular magnitude bin) ###
 			err[:] = [temp for temp in err if temp is not None]
@@ -1910,7 +1909,7 @@ def plotter(mag_hdr1, mag_hdr2, cbar_val, error1, error2, filter_name, clean_mag
 
 
 	### Write to log files to record the number of objects plotted and the number of objects within 1sigma ###
-	logger(delta_mag=deltam, filter_name=filter_name, clean_magnitude1=clean_magnitude1, full_magnitude1=full_magnitude1, realization_number=realization_number, tile_name=tile_name, bins=bins, hax_mag=hax_mag)
+	logger(delta_mag=deltam, filter_name=filter_name, clean_magnitude1=clean_magnitude1, full_magnitude1=full_magnitude1, realization_number=realization_number, tile_name=tile_name, bins=bins, hax_mag=hax_mag, fd_nop=fd_nop, fd_1sig=fd_1sig)
 
 
 	if PRINTOUTS:
@@ -1991,7 +1990,7 @@ def plotter(mag_hdr1, mag_hdr2, cbar_val, error1, error2, filter_name, clean_mag
 
 
 
-def subplotter(df, flag_idx, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, plot_name, plot_title, realization_number, tile_name):
+def subplotter(df, flag_idx, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, plot_name, plot_title, realization_number, tile_name, fd_flag, fd_nop, fd_1sig, fd_mag_bins):
 	"""Combine four subplots into a single plot with four panels (2-by-2). Declare variables needed for plotting.
 
 	Args:
@@ -2019,7 +2018,7 @@ def subplotter(df, flag_idx, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, plo
 	for f in ALL_FILTERS:
 
 		### Define variables ###
-		cbar_val, cbar_idx_list, cbar_bins, err1, err2, cleanmag1, cleanmag2, index_good, cbar_axlabel, fullmag1, mag_axlabel1, mag_axlabel2 = get_plot_variables(filter_name=f, df=df, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization_number=realization_number, tile_name=tile_name, mag_axlabel1=M_AXLABEL1, mag_axlabel2=M_AXLABEL2)
+		cbar_val, cbar_idx_list, cbar_bins, err1, err2, cleanmag1, cleanmag2, index_good, cbar_axlabel, fullmag1, mag_axlabel1, mag_axlabel2 = get_plot_variables(filter_name=f, df=df, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization_number=realization_number, tile_name=tile_name, mag_axlabel1=M_AXLABEL1, mag_axlabel2=M_AXLABEL2, fd_flag=fd_flag)
 
 
 
@@ -2027,7 +2026,7 @@ def subplotter(df, flag_idx, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, plo
 		if SUBPLOT:
 			plt.subplot(2, 2, counter_subplot)
 
-		plotter(mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, cbar_val=cbar_val, plot_title=plot_title, error1=err1, error2=err2, filter_name=f, full_magnitude1=fullmag1, clean_magnitude1=cleanmag1, clean_magnitude2=cleanmag2, mag_axlabel1=mag_axlabel1, mag_axlabel2=mag_axlabel2, realization_number=realization_number, tile_name=tile_name, idx_list=cbar_idx_list, bins=cbar_bins, cbar_axlabel=cbar_axlabel, plot_name=plot_name)
+		plotter(mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, cbar_val=cbar_val, plot_title=plot_title, error1=err1, error2=err2, filter_name=f, full_magnitude1=fullmag1, clean_magnitude1=cleanmag1, clean_magnitude2=cleanmag2, mag_axlabel1=mag_axlabel1, mag_axlabel2=mag_axlabel2, realization_number=realization_number, tile_name=tile_name, idx_list=cbar_idx_list, bins=cbar_bins, cbar_axlabel=cbar_axlabel, plot_name=plot_name, fd_nop=fd_nop, fd_1sig=fd_1sig, fd_mag_bins=fd_mag_bins)
 
 		counter_subplot += 1
 
@@ -2133,19 +2132,18 @@ def get_plot_save_name(realization_number, tile_name):
 
 
 	# !!!!! User may wish to edit directory structure #
-	### Check for directory existence ###
+	plot_dir_pref = os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, tile_name, realization_number, 'plots')
 	if RUN_TYPE is not None:
-		plot_dir_pref = os.path.join(OUTDIR, 'plots', BALROG_RUN, MATCH_TYPE, tile_name, 'fof_analysis') 
-	if RUN_TYPE is None:
-		plot_dir_pref = os.path.join(OUTDIR, 'plots', BALROG_RUN, MATCH_TYPE, tile_name)
+		plot_dir_pref = os.path.join(plot_dir_pref, 'fof_analysis')
 
 	if NORMALIZE:
-		plot_dir = os.path.join(plot_dir_pref, 'normalized', realization_number)
+		plot_dir = os.path.join(plot_dir_pref, 'normalized')
 	if NORMALIZE is False:
-		plot_dir = os.path.join(plot_dir_pref, 'scatter', realization_number)
+		plot_dir = os.path.join(plot_dir_pref, 'scatter')
 	
+	### Check for directory existence ###
 	if os.path.isdir(plot_dir) is False:
-		if NO_DIR_EXIT:
+		if NO_DIR_MAKE is False:
 			sys.exit('Directory ' + str(plot_dir) + ' does not exist. \n Change directory structure in ms_plotter.get_plot_save_name() or set `NO_DIR_MAKE=True`')
 		if NO_DIR_MAKE:
 			print 'Making directory ', plot_dir, '...\n'
@@ -2317,10 +2315,11 @@ def matcher(realization_number, tile_name, filter_name):
 		in2 =  get_coadd_matcher_catalog(cat_type=MATCH_CAT2, inj=INJ2, realization_number=realization_number, tile_name=tile_name, mag_hdr=M_HDR2, err_hdr=mag_err_hdr2)
 
         # !!!!! User may wish to edit directory structure. Output catalog name for STILTS #
+	match_dir = os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, tile_name, realization_number, 'catalog_compare')	
+
 	### Check for directory existence ###
-	match_dir = os.path.join(OUTDIR, 'catalog_compare', BALROG_RUN, MATCH_TYPE)
 	if os.path.isdir(match_dir) is False:
-		if NO_DIR_EXIT:
+		if NO_DIR_MAKE is False:
 			sys.exit('Directory ' + str(match_dir) + ' does not exist. \n Change directory structure in ms_plotter.matcher() or set `NO_DIR_MAKE=True`')
 		if NO_DIR_MAKE:
 			print 'Making directory ', match_dir, '...\n'
@@ -2334,7 +2333,7 @@ def matcher(realization_number, tile_name, filter_name):
 	# Overwrite matched catalogs if one already exists? # 
         overwrite = False
 
-	# Check `outname` existence #
+	# Check existence #
 	if os.path.isfile(outname_2not1) is False or (os.path.isfile(outname_2not1) and overwrite):
 
 		print '\nMatching ', in1, in2, '...\n'
@@ -2366,16 +2365,13 @@ def fof_matcher(realization_number, tile_name):
 
 
         ### Filenames for input catalogs used in fof_matcher ###
-	# FOF #
-        fof = os.path.join(BASEPATH, tile_name, 'mof', tile_name+'_fofslist.fits')
-        inj_fof = os.path.join(BASEPATH, 'balrog_images', realization_number, tile_name, 'mof', tile_name+'_fofslist.fits')
         # MOF or SOF #
         if MOF:
                 mof = os.path.join(BASEPATH, tile_name, 'mof', tile_name+'_mof.fits')
                 inj_mof = os.path.join(BASEPATH, 'balrog_images', realization_number, tile_name, 'mof', tile_name+'_mof.fits')
                 fof = os.path.join(BASEPATH, tile_name, 'mof', tile_name+'_fofslist.fits')
                 inj_fof = os.path.join(BASEPATH, 'balrog_images', realization_number, tile_name, 'mof', tile_name+'_fofslist.fits')
-        if SOF:
+        if MOF is False:
                 mof = os.path.join(BASEPATH, tile_name, 'sof', tile_name+'_sof.fits')
                 inj_mof = os.path.join(BASEPATH, 'balrog_images', realization_number, tile_name, 'sof', tile_name+'_sof.fits')
                 fof = os.path.join(BASEPATH, tile_name, 'sof', tile_name+'_fofslist.fits')
@@ -2386,8 +2382,7 @@ def fof_matcher(realization_number, tile_name):
 
 
         ### Filenames for outputs of fof_matcher ###
-        #TODO relies on certain directory structure. make note of this in README.md #
-        outdir = os.path.join(OUTDIR, 'fof_analysis_catalog_compare', BALROG_RUN) 
+	os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, tile_name, realization_number, 'fof_analysis_catalog_compare')
         # Repeated #
         inj_outdir = os.path.join(outdir, tile_name, realization_number)
         inj_outname = tile_name + '_' + realization_number
@@ -2437,7 +2432,7 @@ def fof_matcher(realization_number, tile_name):
 	if RUN_TYPE == 'ok':
 		return ok_match, ok_1not2, ok_2not1
 	if RUN_TYPE == 'rerun':
-		return rerun_match, rerun_1not2, ok_2not1
+		return rerun_match, rerun_1not2, rerun_2not1
 
 
 
@@ -2463,7 +2458,16 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 		if STACK_REALIZATIONS:
 
 			# Filename #
-			fn_stack = os.path.join(OUTDIR, t+'_stacked_'+str(MATCH_TYPE)+'_match1and2.csv')
+			stack_dir = os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, t, 'stack')
+
+			if os.path.isdir(stack_dir) is False:
+				if NO_DIR_MAKE is False:
+					sys.exit('Directory ' + str(stack_dir) + ' does not exist. \n Change directory structure in ms_plotter. or set `NO_DIR_MAKE=True`')
+				if NO_DIR_MAKE:
+					print 'Making directory ', stack_dir, '...\n'
+					os.makedirs(stack_dir)
+
+			fn_stack = os.path.join(stack_dir, t+'_stacked_'+str(MATCH_TYPE)+'_match1and2.csv')
 			
 			# Check if stacked realization file already exists #
 			if os.path.isfile(fn_stack):
@@ -2527,8 +2531,14 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 		print 'Not stacking realizations...'
 
                 for r in ALL_REALIZATIONS:
-			
-			# Filename #
+
+			# Filenames for log files #
+			fn_flag, fn_mag_bins, fn_nop, fn_1sig = get_log_file_names(tile_name=t, realization_number=r)
+			# Write headers #
+			fd_nop, fd_1sig, fd_mag_bins, fd_flag = fd_first_write(fn_nop=fn_nop, fn_1sig=fn_1sig, fn_mag_bins=fn_mag_bins, fn_flag=fn_flag)
+
+
+			# Filenames for catalogs #
 			if RUN_TYPE is None:
 				fn_match, fn_1not2, fn_2not1 = matcher(realization_number=r, tile_name=t, filter_name=None)
 			if RUN_TYPE is not None:
@@ -2540,7 +2550,7 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 
 			### ####
 			if MAKE_REG:
-				make_region_file(df_match=df1and2, df_1not2=df1not2, df_2not1=df2not1, realization_number=r, tile_name=t)
+				make_region_files(df_match=df1and2, df_1not2=df1not2, df_2not1=df2not1, realization_number=r, tile_name=t)
 
 
                         # Name for plt.savefig() #
@@ -2572,8 +2582,11 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 				mag_err_hdr2 = 'mag_err_c_2'
 
 
-			subplotter(df=df1and2, flag_idx=flag_idx, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, plot_name=fn, plot_title=title, realization_number=r, tile_name=t) 
+			subplotter(df=df1and2, flag_idx=flag_idx, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, plot_name=fn, plot_title=title, realization_number=r, tile_name=t, fd_mag_bins=fd_mag_bins, fd_nop=fd_nop, fd_1sig=fd_1sig, fd_flag=fd_flag) 
 
+
+			### Close log files after each iteration over a realization ###
+			fd_flag.close(); fd_mag_bins.close(); fd_nop.close(); fd_1sig.close()
 
 	return 0
 
@@ -2597,7 +2610,7 @@ def get_coadd_matcher_catalog(cat_type, inj, realization_number, mag_hdr, err_hd
 		fn (str) -- Filename. Is a FITS file.
 	"""
 
-	fn_new = os.path.join(OUTDIR, str(tile_name) + '_i_cat.fits')
+	fn_new = os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, tile_name, realization_number, 'catalog_compare', str(tile_name) + '_i_cat_combo.fits')
 
 	# Check if new coadd catalog has already been created #
 	if os.path.isfile(fn_new):
@@ -2639,7 +2652,7 @@ def get_coadd_matcher_catalog(cat_type, inj, realization_number, mag_hdr, err_hd
 
 
 #TODO accept idx_good as input param? Will only be used for df_match. 
-def make_region_file(df_match, df_1not2, df_2not1, realization_number, tile_name):
+def make_region_files(df_match, df_1not2, df_2not1, realization_number, tile_name):
 	"""Make DS9 region files for catalogs matched via join=1and2, join=1not2, and 2not1.
 
 	Args:
@@ -2742,7 +2755,7 @@ if YLOOP:
 		if y is None:
 			YLOW, YHIGH = None, None
 		if y is not None:
-			YLOW, YHIGH = -1.0*y, y
+			YLOW, YHIGH = -1*y, y
 
 		# Must pass constants as parameters here because used for plot name #
 		print make_plots(mag_hdr1=M_HDR1, mag_hdr2=M_HDR2, mag_err_hdr1=M_ERR_HDR1, mag_err_hdr2=M_ERR_HDR2)
@@ -2770,10 +2783,10 @@ if RUN_TYPE_LOOP:
 		RUN_TYPE = run_type
 		make_plots(mag_hdr1=M_HDR1, mag_hdr2=M_HDR2, mag_err_hdr1=M_ERR_HDR1, mag_err_hdr2=M_ERR_HDR2)
 
-
+'''
 ### Close log files ###
 FD_1SIG.close()
 FD_FLAG.close()
 FD_MAG_BINS.close()
 FD_NOP.close()
-
+'''
