@@ -50,9 +50,9 @@ ALL_REALIZATIONS = [ '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' ]
 # !!!!! Available tiles depends on run #
 ALL_TILES = [ 'DES0347-5540', 'DES2329-5622', 'DES2357-6456' ]
 
-if tiles != 'all':
+if tiles[0] != 'all':
 	ALL_TILES = tiles
-if realizations != 'all':
+if realizations[0] != 'all':
 	ALL_REALIZATIONS = realizations
 
 
@@ -94,7 +94,7 @@ MATCH_CAT1, MATCH_CAT2 = 'star_truth', 'sof'
 # !!!!! Booleans. Examine injected catalogs? #
 INJ1, INJ2 = True, True
 # !!!!! Must be used with realization=all at command line #
-STACK_REALIZATIONS = False
+STACK_REALIZATIONS = True
 
 # !!!!! Make 2x2 subplots of each griz filter? Or make individual plots? #
 SUBPLOT = True
@@ -138,9 +138,8 @@ SHOW_FLAG_TYPE = False
 
 
 
-
 # Catch errors from plot attributes #
-if ((CM_T_S2N_COLORBAR and CM_T_ERR_COLORBAR) or (CM_T_S2N_COLORBAR and HEXBIN) or (CM_T_ERR_COLORBAR and HEXBIN) or (CM_T_COLORBAR and CM_T_ERR_COLORBAR) or (CM_T_COLORBAR and CM_T_S2N_COLORBAR) or (CM_T_COLORBAR and HEXBIN)) or (NORMALIZE and PLOT_1SIG is False) or (YLOW is not None and YHIGH is not None and YHIGH == YLOW) or (NORMALIZE and (CM_T_S2N_COLORBAR or CM_T_ERR_COLORBAR or CM_T_COLORBAR)) or (STACK_REALIZATIONS and realization != 'all'): 
+if ((CM_T_S2N_COLORBAR and CM_T_ERR_COLORBAR) or (CM_T_S2N_COLORBAR and HEXBIN) or (CM_T_ERR_COLORBAR and HEXBIN) or (CM_T_COLORBAR and CM_T_ERR_COLORBAR) or (CM_T_COLORBAR and CM_T_S2N_COLORBAR) or (CM_T_COLORBAR and HEXBIN)) or (NORMALIZE and PLOT_1SIG is False) or (YLOW is not None and YHIGH is not None and YHIGH == YLOW) or (NORMALIZE and (CM_T_S2N_COLORBAR or CM_T_ERR_COLORBAR or CM_T_COLORBAR)) or (STACK_REALIZATIONS and realizations[0] != 'all'): 
 	sys.exit('ERROR: Only of of the following may be True at a time: CM_T, CM_T_S2N_COLORBAR, CM_T_ERR_COLORBAR, HEXBIN. Otherwise, colorbar will be overwritten. \nERROR: If NORMALIZE is True so must be PLOT_1SIG. \nERROR: YHIGH cannot be equal to YLOW. \n NORMALIZE must be False if any of: CM_T_S2N_COLORBAR CM_T_ERR_COLORBAR CM_T_S2N_COLORBAR are True.\nERROR: STACK_REALIZATIONS is True must be used with realization = all. \n')
 
 
@@ -552,7 +551,7 @@ def get_reg_names(tile_name, realization_number):
 	### Check for directory existence ###
         if os.path.isdir(reg_dir) is False:
                 if NO_DIR_MAKE is False:
-                        sys.exit('Directory ' + str(reg_dir) + ' does not exist. \n Change directory structure in ms_plotter.get_log_file_names() or set `NO_DIR_MAKE=True`')
+                        sys.exit('Directory ' + str(reg_dir) + ' does not exist. \n Change directory structure in ms_plotter.get_reg_names() or set `NO_DIR_MAKE=True`')
                 if NO_DIR_MAKE:
                         print 'Making directory ', reg_dir, '...\n'
                         os.makedirs(reg_dir)
@@ -670,7 +669,7 @@ def fd_first_write(fn_nop, fn_1sig, fn_mag_bins, fn_flag):
 	fd_nop = open(fn_nop, 'w'); fd_1sig = open(fn_1sig, 'w'); fd_mag_bins = open(fn_mag_bins, 'w'); fd_flag = open(fn_flag, 'w')
 
 	### Write ###
-	fd_mag_bins.write('TILE, REALIZATION, FILTER, NUM_OBJS_IN_BIN, BIN_LHS, BIN_RHS, MEDIAN_HAXIS_MAG, MEDIAN_ERROR \n')
+	fd_mag_bins.write('TILE, \t REALIZATION, \t FILTER, \t NUM_OBJS_IN_BIN, \t BIN_LHS, \t BIN_RHS, \t MEDIAN_HAXIS_MAG, \t MEDIAN_ERROR \n')
 
 	fd_flag.write('TILE, REALIZATION, FILTER, RUN_TYPE, FLAG1_HEADER, FLAG2_HEADER, FLAG1_VALUE, FLAG2_VALUE, MAG1, MAG2 \n')
 
@@ -1296,7 +1295,7 @@ def bin_and_cut_measured_magnitude_error(clean_magnitude1, clean_magnitude2, err
 		if counter_err > 0:
 			write_median, write_err = np.median(binned_hax_mag_temp), np.median(binned_err_temp)
 		# TILE, REALIZATION, FILTER, NUM_OBJS_IN_BIN, BIN_LHS, BIN_RHS, MEDIAN_HAXIS_MAG, MEDIAN_ERROR #
-		fd_mag_bins.write( str(tile_name) + '\t' + str(realization_number) + '\t' + str(filter_name) + '\t' + str(counter_err) + '\t' + str(round(j, 2)) + '\t' + str(round(j+step, 2)) + '\t' + str(write_median)+ '\t' + str(write_err) + '\n')
+		fd_mag_bins.write( str(tile_name) + ' \t ' + str(realization_number) + ' \t ' + str(filter_name) + ' \t ' + str(counter_err) + ' \t ' + str(round(j, 2)) + ' \t ' + str(round(j+step, 2)) + ' \t ' + str(write_median)+ ' \t ' + str(write_err) + '\n')
 
 
                 ### Tame error calculation and normalization by adding zeros to empty bins and bins with a small number of points ###
@@ -2498,6 +2497,12 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 				df1and2.to_csv(fn_stack, sep=',')
 				print '-----> Saving stacked realization catalog as ', fn_stack
 
+
+			# Filenames for log files #
+                        fn_flag, fn_mag_bins, fn_nop, fn_1sig = get_log_file_names(tile_name=t, realization_number='stack')
+                        # Write headers #
+                        fd_nop, fd_1sig, fd_mag_bins, fd_flag = fd_first_write(fn_nop=fn_nop, fn_1sig=fn_1sig, fn_mag_bins=fn_mag_bins, fn_flag=fn_flag)
+
 			# Name for plt.savefig() #
 			fn = get_plot_save_name(realization_number='stacked_realizations', tile_name=t) 
 
@@ -2526,7 +2531,11 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
                                 mag_err_hdr2 = 'mag_err_c_2'
 
 
-			subplotter(df=df1and2, flag_idx=flag_idx, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, plot_name=fn, plot_title=title, realization_number='stacked', tile_name=t) 
+			subplotter(df=df1and2, flag_idx=flag_idx, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, plot_name=fn, plot_title=title, realization_number='stacked', tile_name=t, fd_mag_bins=fd_mag_bins, fd_nop=fd_nop, fd_1sig=fd_1sig, fd_flag=fd_flag) 
+
+			
+			### Close log files after each iteration over a realization ###
+                        fd_flag.close(); fd_mag_bins.close(); fd_nop.close(); fd_1sig.close()
 
 
 
