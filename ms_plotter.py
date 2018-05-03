@@ -82,17 +82,22 @@ SAVE_PLOT = False
 SHOW_PLOT = True
 
 # !!!!! Limits for the vertical axis. 'None' is an allowed value and will result in default scaling #
-YLOW, YHIGH = None, None 
+YLOW, YHIGH = None, None
 
 # Swap horizontal axis? Default is magnitude1. Matching script ms_matcher determines which catalog is 1 and which is 2. Generally SWAP_HAX does not need to be changed unless the truth catalog values are not on the horizontal axis. #
 SWAP_HAX = False
 
 
 ### Catalog attributes ###
-# !!!!! Allowed values: sof, mof, star_truth, gal_truth, coadd. Both can be 'sof' and both can be 'mof' if INJ1 and INJ2 are different. Note that truth catalogs always have INJ=True. #
-MATCH_CAT1, MATCH_CAT2 = 'star_truth', 'sof'
+# !!!!! Allowed values: y3_gold, sof, mof, star_truth, gal_truth, coadd. Both can be 'sof' and both can be 'mof' if INJ1 and INJ2 are different. Note that truth catalogs always have INJ=True. #
+MATCH_CAT1, MATCH_CAT2 = 'sof', 'y3_gold'
 # !!!!! Booleans. Examine injected catalogs? #
-INJ1, INJ2 = True, True
+INJ1, INJ2 = True, False
+
+
+# !!!!! Only used if MATCH_CAT1 or MATCH_CAT2 is 'y3_gold'. If False, SOF catalogs exists within BASEPATH #
+Y3_MOF = False #FIXME incorporate this?
+
 # !!!!! Must be used with realization=all at command line #
 STACK_REALIZATIONS = False
 
@@ -428,6 +433,70 @@ class StarTruthCat(): #are there sep headers for MOFStarTruthCat and SOFStarTrut
 
 
 
+class Y3Gold():
+	"""Declare headers and axes labels for Y3 Gold catalog (https://cdcvs.fnal.gov/redmine/projects/des-y3/wiki/Full_list_of_Y3_GOLD_2_0_Columns).""" 
+
+	# Once matched, headers will have form 'hdr_1' or 'hdr_2' with a suffix (suf) #
+	def __init__(self, inj, suf):
+                """Declare constants.
+
+                Args:
+                        inj (bool) -- Balrog injected catalog?
+                        suf (int) -- Refers to order in which catalog was matched in ms_matcher. Allowed values: '_1' '_2'
+                """
+
+		#FIXME psf and cm magnitudes
+		inj = False
+
+		if BALROG_RUN in ('grid_bkg', 'grid_bkg_noise', 'seed_test_base', 'seed_test_same_seeds' 'seed_test_same_seeds1', 'seed_test_new_seeds', 'des2247-4414_sof', 'grid_test_noise_sof') or Y3_MOF is False: 
+			pref = 'SOF_'
+
+		if Y3_MOF is True:
+			pref = 'MOF_'
+
+	 
+		self.title_piece = 'Y3 Gold Cat' 
+                self.axlabel = 'meas'
+                # Magnitude # 
+                self.mag_hdr = pref+ 'CM_MAG' + str(suf)
+                self.mag_axlabel = 'mag_meas'
+                # For error calculation #
+                self.mag_err_hdr = pref + 'CM_MAG_ERR' + str(suf) #FIXME filter dependent
+                self.cm_flux_hdr = pref + 'CM_FLUX' + str(suf) #FIXME filter dependent
+                self.cm_flux_cov_hdr = pref + 'CM_FLUX_COV' + str(suf) #FIXME filter dependent
+                # Size #
+                self.cm_t_hdr = pref + 'CM_T' + str(suf) 
+                self.cm_t_err_hdr = pref + 'CM_T_ERR' + str(suf)
+                self.cm_t_s2n_axlabel = 'cm_T_s2n_meas'
+                # Flags #
+                self.flags_hdr = 'FLAGS_GOLD' + str(suf) 
+                self.obj_flags_hdr = pref + 'OBJ_FLAGS' + str(suf)
+                self.psf_flags_hdr = pref + 'PSF_FLAGS_G' + str(suf) #FIXME filter dependent
+                self.cm_flags_hdr = pref + 'FLAGS' + str(suf) #FIXME is this the right hdr?
+                self.cm_max_flags_hdr = None
+                self.cm_mof_flags_hdr = pref + 'CM_FLAGS' + str(suf)
+                self.cm_flags_r_hdr = pref + 'CM_FLAGS_R' + str(suf)
+                # For region file #
+		#FIMXE there is also an ALPHAWIN_J2000
+		self.ra_hdr = 'ra' + str(suf)
+                self.dec_hdr = 'dec' + str(suf)
+                self.a_hdr = 'A_IMAGE'+ str(suf)
+		self.b_hdr = 'B_IMAGE' + str(suf) 
+                self.angle = 'THETA_J2000' + str(suf) 
+                # For Eric Huff (EH) quality cuts #
+                self.cm_s2n_r_hdr = None
+                self.psfrec_t_hdr = pref + 'PSFREC_T' + str(suf) 
+
+		# if sof find and replace mof with sof?
+
+
+
+
+
+
+
+
+
 def get_class(cat_type, inj, suf):
         """Get the appropriate class for the catalog type.
 
@@ -453,6 +522,10 @@ def get_class(cat_type, inj, suf):
 
         if cat_type == 'coadd':
                 cat_type_class = CoaddCat(inj=inj, suf=suf)
+
+	if cat_type == 'y3_gold':
+		cat_type_class = Y3Gold(inj=inj, suf=suf)
+
 
         return cat_type_class
 
@@ -583,6 +656,9 @@ if RUN_TYPE is not None:
 if RUN_TYPE is None:
 	CLASS1 = get_class(cat_type=MATCH_CAT1, inj=INJ1, suf='_1')
 CLASS2 = get_class(cat_type=MATCH_CAT2, inj=INJ2, suf='_2')
+
+if MATCH_CAT1 == 'y3_gold':
+	CLASS
 
 # Get arguments to pass to ms_matcher. Need to transform header of form 'ra_1' to 'ra', hence [:-2] #
 RA_HDR1, RA_HDR2 = CLASS1.ra_hdr[:-2], CLASS2.ra_hdr[:-2]
@@ -1674,7 +1750,7 @@ def get_errors(mag_err_hdr1, mag_err_hdr2, df, filter_name, idx_good):
                 if mag_err_hdr1 is not None:
 			if MATCH_CAT1 == 'coadd':
 				err1 = get_floats_from_string(df=df, hdr=mag_err_hdr1, filter_name=filter_name)
-			if MATCH_CAT1 == 'star_truth':
+			if MATCH_CAT1 == 'star_truth' or MATCH_CAT1 == 'y3_gold':
                                 err1 = df[str(mag_err_hdr1[:-2]) + '_' + filter_name.upper() + str(mag_err_hdr1[-2:])]
 
                 if mag_err_hdr2 is None:
@@ -1682,7 +1758,7 @@ def get_errors(mag_err_hdr1, mag_err_hdr2, df, filter_name, idx_good):
                 if mag_err_hdr2 is not None:
 			if MATCH_CAT2 == 'coadd':
 				err2 = get_floats_from_string(df=df, hdr=mag_err_hdr2, filter_name=filter_name)
-			if MATCH_CAT2 == 'star_truth':
+			if MATCH_CAT2 == 'star_truth' or MATCH_CAT2 == 'y3_gold':
 				err2 = df[str(mag_err_hdr2[:-2]) + '_' + filter_name.upper() + str(mag_err_hdr2[-2:])] 
 
         if PLOT_1SIG is False:
@@ -2264,7 +2340,7 @@ def get_coadd_mag_and_mag_err(fn_g, fn_r, fn_i, fn_z, mag_hdr, err_hdr):
 
 
 
-def get_star_mag(df):
+def get_star_mag(df, suf):
 	"""Solely for use with star truth catalogs. Computes and creates a list of magnitudes of form '(mag_g, mag_r, mag_i, mag_z)'.
 
 	Args:
@@ -2273,13 +2349,13 @@ def get_star_mag(df):
 		m_griz (list of str) -- Stores magnitudes of each filter in form '(mag_g, mag_r, mag_i, mag_z)'.
 	"""
 
-	m_g = df['g_Corr_1']
+	m_g = df['g_Corr'+suf]
 
-	m_r = df['g_Corr_1'] - df['gr_Corr_1']
+	m_r = df['g_Corr'+suf] - df['gr_Corr'+suf]
 
-	m_i = df['g_Corr_1'] - df['gr_Corr_1'] - df['ri_Corr_1']
+	m_i = df['g_Corr'+suf] - df['gr_Corr'+suf] - df['ri_Corr'+suf]
 
-	m_z = df['g_Corr_1'] - df['gr_Corr_1'] - df['ri_Corr_1'] - df['iz_Corr_1']
+	m_z = df['g_Corr'+suf] - df['gr_Corr'+suf] - df['ri_Corr'+suf] - df['iz_Corr'+suf]
 
 	m_griz = []
 
@@ -2287,6 +2363,34 @@ def get_star_mag(df):
 		m_griz.append("'("+ str(m_g[i]) + ', ' + str(m_r[i]) + ', ' + str(m_i[i]) + ', ' + str(m_z[i]) + ")'")	
         
 	return m_griz
+
+
+
+
+
+
+
+
+
+def get_y3_gold_mag(df, suf):
+	"""Solely for use with Y3 Gold catalogs. Creates a list of magnitudes of form '(mag_g, mag_r, mag_i, mag_z)'.
+
+	Args:
+                df (pandas DataFram)
+        Returns:
+                m_griz (list of str) -- Stores magnitudes of each filter in form '(mag_g, mag_r, mag_i, mag_z)'.
+        """
+
+	#FIXME use MOF? PSF?
+	#MOF_CM_MAG_(GRIZ), MOF_PSF_MAG_(GRIZ), SOF_CM_MAG_(GRIZ), SOF_PSF_MAG_(GRIZ)
+	m_g = df['MOF_CM_MAG_G'+suf]; m_r = df['MOF_CM_MAG_R'+suf]; m_i = df['MOF_CM_MAG_I'+suf]; m_z = df['MOF_CM_MAG_Z'+suf]
+
+	m_griz = []
+
+        for i in np.arange(0, len(m_g)):
+                m_griz.append("'("+ str(m_g[i]) + ', ' + str(m_r[i]) + ', ' + str(m_i[i]) + ', ' + str(m_z[i]) + ")'")
+
+        return m_griz
 
 
 
@@ -2333,6 +2437,11 @@ def get_catalog(cat_type, inj, realization_number, tile_name, filter_name):
                 fn = os.path.join(BASEPATH, 'balrog_images', realization_number, tile_name, 'coadd', tile_name+'_'+filter_name+'_cat.fits')
         if cat_type == 'coadd' and inj is False:
                 fn = os.path.join(BASEPATH, tile_name, 'coadd', tile_name+'_'+filter_name+'_cat.fits')
+
+	# Y3 catalogs cannot be injected #
+	if cat_type == 'y3_gold':
+		# !!!!! User may need to alter path to Y3 Gold catalog #
+		fn = os.path.join('/data/des71.a/data/mspletts/balrog_validation_tests/y3_gold_catalogs/', tile_name+'_y3gold_v1.fits')
 
         return fn
 
@@ -2560,21 +2669,40 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 
 
 			### Handle star truth catalogs ###
-			if MATCH_CAT1 == 'star_truth' or MATCH_CAT2 == 'star_truth':
-				print 'Adding new column to matched csv ...'
-				star_mag = get_star_mag(df=df1and2)
+			# Star truth catalogs matched then combined #
+			if MATCH_CAT1 == 'star_truth':
+				print 'Adding new column to matched csv ...\n'
+				star_mag = get_star_mag(df=df1and2, suf='_1')
 				# 'mag_a' short for mag_all. New header must be of the form {base}_x where x is a single character because of the way m_axlabel is created from m_hdr #
 				df1and2.insert(len(df1and2.columns), 'mag_a', star_mag)
-
-			if MATCH_CAT1 == 'star_truth':
 				mag_hdr1 = 'mag_a'
+
 			if MATCH_CAT2 == 'star_truth':
+				print 'Adding new column to matched csv ...\n'
+                                star_mag = get_star_mag(df=df1and2, suf='_2')
 				mag_hdr2 = 'mag_a'
+				df1and2.insert(len(df1and2.columns), 'mag_a', star_mag)
+
+
+			### Handle Y3 Gold catalogs ###
+			if MATCH_CAT1 == 'y3_gold':
+				print 'Adding new column to matched csv ...\n'
+				y3_gold_mag = get_y3_gold_mag(df=df1and2, suf='_1')
+				df1and2.insert(len(df1and2.columns), 'mag_y', y3_gold_mag)
+				mag_hdr1 = 'mag_y'
+
+			if MATCH_CAT2 == 'y3_gold':
+				print 'Adding new column to matched csv ...\n'
+				y3_gold_mag = get_y3_gold_mag(df=df1and2, suf='_2')
+				df1and2.insert(len(df1and2.columns), 'mag_y', y3_gold_mag)
+				mag_hdr2 = 'mag_y'
+
 
 			 ### Handle coadd catalogs. New column has been added with name 'mag_c'. Catalog combined then matched so has suffix (unlike star) #
                         if MATCH_CAT1 == 'coadd':
                                 mag_hdr1 = 'mag_c_1'
                                 mag_err_hdr1 = 'mag_err_c_1'
+
                         if MATCH_CAT2 == 'coadd':
                                 mag_hdr2 = 'mag_c_2'
                                 mag_err_hdr2 = 'mag_err_c_2'
@@ -2592,7 +2720,7 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 	### For plotting one realization at a time ###
         if STACK_REALIZATIONS is False:
 
-		print 'Not stacking realizations...'
+		print 'Not stacking realizations...\n'
 
                 for r in ALL_REALIZATIONS:
 
@@ -2625,18 +2753,35 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 
 
 			### Handle star truth catalogs ###
-                        if MATCH_CAT1 == 'star_truth' or MATCH_CAT2 == 'star_truth':
-                                print 'Adding new column to matched csv ... \n'
-                                star_mag = get_star_mag(df=df1and2)
+			# Star truth catalogs matched then combined # #FIXME rename to mag_s for mag_star
+			if MATCH_CAT1 == 'star_truth':
+                                print 'Adding new column to matched csv ...\n'
+                                star_mag = get_star_mag(df=df1and2, suf='_1')
+                                # 'mag_a' short for mag_all. New header must be of the form {base}_x where x is a single character because of the way m_axlabel is created from m_hdr #
                                 df1and2.insert(len(df1and2.columns), 'mag_a', star_mag)
-
-			# Star truth catalogs matched then combined # #FIXME rename to mag_s for mag_star 
-                        if MATCH_CAT1 == 'star_truth':
                                 mag_hdr1 = 'mag_a'
-                        if MATCH_CAT2 == 'star_truth':
-                                mag_hdr2 = 'mag_a'
 
-			
+                        if MATCH_CAT2 == 'star_truth':
+                                print 'Adding new column to matched csv ...\n'
+                                star_mag = get_star_mag(df=df1and2, suf='_2')
+                                mag_hdr2 = 'mag_a'
+                                df1and2.insert(len(df1and2.columns), 'mag_a', star_mag) 
+
+
+			 ### Handle Y3 Gold catalogs ###
+                        if MATCH_CAT1 == 'y3_gold':
+                                print 'Adding new column to matched csv ...\n'
+                                y3_gold_mag = get_y3_gold_mag(df=df1and2, suf='_1')
+                                df1and2.insert(len(df1and2.columns), 'mag_y', y3_gold_mag)
+                                mag_hdr1 = 'mag_y'
+
+                        if MATCH_CAT2 == 'y3_gold':
+                                print 'Adding new column to matched csv ...\n'
+                                y3_gold_mag = get_y3_gold_mag(df=df1and2, suf='_2')
+                                df1and2.insert(len(df1and2.columns), 'mag_y', y3_gold_mag)
+                                mag_hdr2 = 'mag_y'
+
+	
 			### Handle coadd catalogs. New column has been added with name 'mag_c'. Catalog combined then matched so has suffix (unlike star) #
 			if MATCH_CAT1 == 'coadd':
 				mag_hdr1 = 'mag_c_1'
@@ -2755,7 +2900,7 @@ def make_region_files(df_match, df_1not2, df_2not1, realization_number, tile_nam
 
 		### Write to region file for matched catalog. Units are arcseconds. ###
 		# Coadds allow for elliptical regions #
-		if MATCH_CAT1 == 'coadd' or MATCH_CAT2 == 'coadd':
+		if MATCH_CAT1 == 'coadd' or MATCH_CAT2 == 'coadd': #FIXME add y3_gold option which has a, b, theta
 			### Get semimajor and semiminor axes (a and b, respectively) and orientation. Coadds have these values. ###
 			a_match, b_match = df_match[MAJOR_AX_HDR1], df_match[MINOR_AX_HDR1]
 			a_1not2, b_1not2 = df_1not2[MAJOR_AX_HDR1], df_1not2[MINOR_AX_HDR1]
