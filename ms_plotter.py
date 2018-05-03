@@ -69,7 +69,7 @@ CM_T_ERR_COLORBAR = False
 CM_T_COLORBAR = False
 BIN_CM_T_S2N = False
 # Normalizes plot to 1-sigma magnitude error. If NORMALIZE is True, PLOT_1SIG must be True else errors will not be computed and normalization cannot be performed #
-NORMALIZE = False
+NORMALIZE = True
 
 # Use quality cuts introduced by Eric Huff? Link: https://github.com/sweverett/Balrog-GalSim/blob/master/plots/balrog_catalog_tests.py. Can only be performed if catalog has all the necessary headers: cm_s2n_r, cm_T, cm_T_err, and psfrec_T. #
 EH_CUTS = False
@@ -82,7 +82,7 @@ SAVE_PLOT = False
 SHOW_PLOT = True
 
 # !!!!! Limits for the vertical axis. 'None' is an allowed value and will result in default scaling #
-YLOW, YHIGH = None, None
+YLOW, YHIGH = None, None 
 
 # Swap horizontal axis? Default is magnitude1. Matching script ms_matcher determines which catalog is 1 and which is 2. Generally SWAP_HAX does not need to be changed unless the truth catalog values are not on the horizontal axis. #
 SWAP_HAX = False
@@ -92,8 +92,10 @@ SWAP_HAX = False
 # !!!!! Allowed values: y3_gold, sof, mof, star_truth, gal_truth, coadd. Both can be 'sof' and both can be 'mof' if INJ1 and INJ2 are different. Note that truth catalogs always have INJ=True. #
 MATCH_CAT1, MATCH_CAT2 = 'sof', 'y3_gold'
 # !!!!! Booleans. Examine injected catalogs? #
-INJ1, INJ2 = True, False
+INJ1, INJ2 = False, False
 
+if MATCH_CAT1 == 'y3_gold' or MATCH_CAT2 == 'y3_gold':
+	INJ1, INJ2 = False, False
 
 # !!!!! Only used if MATCH_CAT1 or MATCH_CAT2 is 'y3_gold'. If False, SOF catalogs exists within BASEPATH #
 Y3_MOF = False #FIXME incorporate this?
@@ -1752,6 +1754,7 @@ def get_errors(mag_err_hdr1, mag_err_hdr2, df, filter_name, idx_good):
 				err1 = get_floats_from_string(df=df, hdr=mag_err_hdr1, filter_name=filter_name)
 			if MATCH_CAT1 == 'star_truth' or MATCH_CAT1 == 'y3_gold':
                                 err1 = df[str(mag_err_hdr1[:-2]) + '_' + filter_name.upper() + str(mag_err_hdr1[-2:])]
+			err1 = np.array(err1)[idx_good]
 
                 if mag_err_hdr2 is None:
                         err2 = calculate_total_fractional_magnitude_error(df=df, flux_hdr=CM_FLUX_HDR2, cov_hdr=CM_FLUX_COV_HDR2, filter_name=filter_name, idx_good=idx_good)
@@ -1760,9 +1763,10 @@ def get_errors(mag_err_hdr1, mag_err_hdr2, df, filter_name, idx_good):
 				err2 = get_floats_from_string(df=df, hdr=mag_err_hdr2, filter_name=filter_name)
 			if MATCH_CAT2 == 'star_truth' or MATCH_CAT2 == 'y3_gold':
 				err2 = df[str(mag_err_hdr2[:-2]) + '_' + filter_name.upper() + str(mag_err_hdr2[-2:])] 
+			err2 = np.array(err2)[idx_good]
+
 
         if PLOT_1SIG is False:
-                print 'WARNING: Not plotting 1-sigma curve so log file will FALSELY report that ZERO objects are within 1sigma ...\n'
                 err1, err2 = None, None
 
 	return err1, err2
@@ -2636,7 +2640,8 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 			if os.path.isfile(fn_stack):
 				print 'Stacked realization catalog exists. Not overwriting ... \n'
 				df1and2 = pd.read_csv(fn_stack)
-			
+		
+			#FIXME add overwrite	
 			# Combine all realizations for one tile into a single catalog. Catalogs combined AFTER matching. #
 			if os.path.isfile(fn_stack) is False:
 				all_fn = []
@@ -2952,7 +2957,7 @@ def make_region_files(df_match, df_1not2, df_2not1, realization_number, tile_nam
 ################################################################### Run script. 0 returned when complete. ###################################################################
 
 
-YLOOP = False
+YLOOP = False 
 
 ### !!!!! Run once. Log files are closed once 0 is returned. ###
 if YLOOP is False:
@@ -2962,7 +2967,7 @@ if YLOOP is False:
 # !!!!! Loop over vertical axis limits? #
 
 if YLOOP:
-	for y in [0.5, 1]: 
+	for y in [3, 20, None]: 
 		if y is None:
 			YLOW, YHIGH = None, None
 		if y is not None:
