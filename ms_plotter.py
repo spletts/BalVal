@@ -35,9 +35,9 @@ import sys
 ### Command line args ###
 BASEPATH, OUTDIR, realizations, tiles = sys.argv[1], sys.argv[2], sys.argv[3].split(','), sys.argv[4].split(',')
 # Catch error from inadequate number of command line args #
+# Note 'None' is interpreted as str #
 if len(sys.argv) != 5:
-        sys.exit("Args: basepath (location of catalogs), output directory, realizations (can be 'all'), tiles (can be 'all') \n")
-
+        sys.exit("Args: basepath (location of catalogs), output directory, realizations (can be 'all', None), tiles (can be 'all') \n")
 
 BALROG_RUN = BASEPATH[BASEPATH.replace('/', ';', 4).find('/')+1:BASEPATH.replace('/', ';', 5).find('/')]
 
@@ -69,7 +69,7 @@ CM_T_ERR_COLORBAR = False
 CM_T_COLORBAR = False
 BIN_CM_T_S2N = False
 # Normalizes plot to 1-sigma magnitude error. If NORMALIZE is True, PLOT_1SIG must be True else errors will not be computed and normalization cannot be performed #
-NORMALIZE = True
+NORMALIZE = False
 
 # Use quality cuts introduced by Eric Huff? Link: https://github.com/sweverett/Balrog-GalSim/blob/master/plots/balrog_catalog_tests.py. Can only be performed if catalog has all the necessary headers: cm_s2n_r, cm_T, cm_T_err, and psfrec_T. #
 EH_CUTS = False
@@ -78,11 +78,11 @@ EH_CUTS = False
 PLOT_1SIG = True
 
 # !!!!! What to do with the plot? #
-SAVE_PLOT = False 
+SAVE_PLOT = True 
 SHOW_PLOT = True
 
 # !!!!! Limits for the vertical axis. 'None' is an allowed value and will result in default scaling #
-YLOW, YHIGH = None, None 
+YLOW, YHIGH = -0.5, 0.5 
 
 # Swap horizontal axis? Default is magnitude1. Matching script ms_matcher determines which catalog is 1 and which is 2. Generally SWAP_HAX does not need to be changed unless the truth catalog values are not on the horizontal axis. #
 SWAP_HAX = False
@@ -94,8 +94,21 @@ MATCH_CAT1, MATCH_CAT2 = 'sof', 'y3_gold'
 # !!!!! Booleans. Examine injected catalogs? #
 INJ1, INJ2 = False, False
 
-if MATCH_CAT1 == 'y3_gold' or MATCH_CAT2 == 'y3_gold':
+
+# Handle nonsensical combinations #
+# Always non injections #
+if MATCH_CAT1 == 'y3_gold':
+	INJ1 = False
+if MATCH_CAT2 == 'y3_gold':
+        INJ2 = False
+if realizations[0] == 'None':
 	INJ1, INJ2 = False, False
+
+# Truth catalogs always injected #
+if 'truth' in MATCH_CAT1:
+	INJ1 = True
+if 'truth' in MATCH_CAT2:
+	INJ2 = True
 
 # !!!!! Only used if MATCH_CAT1 or MATCH_CAT2 is 'y3_gold'. If False, SOF catalogs exists within BASEPATH #
 Y3_MOF = False #FIXME incorporate this?
@@ -179,7 +192,7 @@ class CoaddCat():
 		if inj:
 			self.title_piece = 'Inj Coadd Cat'
 		if inj is False:
-			self.title_piece = 'Coadd Cat'
+			self.title_piece = 'Base Coadd Cat'
 		self.axlabel = 'meas'
 		# Magnitude, is one number #
 		self.mag_hdr = 'MAG_AUTO' + str(suf)
@@ -234,7 +247,7 @@ class SOFGalTruthCat():
 		if inj:
 			self.title_piece = 'Inj Gal Truth Cat'
 		if inj is False:
-			self.title_piece = 'Gal Truth Cat'
+			self.title_piece = 'Gal Truth Cat' #FIXME is non inj allowed?
 		self.axlabel = 'true'
 		# Headers are the same as MOFCat class. Reproduced below for clarity in ms_plotter.py #
 		# Magnitude, is string of form '(mag_g, mag_r, mag_i, mag_z)' #
@@ -288,7 +301,7 @@ class SOFCat():
                 if inj:
                         self.title_piece = 'Inj SOF Cat'
                 if inj is False:
-                        self.title_piece = 'SOF Cat'
+                        self.title_piece = 'Base SOF Cat'
 		self.axlabel = 'meas'
                 # Headers are the same as MOFCat class with the exception of cm_mof_flags_hdr. Reproduced below for clarity #
 		# Magnitude, is string of form '(mag_g, mag_r, mag_i, mag_z)' #
@@ -343,7 +356,7 @@ class MOFCat():
 		if inj:
 			self.title_piece = 'Inj MOF Cat'
 		if inj is False:
-			self.title_piece = 'MOF Cat'
+			self.title_piece = 'Base MOF Cat'
 		self.axlabel = 'meas'
 		# Magnitude, is string of form (mag_g, mag_r, mag_i, mag_z)  #
 		self.mag_hdr = 'cm_mag' + str(suf)
@@ -395,7 +408,7 @@ class StarTruthCat(): #are there sep headers for MOFStarTruthCat and SOFStarTrut
 		
 		if inj:
 			self.title_piece = 'Inj Star Truth Cat'
-		if inj is False:
+		if inj is False: #FIXME inj must be true?
 			self.title_piece = 'Star Truth Cat'
 		self.axlabel = 'true'
 		# Magnitude #
@@ -456,6 +469,7 @@ class Y3Gold():
 		if Y3_MOF is True:
 			pref = 'MOF_'
 
+		print 'Using ', pref, ' for Y3 Gold catalog ... \n'
 	 
 		self.title_piece = 'Y3 Gold Cat' 
                 self.axlabel = 'meas'
@@ -711,23 +725,8 @@ flag_idx = []
 TITLE_PIECE1, TITLE_PIECE2 = CLASS1.title_piece, CLASS2.title_piece
 MATCH_TYPE = get_match_type(title_piece1=TITLE_PIECE1, title_piece2=TITLE_PIECE2)
 
-'''
-### Names for file directors (fd) ###
-FD_FLAG_NAME, FD_MAG_BINS_NAME, FD_NOP_NAME, FD_1SIG_NAME = get_log_file_names(tile_name, realization_number)
 
-# Create log file for number of objects plotted (nop) #
-FD_NOP = open(FD_NOP_NAME, 'w')
-# Create log file for number of objects within 1-sigma #
-FD_1SIG = open(FD_1SIG_NAME, 'w')
-# Create log file for magnitude bins #
-FD_MAG_BINS = open(FD_MAG_BINS_NAME, 'w')
-FD_MAG_BINS.write('TILE, REALIZATION, FILTER, NUM_OBJS_IN_BIN, BIN_LHS, BIN_RHS, MEDIAN_HAXIS_MAG, MEDIAN_ERROR \n') 
-# Create log file for flags #
-FD_FLAG = open(FD_FLAG_NAME, 'w')
-FD_FLAG.write('TILE, REALIZATION, FILTER, RUN_TYPE, FLAG1_HEADER, FLAG2_HEADER, FLAG1_VALUE, FLAG2_VALUE, MAG1, MAG2 \n')
-if LOG_FLAGS is False:
-        FD_FLAG.write('Flags not logged because LOG_FLAGS is False.')
-'''
+
 
 
 
@@ -2208,8 +2207,10 @@ def get_plot_suptitle(realization_number, tile_name):
 		title (str) -- Ex: 'Inj MOF Cat & Truth Cat' 
 	"""
 
-	title = str(TITLE_PIECE1) + ' & ' + str(TITLE_PIECE2) +'. Tile: ' + str(tile_name) + '. Realization: ' + str(realization_number) + '.'
-
+	title = str(TITLE_PIECE1) + ' & ' + str(TITLE_PIECE2) +'. Tile: ' + str(tile_name) 
+	if realizations[0] != 'None': 
+		title = title + '. Realization: ' + str(realization_number) + '.'	
+	
 	if RUN_TYPE == 'ok': 
 		title = title + ' Unchanged FOF groups.'
 	if RUN_TYPE == 'rerun':
@@ -2445,7 +2446,7 @@ def get_catalog(cat_type, inj, realization_number, tile_name, filter_name):
 	# Y3 catalogs cannot be injected #
 	if cat_type == 'y3_gold':
 		# !!!!! User may need to alter path to Y3 Gold catalog #
-		fn = os.path.join('/data/des71.a/data/mspletts/balrog_validation_tests/y3_gold_catalogs/', tile_name+'_y3gold_v1.fits')
+		fn = os.path.join('/data/des71.a/data/mspletts/balrog_validation_tests/y3_gold_catalogs/', tile_name+'_y3_gold_2_0.fits')
 
         return fn
 
@@ -2498,12 +2499,11 @@ def matcher(realization_number, tile_name, filter_name):
 	outname_2not1 = os.path.join(match_dir, tile_name+'_'+realization_number+'_'+str(MATCH_TYPE)+'_match2not1.csv')
 
 	# Overwrite matched catalogs if one already exists? # 
-        overwrite = False
+        overwrite = False 
 
 	# Check existence #
 	if os.path.isfile(outname_2not1) is False or (os.path.isfile(outname_2not1) and overwrite):
 
-		print '\nMatching ', in1, in2, '...\n'
 
 		### Matching done in ms_matcher. Args: in1, in2, out, RA_HDR1, DEC_HDR1, RA_HDR2, DEC_HDR2, overwrite ###
 		# !!!!! Ensure that path to ms_matcher is correct #
