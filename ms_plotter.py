@@ -164,7 +164,7 @@ if ((CM_T_S2N_COLORBAR and CM_T_ERR_COLORBAR) or (CM_T_S2N_COLORBAR and HEXBIN) 
 
 
 # !!!!! Check that plots will not be overwritten, etc #
-NOTICE = raw_input(' \n !! CHECK BEFORE RUNNING !! \n Using catalogs -- ' + str(MATCH_CAT1) + ' & ' + str(MATCH_CAT2) + '\n Injected catalogs -- ' + str(INJ1) + ' & ' + str(INJ2) + ' \n Save plot(s) -- ' + str(SAVE_PLOT) + '\n Showing plot(s) -- ' + str(SHOW_PLOT) + '\n Normalize plot(s) -- ' + str(NORMALIZE) + '\n Hexbin -- ' + str(HEXBIN) + '\n cm_T colorbar -- ' + str(CM_T_COLORBAR) + '\n cm_T_err colorbar -- ' + str(CM_T_ERR_COLORBAR) + '\n cm_T_s2n -- ' + str(CM_T_S2N_COLORBAR) + '\n Plot limits -- ' + str(YLOW) + ', ' + str(YHIGH) + '\n Plotting 1-sigma curve -- ' + str(PLOT_1SIG) +'\n Plotting flagged objects -- ' + str(PLOT_FLAGGED_OBJS) + '\n Print flags and flag types -- ' + str(SHOW_FLAG_TYPE) + '\n Logging flags -- ' + str(LOG_FLAGS) + '\n --> Press enter to proceed, control+c to stop...\n')
+NOTICE = raw_input(' \n !! CHECK BEFORE RUNNING !! \n Using catalogs -- ' + str(MATCH_CAT1) + ' & ' + str(MATCH_CAT2) + '\n Injected catalogs -- ' + str(INJ1) + ' & ' + str(INJ2) + ' \n Save plot(s) -- ' + str(SAVE_PLOT) + '\n Showing plot(s) -- ' + str(SHOW_PLOT) + '\n Normalize plot(s) -- ' + str(NORMALIZE) + '\n Stacking realizations -- ' + str(STACK_REALIZATIONS) + '\n Hexbin -- ' + str(HEXBIN) + '\n cm_T colorbar -- ' + str(CM_T_COLORBAR) + '\n cm_T_err colorbar -- ' + str(CM_T_ERR_COLORBAR) + '\n cm_T_s2n -- ' + str(CM_T_S2N_COLORBAR) + '\n Plot limits -- ' + str(YLOW) + ', ' + str(YHIGH) + '\n Plotting 1-sigma curve -- ' + str(PLOT_1SIG) +'\n Plotting flagged objects -- ' + str(PLOT_FLAGGED_OBJS) + '\n Print flags and flag types -- ' + str(SHOW_FLAG_TYPE) + '\n Logging flags -- ' + str(LOG_FLAGS) + '\n --> Press enter to proceed, control+c to stop...\n')
 
 
 
@@ -2228,6 +2228,9 @@ def get_plot_suptitle(realization_number, tile_name):
 		title (str) -- Ex: 'Inj MOF Cat & Truth Cat' 
 	"""
 
+	if STACK_REALIZATIONS:
+		realization_number = 'stacked '+str(len(ALL_REALIZATIONS))
+
 	title = str(TITLE_PIECE1) + ' & ' + str(TITLE_PIECE2) +'. Tile: ' + str(tile_name) 
 	if realizations[0] != 'None': 
 		title = title + '. Realization: ' + str(realization_number) + '.'	
@@ -2261,6 +2264,9 @@ def get_plot_save_name(realization_number, tile_name):
         Returns:
                 fn (str) -- The complete filename which includes path.
         """
+
+	if STACK_REALIZATIONS:
+		realization_number='stacked_realizations'
 
 	### Get filename ###
 	if YLOW is None and YHIGH is None:
@@ -2497,12 +2503,12 @@ def matcher(realization_number, tile_name, filter_name):
 	if MATCH_CAT1 is not 'coadd':
 		in1 = get_catalog(cat_type=MATCH_CAT1, inj=INJ1, realization_number=realization_number, tile_name=tile_name, filter_name=filter_name)
 	if MATCH_CAT1 == 'coadd':
-		in1 =  get_coadd_matcher_catalog(cat_type=MATCH_CAT1, inj=INJ1, realization_number=realization_number, tile_name=tile_name, mag_hdr=M_HDR1, err_hdr=mag_err_hdr1)
+		in1 =  get_coadd_matcher_catalog(cat_type=MATCH_CAT1, inj=INJ1, realization_number=realization_number, tile_name=tile_name, mag_hdr=M_HDR1, err_hdr=M_ERR_HDR1)
 
 	if MATCH_CAT2 is not 'coadd':
 		in2 = get_catalog(cat_type=MATCH_CAT2, inj=INJ2, realization_number=realization_number, tile_name=tile_name, filter_name=filter_name)
 	if MATCH_CAT2 == 'coadd':
-		in2 =  get_coadd_matcher_catalog(cat_type=MATCH_CAT2, inj=INJ2, realization_number=realization_number, tile_name=tile_name, mag_hdr=M_HDR2, err_hdr=mag_err_hdr2)
+		in2 =  get_coadd_matcher_catalog(cat_type=MATCH_CAT2, inj=INJ2, realization_number=realization_number, tile_name=tile_name, mag_hdr=M_HDR2, err_hdr=M_ERR_HDR2)
 
         # !!!!! User may wish to edit directory structure. Output catalog name for STILTS #
 	match_dir = os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, tile_name, realization_number, 'catalog_compare')	
@@ -2641,144 +2647,86 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 		0
 	"""
 
+	global ALL_REALIZATIONS
+
 	for t in ALL_TILES:
 
 		### For plotting all realizations at once, stacked ###
 		if STACK_REALIZATIONS:
 
-			# Filename #
+			# Dir for stacked catalog #
 			stack_dir = os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, t, 'stack')
 
+			# Check dir existence and handle nonexistence #
 			if os.path.isdir(stack_dir) is False:
 				if NO_DIR_MAKE is False:
 					sys.exit('Directory ' + str(stack_dir) + ' does not exist. \n Change directory structure in ms_plotter. or set `NO_DIR_MAKE=True`')
 				if NO_DIR_MAKE:
 					print 'Making directory ', stack_dir, '...\n'
 					os.makedirs(stack_dir)
-
-			fn_stack = os.path.join(stack_dir, t+'_stacked_'+str(MATCH_TYPE)+'_match1and2.csv')
+			
+			# Filename for stacked catalogs #
+			fn_stack_match = os.path.join(stack_dir, t+'_stacked_'+str(MATCH_TYPE)+'_match1and2.csv')
+			fn_stack_1not2 = os.path.join(stack_dir, t+'_stacked_'+str(MATCH_TYPE)+'_match1not2.csv')
+			fn_stack_2not1 = os.path.join(stack_dir, t+'_stacked_'+str(MATCH_TYPE)+'_match2not1.csv')
 			
 			# Check if stacked realization file already exists #
-			if os.path.isfile(fn_stack):
+			if os.path.isfile(fn_stack_2not1):
 				print 'Stacked realization catalog exists. Not overwriting ... \n'
-				df1and2 = pd.read_csv(fn_stack)
+				df1and2 = pd.read_csv(fn_stack_match)
+				df1not2 = pd.read_csv(fn_stack_1not2)
+				df2not1 = pd.read_csv(fn_stack_2not1)
 		
-			#FIXME add overwrite	
+			overwrite = True
 			# Combine all realizations for one tile into a single catalog. Catalogs combined AFTER matching. #
-			if os.path.isfile(fn_stack) is False:
-				all_fn = []
+			if os.path.isfile(fn_stack_2not1) is False or overwrite:
+				all_fn_match, all_fn_1not2, all_fn_2not1 = [], [], []
 				for r in ALL_REALIZATIONS:
 					if RUN_TYPE is None:
-						fn = matcher(realization_number=r, tile_name=t, filter_name=None)[0]
+						fn_match, fn_1not2, fn_2not1 = matcher(realization_number=r, tile_name=t, filter_name=None)
 					if RUN_TYPE is not None:
-						fn = fof_matcher(realization_number=r, tile_name=t)[0]
-					all_fn.append(fn)
+						fn_match, fn_1not2, fn_2not1 = fof_matcher(realization_number=r, tile_name=t)
+					all_fn_match.append(fn_match); all_fn_1not2.append(fn_1not2); all_fn_2not1.append(fn_2not1)
 
-				print 'Stacking realizations. ', len(all_fn), 'files ...'
-				df1and2 = pd.concat((pd.read_csv(fn) for fn in all_fn))
+				print 'Stacking realizations. ', len(all_fn_match), 'files ...'
+				df1and2 = pd.concat((pd.read_csv(fn) for fn in all_fn_match))
+				df1not2 = pd.concat((pd.read_csv(fn) for fn in all_fn_1not2)) 
+				df2not1 = pd.concat((pd.read_csv(fn) for fn in all_fn_2not1))
 				print 'Stacking complete ... \n'
 
+
 				# Save stacked catalog as DataFrame #
-				df1and2.to_csv(fn_stack, sep=',')
-				print '-----> Saving stacked realization catalog as ', fn_stack
+				df1and2.to_csv(fn_stack_match, sep=','); df1not2.to_csv(fn_stack_1not2, sep=','); df2not1.to_csv(fn_stack_2not1, sep=',')
+				print '-----> Saving stacked realization catalog as ', fn_stack_match
 
-
-			# Filenames for log files #
-                        fn_flag, fn_mag_bins, fn_nop, fn_1sig = get_log_file_names(tile_name=t, realization_number='stack')
-                        # Write headers #
-                        fd_nop, fd_1sig, fd_mag_bins, fd_flag = fd_first_write(fn_nop=fn_nop, fn_1sig=fn_1sig, fn_mag_bins=fn_mag_bins, fn_flag=fn_flag)
-
-			# Name for plt.savefig() #
-			fn = get_plot_save_name(realization_number='stacked_realizations', tile_name=t) 
-
-			# Title for plot #
-			title = get_plot_suptitle(realization_number='stacked '+str(len(ALL_REALIZATIONS)), tile_name=t) 
-
-
-			### Handle star truth catalogs ###
-			# Star truth catalogs matched then combined #
-			if MATCH_CAT1 == 'star_truth' or MATCH_CAT2 == 'star_truth':
-				print 'Adding new column to matched csv ...\n'
-				if MATCH_CAT1 == 'star_truth':
-					suf = '_1'
-					
-				if MATCH_CAT2 == 'star_truth':
-					suf = '_2'
-				# 'mag_a' short for mag_all. New header must be of the form {base}_x where x is a single character because of the way m_axlabel is created from m_hdr #
-				new_hdr = 'mag_a'
-				# Get mag #	
-				star_mag = get_star_mag(df=df1and2, suf=suf)
-				# Add column to df #
-				df1and2.insert(len(df1and2.columns), new_hdr1, star_mag)
-
-
-			### Handle Y3 Gold catalogs ###
-			# Y3 catalogs are matched then combined #
-			if MATCH_CAT1 == 'y3_gold' or MATCH_CAT2 == 'y3_gold':
-				print 'Adding new column to matched csv ...\n'
-
-				# New header name #
-                                if 'star' in MATCH_CAT1 or 'star' in MATCH_CAT2:
-                                        new_hdr = 'psf_mag_y'
-                                if 'star' not in MATCH_CAT1 and 'star' not in MATCH_CAT2:
-                                        new_hdr = 'cm_mag_y'
-
-				if MATCH_CAT1 == 'y3_gold':
-					hdr = M_HDR1
-					mag_hdr1 = new_hdr
-				if MATCH_CAT2 == 'y3_gold':
-					hdr = M_HDR2
-					mag_hdr2 = new_hdr
-
-				y3_gold_mag = get_y3_gold_mag(df=df1and2, mag_hdr=hdr)
-				# Add new column to df #
-				df1and2.insert(len(df1and2.columns), new_hdr, y3_gold_mag)
-
-
-
-			### Handle coadd catalogs. New column has been added with name 'mag_c'. Catalog combined then matched so has suffix (unlike star_truth and y3_gold) #
-                        if MATCH_CAT1 == 'coadd':
-                                mag_hdr1 = 'mag_c_1'
-                                mag_err_hdr1 = 'mag_err_c_1'
-
-                        if MATCH_CAT2 == 'coadd':
-                                mag_hdr2 = 'mag_c_2'
-                                mag_err_hdr2 = 'mag_err_c_2'
-
-
-			subplotter(df=df1and2, flag_idx=flag_idx, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, plot_name=fn, plot_title=title, realization_number='stacked', tile_name=t, fd_mag_bins=fd_mag_bins, fd_nop=fd_nop, fd_1sig=fd_1sig, fd_flag=fd_flag) 
-
-			
-			### Close log files after each iteration over a realization ###
-                        fd_flag.close(); fd_mag_bins.close(); fd_nop.close(); fd_1sig.close()
+			### Rewrite ###
+			ALL_REALIZATIONS = ['stacked']
 
 
 
 
-	### For plotting one realization at a time ###
-        if STACK_REALIZATIONS is False:
 
-		print 'Not stacking realizations...\n'
-
-                for r in ALL_REALIZATIONS:
+		for r in ALL_REALIZATIONS:
 
 			# Filenames for log files #
 			fn_flag, fn_mag_bins, fn_nop, fn_1sig = get_log_file_names(tile_name=t, realization_number=r)
 			# Write headers #
 			fd_nop, fd_1sig, fd_mag_bins, fd_flag = fd_first_write(fn_nop=fn_nop, fn_1sig=fn_1sig, fn_mag_bins=fn_mag_bins, fn_flag=fn_flag)
 
+			if STACK_REALIZATIONS is False:
+				print 'Not stacking realizations...\n'
 
-			# Filenames for catalogs #
-			if RUN_TYPE is None:
-				fn_match, fn_1not2, fn_2not1 = matcher(realization_number=r, tile_name=t, filter_name=None)
-			if RUN_TYPE is not None:
-				fn_match, fn_1not2, fn_2not1 = fof_matcher(realization_number=r, tile_name=t)
-			# DataFrame #
-                        df1and2 = pd.read_csv(fn_match)
-			df1not2 = pd.read_csv(fn_1not2)
-			df2not1 = pd.read_csv(fn_2not1)
+				# Filenames for catalogs #
+				if RUN_TYPE is None:
+					fn_match, fn_1not2, fn_2not1 = matcher(realization_number=r, tile_name=t, filter_name=None)
+				if RUN_TYPE is not None:
+					fn_match, fn_1not2, fn_2not1 = fof_matcher(realization_number=r, tile_name=t)
+				# DataFrame #
+				df1and2 = pd.read_csv(fn_match)
+				df1not2 = pd.read_csv(fn_1not2)
+				df2not1 = pd.read_csv(fn_2not1)
 
-			### ####
+			### Region files ####
 			if MAKE_REG:
 				make_region_files(df_match=df1and2, df_1not2=df1not2, df_2not1=df2not1, realization_number=r, tile_name=t)
 
@@ -2868,7 +2816,14 @@ def get_coadd_matcher_catalog(cat_type, inj, realization_number, mag_hdr, err_hd
 		fn (str) -- Filename. Is a FITS file.
 	"""
 
-	fn_new = os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, tile_name, realization_number, 'catalog_compare', str(tile_name) + '_i_cat_combo.fits')
+	dir_new = os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, tile_name, realization_number, 'catalog_compare')
+	if os.path.isdir(dir_new) is False:
+		if NO_DIR_MAKE is False:
+			sys.exit('Directory ' + str(dir_new) + ' does not exist...')
+		if NO_DIR_MAKE:
+			os.makedirs(dir_new)
+
+	fn_new = os.path.join(dir_new, str(tile_name) + '_i_cat_combo.fits')
 
 	# Check if new coadd catalog has already been created #
 	if os.path.isfile(fn_new):
@@ -2881,7 +2836,7 @@ def get_coadd_matcher_catalog(cat_type, inj, realization_number, mag_hdr, err_hd
 		# Get list of filenames #
 		fn_griz = []
 		for f in ALL_FILTERS:
-			fn_griz.append(get_catalog(cat_type=cat_type, inj=inj, realization_number=realization, tile_name=tile_name, filter_name=f))
+			fn_griz.append(get_catalog(cat_type=cat_type, inj=inj, realization_number=realization_number, tile_name=tile_name, filter_name=f))
 		fn_g, fn_r, fn_i, fn_z = fn_griz
 
 		# Get coadd magnitude (mag_c) and magnitude error to be of form '(m_g, m_r, m_i, m_z)'. Recall that this is a string #
@@ -2895,7 +2850,7 @@ def get_coadd_matcher_catalog(cat_type, inj, realization_number, mag_hdr, err_hd
 		table = Table.read(fn_i)
 		table.add_column(mag_c, index=0)
        		table.add_column(mag_err_c, index=1)
- 
+
 		# Save new table as FITS #
 		table.write(fn_new)
 
