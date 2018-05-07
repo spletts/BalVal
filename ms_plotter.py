@@ -867,11 +867,12 @@ def get_matrix_diagonal_element(df, filter_name, hdr):
 
 
 
-def get_good_index_using_primary_flags(df, full_magnitude1, full_magnitude2, cm_flag_hdr1, cm_flag_hdr2, flag_hdr1, flag_hdr2):
+def get_good_index_using_primary_flags(df, full_magnitude1, full_magnitude2, cm_flag_hdr1, cm_flag_hdr2, flag_hdr1, flag_hdr2, filter_name):
 	"""Get indices of objects without flags as indicated by the headers 'flags' and 'cm_flags'. Also get indices of objects with  magnitudes not equal to +/- 99, +/- 9999, and 37.5. Store the bad indices as well (if PLOT_FLAGGED_OBJS is True).
 
 	Args:
 		df (pandas DataFrame)
+		filter_name (str) -- Used if analysing Y3 Gold
 		full_magnitude1, full_magnitude2 (list of floats) -- Uncleaned lists containing magnitudes. 
 	Returns:
 		idx_good (list of ints)
@@ -918,7 +919,7 @@ def get_good_index_using_primary_flags(df, full_magnitude1, full_magnitude2, cm_
 		if Y3_MOF is False:
 			hdr = 'SOF_CM_FLAGS' + suf
 
-		idx_good = np.where( (df[hdr] == 0) & (abs(full_magnitude1) != 9999.0) & (abs(full_magnitude1) != 99.0) & (abs(full_magnitude1) != 37.5) & (abs(full_magnitude2) != 9999.0) & (abs(full_magnitude2) != 99.0) & (abs(full_magnitude2) != 9999.0) & (abs(full_magnitude2) != 99.0) & (abs(full_magnitude2) != 37.5) & (flag1 == 0) & (flag2 == 0) & (cm_flag1 == 0) & (cm_flag2 == 0) )[0]
+		idx_good = np.where( (df['SEXTRACTOR_FLAGS_'+filter_name.upper()+suf] == 0) & (df['IMAFLAGS_ISO_'+filter_name.upper()+suf] == 0) & (df[hdr] == 0) & (abs(full_magnitude1) != 9999.0) & (abs(full_magnitude1) != 99.0) & (abs(full_magnitude1) != 37.5) & (abs(full_magnitude2) != 9999.0) & (abs(full_magnitude2) != 99.0) & (abs(full_magnitude2) != 9999.0) & (abs(full_magnitude2) != 99.0) & (abs(full_magnitude2) != 37.5) & (flag1 == 0) & (flag2 == 0) & (cm_flag1 == 0) & (cm_flag2 == 0) )[0]
 
 		
 	if PLOT_FLAGGED_OBJS:
@@ -933,7 +934,7 @@ def get_good_index_using_primary_flags(df, full_magnitude1, full_magnitude2, cm_
 			print 'Eliminated ', len(full_magnitude1) - len(idx_good), ' objects with magnitudes equal to +/- 9999, +/- 99, and 37.5 and objects with nonzero flags for: ', flag_hdr1, ', ', flag_hdr2, ', ', cm_flag_hdr1, ', ', cm_flag_hdr2, ' ... \n'
 		# For Y3 #
 		if MATCH_CAT2 == 'y3_gold' or MATCH_CAT1 == 'y3_gold':
-			print 'Eliminated ', len(full_magnitude1) - len(idx_good), ' objects with magnitudes equal to +/- 9999, +/- 99, and 37.5 and objects with nonzero flags for: ', flag_hdr1, ', ', flag_hdr2, ', ', cm_flag_hdr1, ', ', cm_flag_hdr2, hdr, ' ... \n'
+			print 'Eliminated ', len(full_magnitude1) - len(idx_good), ' objects with magnitudes equal to +/- 9999, +/- 99, and 37.5 and objects with nonzero flags for: ', flag_hdr1, ', ', flag_hdr2, ', ', cm_flag_hdr1, ', ', cm_flag_hdr2, hdr, ', ', 'SEXTRACTOR_FLAGS_'+filter_name.upper(), ', ',  'IMAFLAGS_ISO_'+filter_name.upper(),  ' ... \n'
 
 	return idx_good, idx_bad	
 
@@ -1886,7 +1887,7 @@ def get_plot_variables(filter_name, df, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_er
 		idx_good = get_good_index_using_quality_cuts(df, full_magnitude1=fullmag1, full_magnitude2=fullmag2, cm_flag_hdr1=CM_FLAGS_HDR1, cm_flag_hdr2=CM_FLAGS_HDR2, flag_hdr1=FLAGS_HDR1, flag_hdr2=FLAGS_HDR2)[0]
 	
 	if EH_CUTS is False:
-                idx_good = get_good_index_using_primary_flags(df=df, full_magnitude1=fullmag1, full_magnitude2=fullmag2, cm_flag_hdr1=CM_FLAGS_HDR1, cm_flag_hdr2=CM_FLAGS_HDR2, flag_hdr1=FLAGS_HDR1, flag_hdr2=FLAGS_HDR2)[0]
+                idx_good = get_good_index_using_primary_flags(df=df, full_magnitude1=fullmag1, full_magnitude2=fullmag2, cm_flag_hdr1=CM_FLAGS_HDR1, cm_flag_hdr2=CM_FLAGS_HDR2, flag_hdr1=FLAGS_HDR1, flag_hdr2=FLAGS_HDR2, filter_name=filter_name)[0]
 
 	cleanmag1 = get_good_data(df=df, hdr=mag_hdr1, idx_good=idx_good, magnitude=True, filter_name=filter_name)
 	cleanmag2 = get_good_data(df=df, hdr=mag_hdr2, idx_good=idx_good, magnitude=True, filter_name=filter_name)
