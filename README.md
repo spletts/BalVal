@@ -7,9 +7,9 @@ ___
 
 `ms_matcher` matches two catalogs using STILTS.
 
-`fof_matcher` and `par.py` analyse FOF groups. `fof_matcher` uses STILTS.
+`ms_fof_matcher` and `ms_par.py` analyse FOF groups. `ms_fof_matcher` uses STILTS.
 
-`ms_plotter.py` calls `ms_matcher` or `fof_matcher` (which calls `par.py`), analyses the matched catalog, and produces various magnitude versus Delta-magnitude plots.
+`ms_plotter.py` calls `ms_matcher` or `ms_fof_matcher` (which calls `ms_par.py`), analyses the matched catalog, and produces various magnitude versus Delta-magnitude plots.
 
 ___
 
