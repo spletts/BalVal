@@ -44,8 +44,6 @@ BALROG_RUN = BASEPATH[BASEPATH[:-1].rfind('/')+1:-1]
 # Rewrite #
 if BALROG_RUN == 'Balrog':
 	BALROG_RUN = 'TAMU_Balrog'
-print BALROG_RUN
-sys.exit()
 
 ALL_FILTERS = [ 'g', 'r', 'i', 'z' ]
 
@@ -96,9 +94,9 @@ SWAP_HAX = False
 
 ### Catalog attributes ###
 # !!!!! Allowed values: y3_gold, sof, mof, star_truth, gal_truth, coadd. Both can be 'sof' and both can be 'mof' if INJ1 and INJ2 are different. Note that truth catalogs always have INJ=True. #
-MATCH_CAT1, MATCH_CAT2 = 'mof', 'y3_gold'
+MATCH_CAT1, MATCH_CAT2 = 'mof', 'mof'
 # !!!!! Booleans. Examine injected catalogs? #
-INJ1, INJ2 = True, False
+INJ1, INJ2 = False, True
 
 
 ### Handle nonsensical combinations ###
@@ -2458,30 +2456,34 @@ def get_catalog(cat_type, inj, realization_number, tile_name, filter_name):
                 fn -- Filename
         """
 
-        if cat_type == 'gal_truth' and inj:
-                fn = os.path.join(BASEPATH, 'balrog_images', realization_number, tile_name, tile_name+'_'+realization_number+'_balrog_truth_cat_gals.fits')
-        if cat_type == 'gal_truth' and inj is False:
-                sys.exit('No non-injected truth catalog exists.')
+	if BALROG_RUN == 'TAMU_Balrog':
+		fn = get_tamu_catalog(cat_type=cat_type, inj=inj, realization_number=realization_number, tile_name=tile_name, filter_name=filter_name)
 
-        if cat_type == 'star_truth' and inj:
-                fn = os.path.join(BASEPATH, 'balrog_images', realization_number, tile_name, tile_name+'_'+realization_number+'_balrog_truth_cat_stars.fits')
-        if cat_type == 'star_truth' and inj is False:
-		sys.exit('No non-injected truth catalog exists.')
+	if BALROG_RUN != 'TAMU_Balrog':
+		if cat_type == 'gal_truth' and inj:
+			fn = os.path.join(BASEPATH, 'balrog_images', realization_number, tile_name, tile_name+'_'+realization_number+'_balrog_truth_cat_gals.fits')
+		if cat_type == 'gal_truth' and inj is False:
+			sys.exit('No non-injected truth catalog exists.')
 
-        if cat_type == 'sof' and inj:
-                fn = os.path.join(BASEPATH, 'balrog_images', realization_number, tile_name, 'sof', tile_name+'_sof.fits')
-        if cat_type == 'sof' and inj is False:
-                fn = os.path.join(BASEPATH, tile_name, 'sof', tile_name+'_sof.fits')
+		if cat_type == 'star_truth' and inj:
+			fn = os.path.join(BASEPATH, 'balrog_images', realization_number, tile_name, tile_name+'_'+realization_number+'_balrog_truth_cat_stars.fits')
+		if cat_type == 'star_truth' and inj is False:
+			sys.exit('No non-injected truth catalog exists.')
 
-        if cat_type == 'mof' and inj:
-                fn = os.path.join(BASEPATH, 'balrog_images', realization_number, tile_name, 'mof', tile_name+'_mof.fits')
-        if cat_type == 'mof' and inj is False:
-                fn = os.path.join(BASEPATH, tile_name, 'mof', tile_name+'_mof.fits')
+		if cat_type == 'sof' and inj:
+			fn = os.path.join(BASEPATH, 'balrog_images', realization_number, tile_name, 'sof', tile_name+'_sof.fits')
+		if cat_type == 'sof' and inj is False:
+			fn = os.path.join(BASEPATH, tile_name, 'sof', tile_name+'_sof.fits')
 
-        if cat_type == 'coadd' and inj:
-                fn = os.path.join(BASEPATH, 'balrog_images', realization_number, tile_name, 'coadd', tile_name+'_'+filter_name+'_cat.fits')
-        if cat_type == 'coadd' and inj is False:
-                fn = os.path.join(BASEPATH, tile_name, 'coadd', tile_name+'_'+filter_name+'_cat.fits')
+		if cat_type == 'mof' and inj:
+			fn = os.path.join(BASEPATH, 'balrog_images', realization_number, tile_name, 'mof', tile_name+'_mof.fits')
+		if cat_type == 'mof' and inj is False:
+			fn = os.path.join(BASEPATH, tile_name, 'mof', tile_name+'_mof.fits')
+
+		if cat_type == 'coadd' and inj:
+			fn = os.path.join(BASEPATH, 'balrog_images', realization_number, tile_name, 'coadd', tile_name+'_'+filter_name+'_cat.fits')
+		if cat_type == 'coadd' and inj is False:
+			fn = os.path.join(BASEPATH, tile_name, 'coadd', tile_name+'_'+filter_name+'_cat.fits')
 
 	# Y3 catalogs cannot be injected #
 	if cat_type == 'y3_gold':
@@ -2502,19 +2504,19 @@ def get_tamu_catalog(cat_type, inj, realization_number, tile_name, filter_name):
 	"""Get catalog for TAMU tests"""
 
 	if cat_type == 'mof' and inj:
-		fn = os.path.join(BASEPATH, 'real_' + realization_number + '_' + tile_name + '_mof.fits')
+		fn = os.path.join(BASEPATH, tile_name, 'real_' + realization_number + '_' + tile_name + '_mof.fits')
 	if cat_type == 'mof' and inj is False:
-		fn = os.path.join(BASEPATH, 'base_' + tile_name + '_mof.fits')
+		fn = os.path.join(BASEPATH, tile_name, 'base_' + tile_name + '_mof.fits')
 
 	if cat_type == 'sof' and inj:
-		fn = os.path.join(BASEPATH, 'real_' + realization_number + '_' + tile_name + '_sof.fits') 
+		fn = os.path.join(BASEPATH, tile_name, 'real_' + realization_number + '_' + tile_name + '_sof.fits') 
 	if cat_type == 'sof' and inj is False:
-		fn = os.path.join(BASEPATH, 'base_' + tile_name + '_sof.fits')
+		fn = os.path.join(BASEPATH, tile_name, 'base_' + tile_name + '_sof.fits')
 
 	if cat_type == 'gal_truth':
-		fn = os.path.join(BASEPATH, tile_name + '_' + realization_number + '_balrog_truth_cat_gals.fits')
+		fn = os.path.join(BASEPATH, tile_name, tile_name + '_' + realization_number + '_balrog_truth_cat_gals.fits')
 	if cat_type == 'star_truth':
-		fn = os.path.join(BASEPATH, tile_name + '_' + realization_number + '_balrog_truth_cat_stars.fits')
+		fn = os.path.join(BASEPATH, tile_name, tile_name + '_' + realization_number + '_balrog_truth_cat_stars.fits')
 
 	return fn
 
