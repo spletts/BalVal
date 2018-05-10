@@ -59,7 +59,7 @@ echo "Completed step 5 ..."
 echo " "
 
 ### 6. Run par.py on {5.}out to separate objects that need to be rerun (.rerun) and those that don't (.ok) ###
-python par.py ${origfof_injfof} ${parpy_outdir}
+python ms_par.py ${origfof_injfof} ${parpy_outdir}
 echo "Completed step 6 ..."
 echo " "
 
