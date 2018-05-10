@@ -5,7 +5,7 @@ To run: $python ms_plotter.py base_path_to_catalogs output_directory realization
 Example: $python ms_plotter.py /data/des71.a/data/kuropat/des2247-4414_sof/y3v02/ /Users/mspletts/BalValPlots/ all DES2247-4414
 
 Relies on ms_matcher. User may need to replace `/data/des71.a/data/mspletts/balrog_validation_tests/scripts/BalVal/ms_matcher` with the correct path to ms_matcher.
-FOF analysis relies on fof_matcher. User may need to replace `...` with the correct path to fof_matcher.
+FOF analysis relies on fof_matcher. User may need to replace `/data/des71.a/data/mspletts/balrog_validation_tests/scripts/BalVal/ms_fof_matcher` with the correct path to fof_matcher.
 
 Plot attributes are specified with constants (many of them booleans) at the top of this script.
 Constants that the user may wish to change are indicated by: # !!!!! {description and/or warnings} #. For example, user may wish to set `PRINTOUTS = False` or comment out `notice`.
@@ -39,7 +39,13 @@ BASEPATH, OUTDIR, realizations, tiles = sys.argv[1], sys.argv[2], sys.argv[3].sp
 if len(sys.argv) != 5:
         sys.exit("Args: basepath (location of catalogs), output directory, realizations (can be 'all', None), tiles (can be 'all') \n")
 
-BALROG_RUN = BASEPATH[BASEPATH.replace('/', ';', 4).find('/')+1:BASEPATH.replace('/', ';', 5).find('/')]
+
+BALROG_RUN = BASEPATH[BASEPATH[:-1].rfind('/')+1:-1]
+# Rewrite #
+if BALROG_RUN == 'Balrog':
+	BALROG_RUN = 'TAMU_Balrog'
+print BALROG_RUN
+sys.exit()
 
 ALL_FILTERS = [ 'g', 'r', 'i', 'z' ]
 
@@ -78,7 +84,7 @@ EH_CUTS = False
 PLOT_1SIG = True
 
 # !!!!! What to do with the plot? #
-SAVE_PLOT = False 
+SAVE_PLOT = True 
 SHOW_PLOT = True
 
 # !!!!! Limits for the vertical axis. 'None' is an allowed value and will result in default scaling #
@@ -90,12 +96,12 @@ SWAP_HAX = False
 
 ### Catalog attributes ###
 # !!!!! Allowed values: y3_gold, sof, mof, star_truth, gal_truth, coadd. Both can be 'sof' and both can be 'mof' if INJ1 and INJ2 are different. Note that truth catalogs always have INJ=True. #
-MATCH_CAT1, MATCH_CAT2 = 'sof', 'y3_gold'
+MATCH_CAT1, MATCH_CAT2 = 'mof', 'y3_gold'
 # !!!!! Booleans. Examine injected catalogs? #
 INJ1, INJ2 = True, False
 
 
-# Handle nonsensical combinations #
+### Handle nonsensical combinations ###
 # Always non injections #
 if MATCH_CAT1 == 'y3_gold':
 	INJ1 = False
@@ -110,8 +116,14 @@ if 'truth' in MATCH_CAT1:
 if 'truth' in MATCH_CAT2:
 	INJ2 = True
 
-# !!!!! Only used if MATCH_CAT1 or MATCH_CAT2 is 'y3_gold'. If False, SOF catalogs exists within BASEPATH #
-Y3_MOF = False #FIXME incorporate this?
+# !!!!! Only used if MATCH_CAT1 or MATCH_CAT2 is 'y3_gold'. If False, SOF catalogs exists in subdirectories of BASEPATH #
+Y3_MOF = None
+if 'y3_gold' in (MATCH_CAT1, MATCH_CAT2):
+	if 'mof' in (MATCH_CAT1, MATCH_CAT2):
+		Y3_MOF = True
+	if 'sof' in (MATCH_CAT1, MATCH_CAT2):
+		Y3_MOF = False
+ 
 
 # !!!!! Must be used with realization=all at command line #
 STACK_REALIZATIONS = False
@@ -244,10 +256,9 @@ class SOFGalTruthCat():
 			suf (int) -- Refers to order in which catalog was matched in ms_matcher. Allowed values: '_1' '_2'
                 """
 
+		# `inj` forced True for truth catalogs #
 		if inj:
 			self.title_piece = 'Inj Gal Truth Cat'
-		if inj is False:
-			self.title_piece = 'Gal Truth Cat' #FIXME is non inj allowed?
 		self.axlabel = 'true'
 		# Headers are the same as MOFCat class. Reproduced below for clarity in ms_plotter.py #
 		# Magnitude, is string of form '(mag_g, mag_r, mag_i, mag_z)' #
@@ -405,11 +416,10 @@ class StarTruthCat(): #are there sep headers for MOFStarTruthCat and SOFStarTrut
 			inj (bool) -- Balrog injected catalog?
 			suf (int) -- Refers to order in which catalog was matched in ms_matcher. Allowed values: '_1' '_2'
 		"""
-		
+	
+		# `inj` forced True for truth catalogs #	
 		if inj:
 			self.title_piece = 'Inj Star Truth Cat'
-		if inj is False: #FIXME inj must be true?
-			self.title_piece = 'Star Truth Cat'
 		self.axlabel = 'true'
 		# Magnitude #
 		self.mag_hdr = 'g_Corr' + str(suf) 
@@ -494,6 +504,7 @@ class Y3Gold():
                 self.psf_flags_hdr = pref1 + 'PSF_FLAGS_filt' + str(suf) #FIXME filter dependent
                 self.cm_flags_hdr = pref1 + pref2 + 'FLAGS' + str(suf) #FIXME is this the right hdr?
                 self.cm_max_flags_hdr = None
+		# MOF_CM_MOF_FLAGS no SOF equivalent #
                 self.cm_mof_flags_hdr = pref1 + pref2 + 'FLAGS' + str(suf) #FIXME duplicate
                 self.cm_flags_r_hdr = pref1 + pref2 + 'FLAGS_R' + str(suf)
                 # For region file #
@@ -600,10 +611,10 @@ def get_log_file_names(tile_name, realization_number):
                         print 'Making directory ', log_dir, '...\n'
                         os.makedirs(log_dir)
 
-        fn1 = os.path.join(log_dir, 'flag_log_'+str(tile_name)+'_'+str(realization_number)+'_'+str(MATCH_TYPE)+'.csv')
-        fn2 = os.path.join(log_dir, 'magnitude_bins_'+str(tile_name)+'_'+str(realization_number)+'_'+str(MATCH_TYPE)+'.txt')
-        fn3 = os.path.join(log_dir, 'num_objs_plotted_'+str(tile_name)+'_'+str(realization_number)+'_'+str(MATCH_TYPE)+'.txt')
-        fn4 = os.path.join(log_dir, 'one_sigma_objects_'+str(tile_name)+'_'+str(realization_number)+'_'+str(MATCH_TYPE)+'.txt')
+        fn1 = os.path.join(log_dir, 'flag_log_'+str(tile_name)+'_'+str(realization_number)+'_'+str(MATCH_TYPE)+'.log')
+        fn2 = os.path.join(log_dir, 'magnitude_bins_'+str(tile_name)+'_'+str(realization_number)+'_'+str(MATCH_TYPE)+'.log')
+        fn3 = os.path.join(log_dir, 'num_objs_plotted_'+str(tile_name)+'_'+str(realization_number)+'_'+str(MATCH_TYPE)+'.log')
+        fn4 = os.path.join(log_dir, 'one_sigma_objects_'+str(tile_name)+'_'+str(realization_number)+'_'+str(MATCH_TYPE)+'.log')
 
         if RUN_TYPE is not None:
 		fn1 = fn1[:-4] + '_' + str(RUN_TYPE) + fn1[-4:]; fn2 = fn2[:-4] + '_' + str(RUN_TYPE) + fn2[-4:]
@@ -907,7 +918,7 @@ def get_good_index_using_primary_flags(df, full_magnitude1, full_magnitude2, cm_
 	if MATCH_CAT1 != 'y3_gold' and MATCH_CAT2 != 'y3_gold':
 		idx_good = np.where( (abs(full_magnitude1) != 9999.0) & (abs(full_magnitude1) != 99.0) & (abs(full_magnitude1) != 37.5) & (abs(full_magnitude2) != 9999.0) & (abs(full_magnitude2) != 99.0) & (abs(full_magnitude2) != 9999.0) & (abs(full_magnitude2) != 99.0) & (abs(full_magnitude2) != 37.5) & (flag1 == 0) & (flag2 == 0) & (cm_flag1 == 0) & (cm_flag2 == 0) )[0]
 
-	# Additional flags for Y3 Gold catalog #
+	# Additional flags for Y3 Gold catalog. FIXME this is a duplicate to the cm_flag_hdr #
 	if MATCH_CAT2 == 'y3_gold' or MATCH_CAT1 == 'y3_gold':
 		# Get flag header #
 		if MATCH_CAT1 == 'y3_gold':
@@ -915,7 +926,8 @@ def get_good_index_using_primary_flags(df, full_magnitude1, full_magnitude2, cm_
 		if MATCH_CAT2 == 'y3_gold':
 			suf = '_2'
 		if Y3_MOF:
-			hdr = 'MOF_CM_FLAGS' + suf
+			hdr = 'MOF_CM_MOF_FLAGS' + suf
+		# Duplicate of cm_flag_hdr because no analogous SOF flag for 'MOF_CM_MOF_FLAGS' #
 		if Y3_MOF is False:
 			hdr = 'SOF_CM_FLAGS' + suf
 
@@ -934,7 +946,7 @@ def get_good_index_using_primary_flags(df, full_magnitude1, full_magnitude2, cm_
 			print 'Eliminated ', len(full_magnitude1) - len(idx_good), ' objects with magnitudes equal to +/- 9999, +/- 99, and 37.5 and objects with nonzero flags for: ', flag_hdr1, ', ', flag_hdr2, ', ', cm_flag_hdr1, ', ', cm_flag_hdr2, ' ... \n'
 		# For Y3 #
 		if MATCH_CAT2 == 'y3_gold' or MATCH_CAT1 == 'y3_gold':
-			print 'Eliminated ', len(full_magnitude1) - len(idx_good), ' objects with magnitudes equal to +/- 9999, +/- 99, and 37.5 and objects with nonzero flags for: ', flag_hdr1, ', ', flag_hdr2, ', ', cm_flag_hdr1, ', ', cm_flag_hdr2, hdr, ', ', 'SEXTRACTOR_FLAGS_'+filter_name.upper(), ', ',  'IMAFLAGS_ISO_'+filter_name.upper(),  ' ... \n'
+			print 'Eliminated ', len(full_magnitude1) - len(idx_good), ' objects with magnitudes equal to +/- 9999, +/- 99, and 37.5 and objects with nonzero flags for: ', flag_hdr1, ', ', flag_hdr2, ', ', cm_flag_hdr1, ', ', cm_flag_hdr2, ',', hdr, ', ', 'SEXTRACTOR_FLAGS_'+filter_name.upper(), ', ',  'IMAFLAGS_ISO_'+filter_name.upper(),  ' ... \n'
 
 	return idx_good, idx_bad	
 
@@ -1323,7 +1335,7 @@ def bin_and_cut_measured_magnitude_error(clean_magnitude1, clean_magnitude2, err
 
 	if 'meas' in AXLABEL1 and 'meas' in AXLABEL2:
 		if PRINTOUTS:
-			print 'Using measured catalog (catalog1 AND catalog2) for error calculation ... '
+			print 'Using measured catalogs (catalog1 AND catalog2) for error calculation ... '
 
 	if 'true' in AXLABEL1 and 'true' in AXLABEL2:
 		sys.exit('Errors are to be computed using the measured catalog(s), not the truth catalog(s).')
@@ -1339,9 +1351,9 @@ def bin_and_cut_measured_magnitude_error(clean_magnitude1, clean_magnitude2, err
 	# Define bins limits by ints #
 	limlow, limhigh = int(limlow), int(limhigh)
 	# Introduce magnitude cutoff to tame errors #
-	if 'gal' in MATCH_CAT1 or 'gal' in MATCH_CAT2:
+	if 'gal' in (MATCH_CAT1, MATCH_CAT2):
 		limhigh = 26
-	if 'star' in MATCH_CAT1 or 'star' in MATCH_CAT2:
+	if 'star' in (MATCH_CAT1, MATCH_CAT2):
 		limhigh = 24
 
         if PRINTOUTS:
@@ -1363,7 +1375,6 @@ def bin_and_cut_measured_magnitude_error(clean_magnitude1, clean_magnitude2, err
                 hax_mag = clean_magnitude1
 
 	# Magnitude on the vertical axis (vax) #
-	#FIXME abs	
 	vax_mag = np.array(clean_magnitude1) - np.array(clean_magnitude2)
 
 
@@ -1783,7 +1794,7 @@ def get_errors(mag_err_hdr1, mag_err_hdr2, df, filter_name, idx_good):
 				err2 = get_floats_from_string(df=df, hdr=mag_err_hdr2, filter_name=filter_name)
 			if MATCH_CAT2 == 'star_truth' or MATCH_CAT2 == 'y3_gold':
 				err2 = df[str(mag_err_hdr2[:-2]) + '_' + filter_name.upper() + str(mag_err_hdr2[-2:])] 
-			# Pass good indiced #
+			# Pass good indices #
 			err2 = np.array(err2)[idx_good]
 
 
@@ -2223,7 +2234,7 @@ def get_plot_suptitle(realization_number, tile_name):
 
 	Args:
 		match_type (str) -- Ex: inj_mof_vs_truth_cat 
-		realization_number (str) -- Allowed values: '0' '1' '2' ... 'stacked'.
+		realization_number (str) -- Allowed values: '0' '1' '2' ... 'stack'.
 		tile_name (str)
 	Returns:
 		title (str) -- Ex: 'Inj MOF Cat & Truth Cat' 
@@ -2260,14 +2271,14 @@ def get_plot_save_name(realization_number, tile_name):
 
         Args:
                 outdir (str) -- Output directory
-                realization_number (str) -- Allowed values: '0' '1' '2' 'stacked'
+                realization_number (str) -- Allowed values: '0' '1' '2' 'stack'
                 tile_name (str)
         Returns:
                 fn (str) -- The complete filename which includes path.
         """
 
 	if STACK_REALIZATIONS:
-		realization_number='stacked_realizations'
+		realization_number='stack'
 
 	### Get filename ###
 	if YLOW is None and YHIGH is None:
@@ -2487,6 +2498,34 @@ def get_catalog(cat_type, inj, realization_number, tile_name, filter_name):
 
 
 
+def get_tamu_catalog(cat_type, inj, realization_number, tile_name, filter_name):
+	"""Get catalog for TAMU tests"""
+
+	if cat_type == 'mof' and inj:
+		fn = os.path.join(BASEPATH, 'real_' + realization_number + '_' + tile_name + '_mof.fits')
+	if cat_type == 'mof' and inj is False:
+		fn = os.path.join(BASEPATH, 'base_' + tile_name + '_mof.fits')
+
+	if cat_type == 'sof' and inj:
+		fn = os.path.join(BASEPATH, 'real_' + realization_number + '_' + tile_name + '_sof.fits') 
+	if cat_type == 'sof' and inj is False:
+		fn = os.path.join(BASEPATH, 'base_' + tile_name + '_sof.fits')
+
+	if cat_type == 'gal_truth':
+		fn = os.path.join(BASEPATH, tile_name + '_' + realization_number + '_balrog_truth_cat_gals.fits')
+	if cat_type == 'star_truth':
+		fn = os.path.join(BASEPATH, tile_name + '_' + realization_number + '_balrog_truth_cat_stars.fits')
+
+	return fn
+
+
+
+
+
+
+
+
+
 def matcher(realization_number, tile_name, filter_name):
         """Match two catalogs on RA and DEC with a tolerance of 1 arcsecond via STILTS.
 
@@ -2622,7 +2661,7 @@ def fof_matcher(realization_number, tile_name):
         if os.path.isfile(rerun_match) is False or (os.path.isfile(rerun_match) and overwrite):
 
                 ### Run fof_matcher ###
-                subprocess.call(['/data/des71.a/data/mspletts/balrog_validation_tests/scripts/BalVal/fof_matcher', fof, inj_fof, mof, inj_mof, coadd, inj_coadd, parpy_outdir, fofcoadd, fofgroups, inj_fofcoadd, inj_fofgroups, origfof_injfof, ok, rerun, ok_inj_mof, rerun_inj_mof, ok_mof, rerun_mof, ok_match, rerun_match, ok_1not2, rerun_1not2, ok_2not1, ok_2not1])
+                subprocess.call(['/data/des71.a/data/mspletts/balrog_validation_tests/scripts/BalVal/ms_fof_matcher', fof, inj_fof, mof, inj_mof, coadd, inj_coadd, parpy_outdir, fofcoadd, fofgroups, inj_fofcoadd, inj_fofgroups, origfof_injfof, ok, rerun, ok_inj_mof, rerun_inj_mof, ok_mof, rerun_mof, ok_match, rerun_match, ok_1not2, rerun_1not2, ok_2not1, ok_2not1])
 
 
 	if RUN_TYPE == 'ok':
@@ -2672,13 +2711,14 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 			fn_stack_2not1 = os.path.join(stack_dir, t+'_stacked_'+str(MATCH_TYPE)+'_match2not1.csv')
 			
 			# Check if stacked realization file already exists #
-			if os.path.isfile(fn_stack_2not1):
+			overwrite = True
+
+			if os.path.isfile(fn_stack_2not1) and overwrite is False:
 				print 'Stacked realization catalog exists. Not overwriting ... \n'
 				df1and2 = pd.read_csv(fn_stack_match)
 				df1not2 = pd.read_csv(fn_stack_1not2)
 				df2not1 = pd.read_csv(fn_stack_2not1)
 		
-			overwrite = True
 			# Combine all realizations for one tile into a single catalog. Catalogs combined AFTER matching. #
 			if os.path.isfile(fn_stack_2not1) is False or overwrite:
 				all_fn_match, all_fn_1not2, all_fn_2not1 = [], [], []
@@ -2701,7 +2741,7 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 				print '-----> Saving stacked realization catalog as ', fn_stack_match
 
 			### Rewrite ###
-			ALL_REALIZATIONS = ['stacked']
+			ALL_REALIZATIONS = ['stack']
 
 
 
@@ -2740,19 +2780,23 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 
 
 			### Handle star truth catalogs ###
-			# Star truth catalogs matched then combined # #FIXME rename to mag_s for mag_star
-			if MATCH_CAT1 == 'star_truth':
+			# Star truth catalogs matched then combined #
+			if MATCH_CAT1 == 'star_truth' or MATCH_CAT2 == 'star_truth':
                                 print 'Adding new column to matched csv ...\n'
-                                star_mag = get_star_mag(df=df1and2, suf='_1')
-                                # 'mag_a' short for mag_all. New header must be of the form {base}_x where x is a single character because of the way m_axlabel is created from m_hdr #
-                                df1and2.insert(len(df1and2.columns), 'mag_a', star_mag)
-                                mag_hdr1 = 'mag_a'
+				# mag_star #
+				new_hdr = 'mag_s'
 
-                        if MATCH_CAT2 == 'star_truth':
-                                print 'Adding new column to matched csv ...\n'
-                                star_mag = get_star_mag(df=df1and2, suf='_2')
-                                mag_hdr2 = 'mag_a'
-                                df1and2.insert(len(df1and2.columns), 'mag_a', star_mag) 
+				if MATCH_CAT1 == 'star_truth':
+					suf = '_1'
+					mag_hdr1 = new_hdr
+				if MATCH_CAT2 == 'star_truth':
+					suf = '_2'
+					mag_hdr2 = new_hdr
+
+                                star_mag = get_star_mag(df=df1and2, suf=suf)
+                                # New header must be of the form {base}_x where x is a single character because of the way m_axlabel is created from m_hdr #
+                                df1and2.insert(len(df1and2.columns), new_hdr, star_mag)
+
 
 
 			### Handle Y3 Gold catalogs ###
@@ -2905,8 +2949,8 @@ def make_region_files(df_match, df_1not2, df_2not1, realization_number, tile_nam
 
 		### Write to region file for matched catalog. Units are arcseconds. ###
 		# Coadds allow for elliptical regions #
-		if MATCH_CAT1 == 'coadd' or MATCH_CAT2 == 'coadd': #FIXME add y3_gold option which has a, b, theta
-			### Get semimajor and semiminor axes (a and b, respectively) and orientation. Coadds have these values. ###
+		if (MATCH_CAT1 or MATCH_CAT2) in ('coadd', 'y3_gold'): 
+			### Get semimajor and semiminor axes (a and b, respectively) and orientation. Coadds and Y3 Gold have these values. ###
 			a_match, b_match = df_match[MAJOR_AX_HDR1], df_match[MINOR_AX_HDR1]
 			a_1not2, b_1not2 = df_1not2[MAJOR_AX_HDR1], df_1not2[MINOR_AX_HDR1]
 			a_2not1, b_2not2 = df_2not1[MAJOR_AX_HDR2], df_2not1[MINOR_AX_HDR2]
@@ -2957,7 +3001,7 @@ def make_region_files(df_match, df_1not2, df_2not1, realization_number, tile_nam
 ################################################################### Run script. 0 returned when complete. ###################################################################
 
 
-YLOOP = False 
+YLOOP = True 
 
 ### !!!!! Run once. Log files are closed once 0 is returned. ###
 if YLOOP is False:
@@ -2967,7 +3011,7 @@ if YLOOP is False:
 # !!!!! Loop over vertical axis limits? #
 
 if YLOOP:
-	for y in [3, 20, None]: 
+	for y in [0.5, 1, None]: 
 		if y is None:
 			YLOW, YHIGH = None, None
 		if y is not None:
