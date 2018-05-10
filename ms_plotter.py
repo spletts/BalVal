@@ -3013,7 +3013,7 @@ if YLOOP is False:
 # !!!!! Loop over vertical axis limits? #
 
 if YLOOP:
-	for y in [0.5, 1, None]: 
+	for y in [0.5, None]: 
 		if y is None:
 			YLOW, YHIGH = None, None
 		if y is not None:
@@ -3045,10 +3045,3 @@ if RUN_TYPE_LOOP:
 		RUN_TYPE = run_type
 		make_plots(mag_hdr1=M_HDR1, mag_hdr2=M_HDR2, mag_err_hdr1=M_ERR_HDR1, mag_err_hdr2=M_ERR_HDR2)
 
-'''
-### Close log files ###
-FD_1SIG.close()
-FD_FLAG.close()
-FD_MAG_BINS.close()
-FD_NOP.close()
-'''
