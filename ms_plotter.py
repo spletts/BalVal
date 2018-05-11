@@ -15,12 +15,11 @@ Constants that the user may wish to change are indicated by: # !!!!! {descriptio
 Megan Splettstoesser mspletts@fnal.gov"""
 
 
-# astropy is needed only if analyzing a coadd catalog #
-'''
+# astropy is needed only if analyzing a coadd catalog or truth catalog #
 from astropy.io import fits
 from astropy.table import Column
 from astropy.table import Table
-'''
+import fileinput
 import matplotlib.pyplot as plt
 import matplotlib
 import numpy as np
@@ -37,7 +36,7 @@ BASEPATH, OUTDIR, realizations, tiles = sys.argv[1], sys.argv[2], sys.argv[3].sp
 # Catch error from inadequate number of command line args #
 # Note 'None' is interpreted as str #
 if len(sys.argv) != 5:
-        sys.exit("Args: basepath (location of catalogs), output directory, realizations (can be 'all', None), tiles (can be 'all') \n")
+        sys.exit("Args: basepath (location of catalogs), output directory, realizations (can be 'all', None, a list of form: real1,real2,...), tiles (can be 'all', a file, or a list of form: tile1,tile2,...) \n")
 
 
 BALROG_RUN = BASEPATH[BASEPATH[:-1].rfind('/')+1:-1]
@@ -45,19 +44,28 @@ BALROG_RUN = BASEPATH[BASEPATH[:-1].rfind('/')+1:-1]
 if BALROG_RUN == 'Balrog':
 	BALROG_RUN = 'TAMU_Balrog'
 
-ALL_FILTERS = [ 'g', 'r', 'i', 'z' ]
 
-# !!!!! Number of realizations depends on the tile # 
-ALL_REALIZATIONS = [ '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' ]
+# !!!!! Number of realizations depends on the tile #
+#ALL_REALIZATIONS = [ '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' ]
 #ALL_REALIZATIONS = [ '0', '1', '2' ]
 
-# !!!!! Available tiles depends on run #
-ALL_TILES = [ 'DES0347-5540', 'DES2329-5622', 'DES2357-6456' ]
-
 if tiles[0] != 'all':
-	ALL_TILES = tiles
+        ALL_TILES = tiles
 if realizations[0] != 'all':
-	ALL_REALIZATIONS = realizations
+        ALL_REALIZATIONS = realizations
+
+
+if '.dat' in tiles[0]:
+	ALL_TILES = []
+	for line in fileinput.input(tiles):
+		# Get rid of newline character \n #
+		ALL_TILES.append(line[:-1])
+
+ALL_FILTERS = [ 'g', 'r', 'i', 'z' ]
+
+# !!!!! Can force rwrite #
+#ALL_TILES = [ 'DES0347-5540', 'DES2329-5622', 'DES2357-6456' ]
+
 
 
 
@@ -67,7 +75,9 @@ if realizations[0] != 'all':
 
 ### Colorbar ###
 # !!!!! Add colorbar according to one of the following (only one can be True at a time). If all are False a scatter-plot is made. Colorbars cannot be used if NORMALIZE is True. #
+# New default TODO test #
 HEXBIN = False
+HIST_2D = True
 CM_T_S2N_COLORBAR = False
 CM_T_ERR_COLORBAR = False
 CM_T_COLORBAR = False
@@ -82,11 +92,11 @@ EH_CUTS = False
 PLOT_1SIG = True
 
 # !!!!! What to do with the plot? #
-SAVE_PLOT = True 
+SAVE_PLOT = False 
 SHOW_PLOT = True
 
 # !!!!! Limits for the vertical axis. 'None' is an allowed value and will result in default scaling #
-YLOW, YHIGH = None, None 
+YLOW, YHIGH = -1, 1 
 
 # Swap horizontal axis? Default is magnitude1. Matching script ms_matcher determines which catalog is 1 and which is 2. Generally SWAP_HAX does not need to be changed unless the truth catalog values are not on the horizontal axis. #
 SWAP_HAX = False
@@ -94,7 +104,7 @@ SWAP_HAX = False
 
 ### Catalog attributes ###
 # !!!!! Allowed values: y3_gold, sof, mof, star_truth, gal_truth, coadd. Both can be 'sof' and both can be 'mof' if INJ1 and INJ2 are different. Note that truth catalogs always have INJ=True. #
-MATCH_CAT1, MATCH_CAT2 = 'mof', 'mof'
+MATCH_CAT1, MATCH_CAT2 = 'gal_truth', 'sof'
 # !!!!! Booleans. Examine injected catalogs? #
 INJ1, INJ2 = False, True
 
@@ -916,7 +926,7 @@ def get_good_index_using_primary_flags(df, full_magnitude1, full_magnitude2, cm_
 	if MATCH_CAT1 != 'y3_gold' and MATCH_CAT2 != 'y3_gold':
 		idx_good = np.where( (abs(full_magnitude1) != 9999.0) & (abs(full_magnitude1) != 99.0) & (abs(full_magnitude1) != 37.5) & (abs(full_magnitude2) != 9999.0) & (abs(full_magnitude2) != 99.0) & (abs(full_magnitude2) != 9999.0) & (abs(full_magnitude2) != 99.0) & (abs(full_magnitude2) != 37.5) & (flag1 == 0) & (flag2 == 0) & (cm_flag1 == 0) & (cm_flag2 == 0) )[0]
 
-	# Additional flags for Y3 Gold catalog. FIXME this is a duplicate to the cm_flag_hdr #
+	# Additional flags for Y3 Gold MOF catalog. # 
 	if MATCH_CAT2 == 'y3_gold' or MATCH_CAT1 == 'y3_gold':
 		# Get flag header #
 		if MATCH_CAT1 == 'y3_gold':
@@ -1703,8 +1713,9 @@ def logger(delta_mag, tile_name, filter_name, realization_number, clean_magnitud
 	# Record number of objects plotted (nop) #
 	fd_nop.write('Number of objects plotted after flag cuts for tile ' + str(tile_name) + ', filter ' + str(filter_name) + ', type ' + str(RUN_TYPE) + ', realization ' + str(realization_number) + ' : ' + str(len(clean_magnitude1)) + ' / ' + str(len(full_magnitude1)) + ' = ' + str(float(len(clean_magnitude1)) / len(full_magnitude1)) + '\n')
 
+	percent_in_1sig = float(num_1sig)/len(clean_magnitude1)
 
-        return 0
+        return percent_in_1sig #FIXME edit Returns
 
 
 
@@ -1938,7 +1949,7 @@ def get_plot_variables(filter_name, df, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_er
 
 
 
-def plotter(mag_hdr1, mag_hdr2, cbar_val, error1, error2, filter_name, clean_magnitude1, full_magnitude1, mag_axlabel1, clean_magnitude2, mag_axlabel2, plot_title, realization_number, tile_name, idx_list, bins, cbar_axlabel, plot_name, fd_nop, fd_1sig, fd_mag_bins):
+def plotter(mag_hdr1, mag_hdr2, cbar_val, error1, error2, filter_name, clean_magnitude1, full_magnitude1, mag_axlabel1, clean_magnitude2, mag_axlabel2, plot_title, realization_number, tile_name, idx_list, bins, cbar_axlabel, plot_name, fd_nop, fd_1sig, fd_mag_bins, percent_recovered):
 	"""Plot a single magnitude versus delta-magnitude plot.
 
 	Args:
@@ -2044,6 +2055,9 @@ def plotter(mag_hdr1, mag_hdr2, cbar_val, error1, error2, filter_name, clean_mag
 
 	### For scatter plot ###
 	if NORMALIZE is False:
+
+		#FIXME add function ?
+
 		# Values to plot #
 		deltam = np.array(clean_magnitude1) - np.array(clean_magnitude2)
 		if SWAP_HAX:
@@ -2073,7 +2087,7 @@ def plotter(mag_hdr1, mag_hdr2, cbar_val, error1, error2, filter_name, clean_mag
 		# `err_logger` will not be used if `NORMALIZE` is True #
 		err_logger = None
 
-	logger(delta_mag=deltam, filter_name=filter_name, clean_magnitude1=clean_magnitude1, full_magnitude1=full_magnitude1, realization_number=realization_number, tile_name=tile_name, bins=bins, hax_mag=hax_mag, fd_nop=fd_nop, fd_1sig=fd_1sig, error=err_logger)
+	percent_1sig = logger(delta_mag=deltam, filter_name=filter_name, clean_magnitude1=clean_magnitude1, full_magnitude1=full_magnitude1, realization_number=realization_number, tile_name=tile_name, bins=bins, hax_mag=hax_mag, fd_nop=fd_nop, fd_1sig=fd_1sig, error=err_logger)
 
 
 	if PRINTOUTS:
@@ -2081,7 +2095,7 @@ def plotter(mag_hdr1, mag_hdr2, cbar_val, error1, error2, filter_name, clean_mag
 
 	### Plot ###
 	# One colorbar at a time. This error is caught at beginning of script #
-	if CM_T_S2N_COLORBAR is False and BIN_CM_T_S2N is False and CM_T_COLORBAR is False and CM_T_ERR_COLORBAR is False:
+	if CM_T_S2N_COLORBAR is False and BIN_CM_T_S2N is False and CM_T_COLORBAR is False and CM_T_ERR_COLORBAR is False and HIST_2D is False:
 		plt.scatter(hax_mag, deltam, color=get_color(filter_name=filter_name)[0], alpha=0.25, s=0.25)
 
 	
@@ -2105,9 +2119,20 @@ def plotter(mag_hdr1, mag_hdr2, cbar_val, error1, error2, filter_name, clean_mag
 			if PRINTOUTS:
 				print ' Normalized hexbin has a large number of grid cells. Will take a moment to plot ... \n'
 		if NORMALIZE is False:
-			grid = 100
+			grid = 500
 		plt.hexbin(hax_mag, deltam, gridsize=grid, cmap=get_color(filter_name=filter_name)[1], bins='log')
 		plt.colorbar(label='log(counts)')
+
+	if HIST_2D:
+		# Half the bin size of that used in error calculation #
+		bin_x = np.arange(min(hax_mag), max(hax_mag), 0.25)
+		if YLOW is not None and YHIGH is not None:
+			# Somewhat using reported 1% error in magnitude #
+			bin_y = np.arange(YLOW, YHIGH, (YHIGH-YLOW)*0.025)
+		if YLOW is None and YHIGH is None:
+			bin_y = np.arange(min(deltam), max(deltam), (max(deltam)-min(deltam))*0.01) 
+		plt.hist2d(hax_mag, deltam, bins=[bin_x, bin_y], cmap=get_color(filter_name=filter_name)[1])
+		plt.colorbar()
 
 
 	# Labels and appearance #
@@ -2130,9 +2155,20 @@ def plotter(mag_hdr1, mag_hdr2, cbar_val, error1, error2, filter_name, clean_mag
 			l.set_alpha(1)
 
 
+
+	### Title for subplot ###
+	if percent_recovered is not None:
+		plt.title('Recovered: ' + str(round(percent_recovered,3)*100) + '%. 1$\sigma$: ' + str(round(percent_1sig, 3)*100) + '%')
+	if percent_recovered is None:
+		plt.title('1$\sigma$: ' + str(round(percent_1sig, 3)*100) + '%')
+
+
 	if SUBPLOT is False:
 
 		plot_name = plot_name.replace('griz', filter_name)
+
+		### Title for  ###
+		plt.title(plot_title + '\n% objs in 1$\sigma$: ' + str(percent_1sig))
 
 		### Save plot ###
 		if SAVE_PLOT:
@@ -2140,8 +2176,9 @@ def plotter(mag_hdr1, mag_hdr2, cbar_val, error1, error2, filter_name, clean_mag
 			plt.savefig(plot_name)
 
 		if SHOW_PLOT:
-			plt.title(plot_title)
 			plt.show()
+
+        #plt.gca().set_aspect('equal')
 
 
         return 0
@@ -2154,7 +2191,7 @@ def plotter(mag_hdr1, mag_hdr2, cbar_val, error1, error2, filter_name, clean_mag
 
 
 
-def subplotter(df, flag_idx, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, plot_name, plot_title, realization_number, tile_name, fd_flag, fd_nop, fd_1sig, fd_mag_bins):
+def subplotter(df, flag_idx, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, plot_name, plot_title, realization_number, tile_name, fd_flag, fd_nop, fd_1sig, fd_mag_bins, percent_recovered):
 	"""Combine four subplots into a single plot with four panels (2-by-2). Declare variables needed for plotting.
 
 	Args:
@@ -2175,7 +2212,7 @@ def subplotter(df, flag_idx, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, plo
         ### Create 4-by-4 subplot ###
 	counter_subplot = 1
 	# Figure size units: inches #
-	plt.figure(figsize=(10, 8))
+	plt.figure(figsize=(12, 10))
 
 
         ### Create one subplot for each griz filter ###
@@ -2190,7 +2227,7 @@ def subplotter(df, flag_idx, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, plo
 		if SUBPLOT:
 			plt.subplot(2, 2, counter_subplot)
 
-		plotter(mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, cbar_val=cbar_val, plot_title=plot_title, error1=err1, error2=err2, filter_name=f, full_magnitude1=fullmag1, clean_magnitude1=cleanmag1, clean_magnitude2=cleanmag2, mag_axlabel1=mag_axlabel1, mag_axlabel2=mag_axlabel2, realization_number=realization_number, tile_name=tile_name, idx_list=cbar_idx_list, bins=cbar_bins, cbar_axlabel=cbar_axlabel, plot_name=plot_name, fd_nop=fd_nop, fd_1sig=fd_1sig, fd_mag_bins=fd_mag_bins)
+		plotter(mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, cbar_val=cbar_val, plot_title=plot_title, error1=err1, error2=err2, filter_name=f, full_magnitude1=fullmag1, clean_magnitude1=cleanmag1, clean_magnitude2=cleanmag2, mag_axlabel1=mag_axlabel1, mag_axlabel2=mag_axlabel2, realization_number=realization_number, tile_name=tile_name, idx_list=cbar_idx_list, bins=cbar_bins, cbar_axlabel=cbar_axlabel, plot_name=plot_name, fd_nop=fd_nop, fd_1sig=fd_1sig, fd_mag_bins=fd_mag_bins, percent_recovered=percent_recovered)
 
 		counter_subplot += 1
 
@@ -2205,7 +2242,6 @@ def subplotter(df, flag_idx, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, plo
 
 		### Title ###
 		plt.suptitle(plot_title)
-
 
 		### Save plot ###
 		if SAVE_PLOT:
@@ -2769,6 +2805,29 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 				df1not2 = pd.read_csv(fn_1not2)
 				df2not1 = pd.read_csv(fn_2not1)
 
+
+			#FIXME under constr. Won't work for stacked catalogs.
+			### Objects recovered from truth catalog ###
+			if 'truth' in MATCH_CAT1 or 'truth' in MATCH_CAT2:
+				if 'truth' in MATCH_CAT1:
+					fn = get_catalog(cat_type=MATCH_CAT1, inj=True, realization_number=r, tile_name=t, filter_name=None)
+					not_recovered = df1not2.shape[0]
+				if 'truth' in MATCH_CAT2:
+					fn = get_catalog(cat_type=MATCH_CAT2, inj=True, realization_number=r, tile_name=t, filter_name=None)
+					not_recovered = df2not1.shape[0]
+				# Get total number of objects in truth catalog #
+				hdul = fits.open(fn)
+				data = hdul[1].data
+				tot = data.shape[0]
+				# Percent of objects recovered #
+				recovered = float(tot-not_recovered)/tot
+				print 'Recovered: ', tot-not_recovered, '/', tot
+
+			if 'truth' not in MATCH_CAT1 and 'truth' not in MATCH_CAT2:
+				# This will not be used, is a placeholder #
+				recovered = None
+
+			
 			### Region files ####
 			if MAKE_REG:
 				make_region_files(df_match=df1and2, df_1not2=df1not2, df_2not1=df2not1, realization_number=r, tile_name=t)
@@ -2835,7 +2894,7 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 				mag_err_hdr2 = 'mag_err_c_2'
 
 
-			subplotter(df=df1and2, flag_idx=flag_idx, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, plot_name=fn, plot_title=title, realization_number=r, tile_name=t, fd_mag_bins=fd_mag_bins, fd_nop=fd_nop, fd_1sig=fd_1sig, fd_flag=fd_flag) 
+			subplotter(df=df1and2, flag_idx=flag_idx, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, plot_name=fn, plot_title=title, realization_number=r, tile_name=t, fd_mag_bins=fd_mag_bins, fd_nop=fd_nop, fd_1sig=fd_1sig, fd_flag=fd_flag, percent_recovered=recovered) 
 
 
 			### Close log files after each iteration over a realization ###
@@ -2951,7 +3010,7 @@ def make_region_files(df_match, df_1not2, df_2not1, realization_number, tile_nam
 
 		### Write to region file for matched catalog. Units are arcseconds. ###
 		# Coadds allow for elliptical regions #
-		if (MATCH_CAT1 or MATCH_CAT2) in ('coadd', 'y3_gold'): 
+		if (MATCH_CAT1 or MATCH_CAT2) in ('coadd', 'y3_gold'): #FIXME fix logic
 			### Get semimajor and semiminor axes (a and b, respectively) and orientation. Coadds and Y3 Gold have these values. ###
 			a_match, b_match = df_match[MAJOR_AX_HDR1], df_match[MINOR_AX_HDR1]
 			a_1not2, b_1not2 = df_1not2[MAJOR_AX_HDR1], df_1not2[MINOR_AX_HDR1]
@@ -3003,7 +3062,7 @@ def make_region_files(df_match, df_1not2, df_2not1, realization_number, tile_nam
 ################################################################### Run script. 0 returned when complete. ###################################################################
 
 
-YLOOP = True 
+YLOOP = False 
 
 ### !!!!! Run once. Log files are closed once 0 is returned. ###
 if YLOOP is False:
@@ -3012,8 +3071,12 @@ if YLOOP is False:
 ### Loop over vertical axis limits. Suggestions: for normalized plot with star truth catalog use y=[3, 10], for normalized plot with galaxy truth catalog use y=[3, 20]. For non-normalized plot with star truth catalog or galaxy truth catalog use y=[0.5, None]. ###
 # !!!!! Loop over vertical axis limits? #
 
+if NORMALIZE:
+	ylist = [3, None]
+if NORMALIZE is False:
+	ylist = [0.5, None]
 if YLOOP:
-	for y in [0.5, None]: 
+	for y in ylist: 
 		if y is None:
 			YLOW, YHIGH = None, None
 		if y is not None:
