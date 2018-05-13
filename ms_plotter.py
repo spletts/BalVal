@@ -84,7 +84,7 @@ CM_T_ERR_COLORBAR = False
 CM_T_COLORBAR = False
 BIN_CM_T_S2N = False
 # Normalizes plot to 1-sigma magnitude error. If NORMALIZE is True, PLOT_1SIG must be True else errors will not be computed and normalization cannot be performed #
-NORMALIZE = False
+NORMALIZE = True
 
 # Use quality cuts introduced by Eric Huff? Link: https://github.com/sweverett/Balrog-GalSim/blob/master/plots/balrog_catalog_tests.py. Can only be performed if catalog has all the necessary headers: cm_s2n_r, cm_T, cm_T_err, and psfrec_T. #
 EH_CUTS = False
@@ -93,7 +93,7 @@ EH_CUTS = False
 PLOT_1SIG = True
 
 # !!!!! What to do with the plot? #
-SAVE_PLOT = False 
+SAVE_PLOT = True
 SHOW_PLOT = True
 
 # !!!!! Limits for the vertical axis. 'None' is an allowed value and will result in default scaling #
@@ -105,9 +105,9 @@ SWAP_HAX = False
 
 ### Catalog attributes ###
 # !!!!! Allowed values: y3_gold, sof, mof, star_truth, gal_truth, coadd. Both can be 'sof' and both can be 'mof' if INJ1 and INJ2 are different. Note that truth catalogs always have INJ=True. #
-MATCH_CAT1, MATCH_CAT2 = 'sof', 'y3_gold'
+MATCH_CAT1, MATCH_CAT2 = 'gal_truth', 'mof'
 # !!!!! Booleans. Examine injected catalogs? #
-INJ1, INJ2 = False, True
+INJ1, INJ2 = True, True
 
 
 ### Handle nonsensical combinations ###
@@ -138,6 +138,8 @@ if 'y3_gold' in (MATCH_CAT1, MATCH_CAT2):
 
 # !!!!! Must be used with realization=all at command line #
 STACK_REALIZATIONS = False
+STACK_TILES = True
+
 
 # !!!!! Make 2x2 subplots of each griz filter? Or make individual plots? #
 SUBPLOT = True
@@ -1368,7 +1370,7 @@ def bin_and_cut_measured_magnitude_error(clean_magnitude1, clean_magnitude2, err
 		limhigh = 24
 
         if PRINTOUTS:
-                print 'Forcing magnitudes to be binned with max ', limhigh, '...'
+                print ' Forcing magnitudes to be binned with max ', limhigh, '...'
 
         bins = np.arange(limlow, limhigh, step)
 
@@ -1448,9 +1450,9 @@ def bin_and_cut_measured_magnitude_error(clean_magnitude1, clean_magnitude2, err
 
 	if PRINTOUTS:
                 if SWAP_HAX:
-                        print 'Binned clean_magnitude2 with step size: ', step, ', and minimum: ', limlow, ', and maximum: ', limhigh, '...'
+                        print ' Binned clean_magnitude2 with step size: ', step, ', and minimum: ', limlow, ', and maximum: ', limhigh, '...'
 		if SWAP_HAX is False:
-                        print 'Binned clean_magnitude1 with step size: ', step, ', and minimum: ', limlow, ', and maximum: ', limhigh, '...'
+                        print ' Binned clean_magnitude1 with step size: ', step, ', and minimum: ', limlow, ', and maximum: ', limhigh, '...'
 		print ' Calculated errors using objects where |DeltaM| < 3 ... '
 		print ' Excluded bins with less than ', CONST, ' objects ... \n'
 
@@ -2331,7 +2333,7 @@ def subplotter(df, flag_idx, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, plo
 
 
 
-def get_plot_suptitle(realization_number, tile_name):
+def get_plot_suptitle(realization_number, tile_name, num_stack_real, num_stack_tile):
 	"""Generate plot title.
 
 	Args:
@@ -2343,7 +2345,9 @@ def get_plot_suptitle(realization_number, tile_name):
 	"""
 
 	if STACK_REALIZATIONS:
-		realization_number = 'stacked '+str(len(ALL_REALIZATIONS))
+		realization_number = 'stacked '+str(num_stack_real)
+	if STACK_TILES:
+		tile_name = 'stacked ' + str(num_stack_tile)
 
 	title = str(TITLE_PIECE1) + ' & ' + str(TITLE_PIECE2) +'. Tile: ' + str(tile_name) 
 	if realizations[0] != 'None': 
@@ -2380,7 +2384,9 @@ def get_plot_save_name(realization_number, tile_name):
         """
 
 	if STACK_REALIZATIONS:
-		realization_number='stack'
+		realization_number = 'stack'
+	if STACK_TILES:
+		tile_name = 'stack'
 
 	### Get filename ###
 	if YLOW is None and YHIGH is None:
@@ -2794,11 +2800,68 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 	"""
 
 	global ALL_REALIZATIONS
+	global ALL_TILES
+
+
+	for r in ALL_REALIZATIONS:
+			
+		if STACK_TILES:
+
+			stack_dir = os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, 'stack', r)
+
+			# Check dir existence and handle nonexistence #
+                        if os.path.isdir(stack_dir) is False:
+                                if NO_DIR_MAKE is False:
+                                        sys.exit('Directory ' + str(stack_dir) + ' does not exist. \n Change directory structure in ms_plotter. or set `NO_DIR_MAKE=True`')
+                                if NO_DIR_MAKE:
+                                        print 'Making directory ', stack_dir, '...\n'
+                                        os.makedirs(stack_dir)
+
+			# Filename for stacked catalogs #
+                        fn_stack_match = os.path.join(stack_dir, 'stacked_'+str(r)+'_'+str(MATCH_TYPE)+'_match1and2.csv')
+                        fn_stack_1not2 = os.path.join(stack_dir, 'stacked_'+str(r)+'_'+str(MATCH_TYPE)+'_match1not2.csv')
+                        fn_stack_2not1 = os.path.join(stack_dir, 'stacked_'+str(r)+'_'+str(MATCH_TYPE)+'_match2not1.csv')
+
+                        # Check if stacked realization file already exists #
+                        overwrite = False 
+
+                        if os.path.isfile(fn_stack_2not1) and overwrite is False:
+                                print 'Stacked tile catalog exists. Not overwriting ... \n'
+                                df1and2 = pd.read_csv(fn_stack_match)
+                                df1not2 = pd.read_csv(fn_stack_1not2)
+                                df2not1 = pd.read_csv(fn_stack_2not1)
+
+			# Combine all realizations for one tile into a single catalog. Catalogs combined AFTER matching. #
+                        if os.path.isfile(fn_stack_2not1) is False or overwrite:
+                                all_fn_match, all_fn_1not2, all_fn_2not1 = [], [], []
+                                for t in ALL_TILES:
+                                        if RUN_TYPE is None:
+                                                fn_match, fn_1not2, fn_2not1 = matcher(realization_number=r, tile_name=t, filter_name=None)
+                                        if RUN_TYPE is not None:
+                                                fn_match, fn_1not2, fn_2not1 = fof_matcher(realization_number=r, tile_name=t)
+                                        all_fn_match.append(fn_match); all_fn_1not2.append(fn_1not2); all_fn_2not1.append(fn_2not1)
+
+                                print 'Stacking tiles. ', len(all_fn_match), 'files ...'
+                                df1and2 = pd.concat((pd.read_csv(fn) for fn in all_fn_match))
+                                df1not2 = pd.concat((pd.read_csv(fn) for fn in all_fn_1not2))
+                                df2not1 = pd.concat((pd.read_csv(fn) for fn in all_fn_2not1))
+                                print 'Stacking complete ... \n'
+
+
+                                # Save stacked catalog as DataFrame #
+                                df1and2.to_csv(fn_stack_match, sep=','); df1not2.to_csv(fn_stack_1not2, sep=','); df2not1.to_csv(fn_stack_2not1, sep=',')
+                                print '-----> Saving stacked tile catalog as ', fn_stack_match
+
+			### Rewrite ###
+			num_stack_tile = len(ALL_TILES)
+		        ALL_TILES = ['stack']
+
+
 
 	for t in ALL_TILES:
 
 		### For plotting all realizations at once, stacked ###
-		if STACK_REALIZATIONS:
+		if STACK_REALIZATIONS and STACK_TILES is False:
 
 			# Dir for stacked catalog #
 			stack_dir = os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, t, 'stack')
@@ -2847,6 +2910,7 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 				print '-----> Saving stacked realization catalog as ', fn_stack_match
 
 			### Rewrite ###
+			num_stack_real = len(ALL_REALIZATIONS)
 			ALL_REALIZATIONS = ['stack']
 
 
@@ -2860,7 +2924,7 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 			# Write headers #
 			fd_nop, fd_mag_bins, fd_flag = fd_first_write(fn_nop=fn_nop, fn_mag_bins=fn_mag_bins, fn_flag=fn_flag)
 
-			if STACK_REALIZATIONS is False:
+			if STACK_REALIZATIONS is False and ALL_TILES is False:
 				print 'Not stacking realizations...\n'
 
 				# Filenames for catalogs #
@@ -2873,10 +2937,11 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 				df1not2 = pd.read_csv(fn_1not2)
 				df2not1 = pd.read_csv(fn_2not1)
 
-
+			#FIXME remove comment
 			#FIXME under constr. Won't work for stacked catalogs.
 			### Objects recovered from truth catalog ###
-			if 'truth' in MATCH_CAT1 or 'truth' in MATCH_CAT2:
+			recovered = None #FIXME
+			if STACK_TILES is False and 'truth' in MATCH_CAT1 or 'truth' in MATCH_CAT2:
 				if 'truth' in MATCH_CAT1:
 					fn = get_catalog(cat_type=MATCH_CAT1, inj=True, realization_number=r, tile_name=t, filter_name=None)
 					not_recovered = df1not2.shape[0]
@@ -2889,7 +2954,7 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 				tot = data.shape[0]
 				# Percent of objects recovered #
 				recovered = float(tot-not_recovered)/tot
-				print 'Recovered: ', tot-not_recovered, '/', tot
+				print 'Recovered: ', tot-not_recovered, '/', tot, '\n'
 
 			if 'truth' not in MATCH_CAT1 and 'truth' not in MATCH_CAT2:
 				# This will not be used, is a placeholder #
@@ -2905,7 +2970,11 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
                         fn = get_plot_save_name(realization_number=r, tile_name=t)
 
                         # Title for plot #
-                        title = get_plot_suptitle(realization_number=r, tile_name=t) 
+			if STACK_REALIZATIONS is False:
+				num_stack_real = None
+			if STACK_TILES is False:
+				num_stack_tile = None
+                        title = get_plot_suptitle(realization_number=r, tile_name=t, num_stack_real=num_stack_real, num_stack_tile=num_stack_tile) 
 
 
 			### Handle star truth catalogs ###
@@ -3131,7 +3200,7 @@ def make_region_files(df_match, df_1not2, df_2not1, realization_number, tile_nam
 
 
 YLOOP = False 
-
+#FIXME if True, resets num_stack
 ### !!!!! Run once. Log files are closed once 0 is returned. ###
 if YLOOP is False:
 	print make_plots(mag_hdr1=M_HDR1, mag_hdr2=M_HDR2, mag_err_hdr1=M_ERR_HDR1, mag_err_hdr2=M_ERR_HDR2)
@@ -3140,7 +3209,7 @@ if YLOOP is False:
 # !!!!! Loop over vertical axis limits? #
 
 if NORMALIZE:
-	ylist = [3, None]
+	ylist = [10, 20, None]
 if NORMALIZE is False:
 	ylist = [0.5, None]
 if YLOOP:
