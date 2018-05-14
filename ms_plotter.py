@@ -107,7 +107,7 @@ SWAP_HAX = False
 
 ### Catalog attributes ###
 # !!!!! Allowed values: y3_gold, sof, mof, star_truth, gal_truth, coadd. Both can be 'sof' and both can be 'mof' if INJ1 and INJ2 are different. Note that truth catalogs always have INJ=True. #
-MATCH_CAT1, MATCH_CAT2 = 'gal_truth', 'sof'
+MATCH_CAT1, MATCH_CAT2 = 'gal_truth', 'mof'
 # !!!!! Booleans. Examine injected catalogs? #
 INJ1, INJ2 = True, True
 INJ1_20PERCENT, INJ2_20PERCENT = True, True
@@ -760,11 +760,14 @@ TITLE_PIECE1, TITLE_PIECE2 = CLASS1.title_piece, CLASS2.title_piece
 MATCH_TYPE = get_match_type(title_piece1=TITLE_PIECE1, title_piece2=TITLE_PIECE2)
 
 
+#FIXME under const
+fn_full_log = os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, 'all_flags_all_1sig.csv') 
+fd_full_log = open(fn_full_log, 'w')
+fd_full_log.write('TILE\tREALIZATION\tFILTER\tRUN_TYPE\tTOTAL_MATCHES\tTOTAL_FLAGS\tPERCENT_FLAGS\tTOTAL_1SIGMA\tPERCENT_1SIGMA\n')
 
-
-
-
-
+fn_full_recovered_log = os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, 'all_recovered.csv')
+fd_full_recovered_log = open(fn_full_recovered_log, 'w')
+fd_full_recovered_log.write('TILE\tREALIZATION\tFILTER\tPERCENT_RECOVERED\n')
 
 
 def fd_first_write(fn_nop, fn_mag_bins, fn_flag):
@@ -1728,6 +1731,7 @@ def logger(delta_mag, tile_name, filter_name, realization_number, clean_magnitud
 		# TILE, REALIZATION, FILTER, RUN_TYPE, TOTAL_MATCHES, TOTAL_FLAGS, PERCENT_FLAGS, TOTAL_1SIGMA, PERCENT_1SIGMA #
 		fd_nop.write( str(tile_name) + ' \t ' + str(realization_number) + ' \t ' + str(filter_name) + ' \t ' + str(RUN_TYPE) + ' \t ' + str(len(full_magnitude1)) + ' \t ' + str(num_flags) + ' \t ' + str(float(num_flags)/len(full_magnitude1)*100) + ' \t ' + str(num_1sig) + ' \t ' + str(float(num_1sig)/len(clean_magnitude1)*100) + '\n')
 
+	fd_full_log.write( str(tile_name) + ' \t ' + str(realization_number) + ' \t ' + str(filter_name) + ' \t ' + str(RUN_TYPE) + ' \t ' + str(len(full_magnitude1)) + ' \t ' + str(num_flags) + ' \t ' + str(float(num_flags)/len(full_magnitude1)*100) + ' \t ' + str(num_1sig) + ' \t ' + str(float(num_1sig)/len(clean_magnitude1)*100) + '\n')
 
 	percent_in_1sig = float(num_1sig)/len(clean_magnitude1)
 
@@ -2626,7 +2630,8 @@ def get_catalog(cat_type, inj, inj_20percent, realization_number, tile_name, fil
 
 def get_tamu_catalog(cat_type, inj, inj_20percent, realization_number, tile_name, filter_name):
 	"""Get catalog for TAMU tests"""
-	
+
+	# 20% injection #	
 	if inj_20percent:
 
 		if cat_type == 'mof' and inj:
@@ -2647,6 +2652,7 @@ def get_tamu_catalog(cat_type, inj, inj_20percent, realization_number, tile_name
 
 	# 10% injection #
 	if inj_20percent is False:
+
 		if cat_type == 'mof' and inj:
 			fn = os.path.join(BASEPATH, tile_name, 'real_' + realization_number + '_' + tile_name + '_mof.fits')
 		if cat_type == 'mof' and inj is False:
@@ -2823,6 +2829,166 @@ def fof_matcher(realization_number, tile_name):
 
 
 
+
+def stack_tiles(realization_number):
+	"""Concat catalogs for multiple tiles."""
+
+	stack_dir = os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, 'stack', realization_number)
+
+	# Check dir existence and handle nonexistence #
+	if os.path.isdir(stack_dir) is False:
+		if NO_DIR_MAKE is False:
+			sys.exit('Directory ' + str(stack_dir) + ' does not exist. \n Change directory structure in ms_plotter. or set `NO_DIR_MAKE=True`')
+		if NO_DIR_MAKE:
+			print 'Making directory ', stack_dir, '...\n'
+			os.makedirs(stack_dir)
+
+	# Filename for stacked catalogs #
+	fn_stack_match = os.path.join(stack_dir, 'stacked_'+str(realization_number)+'_'+str(MATCH_TYPE)+'_match1and2.csv')
+	fn_stack_1not2 = os.path.join(stack_dir, 'stacked_'+str(realization_number)+'_'+str(MATCH_TYPE)+'_match1not2.csv')
+	fn_stack_2not1 = os.path.join(stack_dir, 'stacked_'+str(realization_number)+'_'+str(MATCH_TYPE)+'_match2not1.csv')
+
+	# Check if stacked realization file already exists #
+	overwrite = False
+
+	if os.path.isfile(fn_stack_2not1) and overwrite is False:
+		print 'Stacked tile catalog exists. Not overwriting ... \n'
+		df1and2 = pd.read_csv(fn_stack_match)
+		df1not2 = pd.read_csv(fn_stack_1not2)
+		df2not1 = pd.read_csv(fn_stack_2not1)
+
+	# Combine all realizations for one tile into a single catalog. Catalogs combined AFTER matching. #
+	if os.path.isfile(fn_stack_2not1) is False or overwrite:
+
+		all_fn_match, all_fn_1not2, all_fn_2not1 = [], [], []
+
+		for t in ALL_TILES:
+
+			if RUN_TYPE is None:
+				fn_match, fn_1not2, fn_2not1 = matcher(realization_number=realization_number, tile_name=t, filter_name=None)
+
+			if RUN_TYPE is not None:
+				fn_match, fn_1not2, fn_2not1 = fof_matcher(realization_number=realization_number, tile_name=t)
+
+			all_fn_match.append(fn_match); all_fn_1not2.append(fn_1not2); all_fn_2not1.append(fn_2not1)
+
+		print 'Stacking tiles. ', len(all_fn_match), 'files ...'	
+
+		df1and2 = pd.concat((pd.read_csv(fn) for fn in all_fn_match))
+		df1not2 = pd.concat((pd.read_csv(fn) for fn in all_fn_1not2))
+		df2not1 = pd.concat((pd.read_csv(fn) for fn in all_fn_2not1))
+		print 'Stacking complete ... \n'
+
+
+		# Save stacked catalog as DataFrame #
+		df1and2.to_csv(fn_stack_match, sep=','); df1not2.to_csv(fn_stack_1not2, sep=','); df2not1.to_csv(fn_stack_2not1, sep=',')
+		print '-----> Saving stacked tile catalogs as ', fn_stack_match
+		print '----->', fn_stack_1not2
+		print '----->', fn_stack_2not1
+
+	return fn_stack_match, fn_stack_1not2, fn_stack_2not1, len(ALL_TILES)
+
+
+
+
+
+
+
+
+
+
+
+def stack_realizations(realization_number):
+	"""Concat realizations"""
+
+	# Dir for stacked catalog #
+	stack_dir = os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, t, 'stack')
+
+	# Check dir existence and handle nonexistence #
+	if os.path.isdir(stack_dir) is False:
+		if NO_DIR_MAKE is False:
+			sys.exit('Directory ' + str(stack_dir) + ' does not exist. \n Change directory structure in ms_plotter. or set `NO_DIR_MAKE=True`')
+		if NO_DIR_MAKE:
+			print 'Making directory ', stack_dir, '...\n'
+			os.makedirs(stack_dir)
+
+	# Filename for stacked catalogs #
+	fn_stack_match = os.path.join(stack_dir, t+'_stacked_'+str(MATCH_TYPE)+'_match1and2.csv')
+	fn_stack_1not2 = os.path.join(stack_dir, t+'_stacked_'+str(MATCH_TYPE)+'_match1not2.csv')
+	fn_stack_2not1 = os.path.join(stack_dir, t+'_stacked_'+str(MATCH_TYPE)+'_match2not1.csv')
+
+	# Check if stacked realization file already exists #
+	overwrite = False
+
+	if os.path.isfile(fn_stack_2not1) and overwrite is False:
+		print 'Stacked realization catalog exists. Not overwriting ... \n'
+		df1and2 = pd.read_csv(fn_stack_match)
+		df1not2 = pd.read_csv(fn_stack_1not2)
+		df2not1 = pd.read_csv(fn_stack_2not1)
+
+
+	# Combine all realizations for one tile into a single catalog. Catalogs combined AFTER matching. #
+	if os.path.isfile(fn_stack_2not1) is False or overwrite:
+
+		all_fn_match, all_fn_1not2, all_fn_2not1 = [], [], []
+
+		for r in ALL_REALIZATIONS:
+
+			if RUN_TYPE is None:
+				fn_match, fn_1not2, fn_2not1 = matcher(realization_number=r, tile_name=t, filter_name=None)
+
+			if RUN_TYPE is not None:
+				fn_match, fn_1not2, fn_2not1 = fof_matcher(realization_number=r, tile_name=t)
+
+			all_fn_match.append(fn_match); all_fn_1not2.append(fn_1not2); all_fn_2not1.append(fn_2not1)
+
+		print 'Stacking realizations. ', len(all_fn_match), 'files ...'
+		df1and2 = pd.concat((pd.read_csv(fn) for fn in all_fn_match))
+		df1not2 = pd.concat((pd.read_csv(fn) for fn in all_fn_1not2))
+		df2not1 = pd.concat((pd.read_csv(fn) for fn in all_fn_2not1))
+		print 'Stacking complete ... \n'
+
+
+		# Save stacked catalog as DataFrame #
+		df1and2.to_csv(fn_stack_match, sep=','); df1not2.to_csv(fn_stack_1not2, sep=','); df2not1.to_csv(fn_stack_2not1, sep=',')
+		print '-----> Saving stacked realization catalogs as ', fn_stack_match
+	        print '----->', fn_stack_1not2
+                print '----->', fn_stack_2not1
+
+        return fn_stack_match, fn_stack_1not2, fn_stack_2not1, len(ALL_REALIZATIONS)
+
+
+
+
+
+
+
+
+
+def get_fraction_recovered(cat_type, inj, inj_20percent, realization_number, tile_name, df, constant):
+	"""Get fraction of injected objects recovered after matching"""
+
+	not_recovered = df.shape[0]
+	
+	# Total #
+	fn = get_catalog(cat_type=cat_type, inj=inj, inj_20percent=inj_20percent, realization_number=realization_number, tile_name=tile_name, filter_name=None)
+	# Number injected is the same for all 20% realization catalogs (hdul). df2not1 is stacked. #
+	hdul = fits.open(fn)
+	data = hdul[1].data
+	tot = data.shape[0]*constant
+	# Percent of objects recovered #
+	recovered = float(tot-not_recovered)/tot
+	print 'Recovered: ', tot-not_recovered, '/', tot, '\n'
+
+	return recovered
+
+
+
+
+
+
+
+
 def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 	"""Makes plots.
 
@@ -2837,121 +3003,66 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 	global ALL_TILES
 
 
+	### Stack tiles ###
 	for r in ALL_REALIZATIONS:
 			
-		if STACK_TILES:
+		if STACK_TILES and STACK_REALIZATIONS is False:
 
-			#new_all_tiles, return df or fn?  = stack_tiles()
-
-			stack_dir = os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, 'stack', r)
-
-			# Check dir existence and handle nonexistence #
-                        if os.path.isdir(stack_dir) is False:
-                                if NO_DIR_MAKE is False:
-                                        sys.exit('Directory ' + str(stack_dir) + ' does not exist. \n Change directory structure in ms_plotter. or set `NO_DIR_MAKE=True`')
-                                if NO_DIR_MAKE:
-                                        print 'Making directory ', stack_dir, '...\n'
-                                        os.makedirs(stack_dir)
-
-			# Filename for stacked catalogs #
-                        fn_stack_match = os.path.join(stack_dir, 'stacked_'+str(r)+'_'+str(MATCH_TYPE)+'_match1and2.csv')
-                        fn_stack_1not2 = os.path.join(stack_dir, 'stacked_'+str(r)+'_'+str(MATCH_TYPE)+'_match1not2.csv')
-                        fn_stack_2not1 = os.path.join(stack_dir, 'stacked_'+str(r)+'_'+str(MATCH_TYPE)+'_match2not1.csv')
-
-                        # Check if stacked realization file already exists #
-                        overwrite = False 
-
-                        if os.path.isfile(fn_stack_2not1) and overwrite is False:
-                                print 'Stacked tile catalog exists. Not overwriting ... \n'
-                                df1and2 = pd.read_csv(fn_stack_match)
-                                df1not2 = pd.read_csv(fn_stack_1not2)
-                                df2not1 = pd.read_csv(fn_stack_2not1)
-
-			# Combine all realizations for one tile into a single catalog. Catalogs combined AFTER matching. #
-                        if os.path.isfile(fn_stack_2not1) is False or overwrite:
-                                all_fn_match, all_fn_1not2, all_fn_2not1 = [], [], []
-                                for t in ALL_TILES:
-                                        if RUN_TYPE is None:
-                                                fn_match, fn_1not2, fn_2not1 = matcher(realization_number=r, tile_name=t, filter_name=None)
-                                        if RUN_TYPE is not None:
-                                                fn_match, fn_1not2, fn_2not1 = fof_matcher(realization_number=r, tile_name=t)
-                                        all_fn_match.append(fn_match); all_fn_1not2.append(fn_1not2); all_fn_2not1.append(fn_2not1)
-
-                                print 'Stacking tiles. ', len(all_fn_match), 'files ...'
-                                df1and2 = pd.concat((pd.read_csv(fn) for fn in all_fn_match))
-                                df1not2 = pd.concat((pd.read_csv(fn) for fn in all_fn_1not2))
-                                df2not1 = pd.concat((pd.read_csv(fn) for fn in all_fn_2not1))
-                                print 'Stacking complete ... \n'
-
-
-                                # Save stacked catalog as DataFrame #
-                                df1and2.to_csv(fn_stack_match, sep=','); df1not2.to_csv(fn_stack_1not2, sep=','); df2not1.to_csv(fn_stack_2not1, sep=',')
-                                print '-----> Saving stacked tile catalog as ', fn_stack_match
-
-			### Rewrite ###
-			num_stack_tile = len(ALL_TILES)
-		        ALL_TILES = ['stack']
+			fn_stack_match, fn_stack_1not2, fn_stack_2not1, num_stack_tile = stack_tiles(realization_number=r)
+			
+			# Rewrite #
+			ALL_TILES = ['stack']
 
 
 
+	### Stack realizations ###
 	for t in ALL_TILES:
 
 		### For plotting all realizations at once, stacked ###
 		if STACK_REALIZATIONS and STACK_TILES is False:
 
-			# Dir for stacked catalog #
-			stack_dir = os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, t, 'stack')
+			fn_stack_match, fn_stack_1not2, fn_stack_2not1, num_stack_real = stack_realizations(realization_number=r)
 
-			# Check dir existence and handle nonexistence #
-			if os.path.isdir(stack_dir) is False:
-				if NO_DIR_MAKE is False:
-					sys.exit('Directory ' + str(stack_dir) + ' does not exist. \n Change directory structure in ms_plotter. or set `NO_DIR_MAKE=True`')
-				if NO_DIR_MAKE:
-					print 'Making directory ', stack_dir, '...\n'
-					os.makedirs(stack_dir)
-			
-			# Filename for stacked catalogs #
-			fn_stack_match = os.path.join(stack_dir, t+'_stacked_'+str(MATCH_TYPE)+'_match1and2.csv')
-			fn_stack_1not2 = os.path.join(stack_dir, t+'_stacked_'+str(MATCH_TYPE)+'_match1not2.csv')
-			fn_stack_2not1 = os.path.join(stack_dir, t+'_stacked_'+str(MATCH_TYPE)+'_match2not1.csv')
-			
-			# Check if stacked realization file already exists #
-			overwrite = False
-
-			if os.path.isfile(fn_stack_2not1) and overwrite is False:
-				print 'Stacked realization catalog exists. Not overwriting ... \n'
-				df1and2 = pd.read_csv(fn_stack_match)
-				df1not2 = pd.read_csv(fn_stack_1not2)
-				df2not1 = pd.read_csv(fn_stack_2not1)
-		
-			# Combine all realizations for one tile into a single catalog. Catalogs combined AFTER matching. #
-			if os.path.isfile(fn_stack_2not1) is False or overwrite:
-				all_fn_match, all_fn_1not2, all_fn_2not1 = [], [], []
-				for r in ALL_REALIZATIONS:
-					if RUN_TYPE is None:
-						fn_match, fn_1not2, fn_2not1 = matcher(realization_number=r, tile_name=t, filter_name=None)
-					if RUN_TYPE is not None:
-						fn_match, fn_1not2, fn_2not1 = fof_matcher(realization_number=r, tile_name=t)
-					all_fn_match.append(fn_match); all_fn_1not2.append(fn_1not2); all_fn_2not1.append(fn_2not1)
-
-				print 'Stacking realizations. ', len(all_fn_match), 'files ...'
-				df1and2 = pd.concat((pd.read_csv(fn) for fn in all_fn_match))
-				df1not2 = pd.concat((pd.read_csv(fn) for fn in all_fn_1not2)) 
-				df2not1 = pd.concat((pd.read_csv(fn) for fn in all_fn_2not1))
-				print 'Stacking complete ... \n'
-
-
-				# Save stacked catalog as DataFrame #
-				df1and2.to_csv(fn_stack_match, sep=','); df1not2.to_csv(fn_stack_1not2, sep=','); df2not1.to_csv(fn_stack_2not1, sep=',')
-				print '-----> Saving stacked realization catalog as ', fn_stack_match
-
-			### Rewrite ###
-			num_stack_real = len(ALL_REALIZATIONS)
+			# Rewrite #
 			ALL_REALIZATIONS = ['stack']
 
 
 
+	### Objects recovered from truth catalog (truth catalogs ONLY) ###
+	if STACK_TILES or STACK_REALIZATIONS:
 
+		# Get DataFrame for stacked catalogs #
+		if STACK_REALIZATIONS or STACK_TILES:
+			df1and2 = pd.read_csv(fn_stack_match)
+			df1not2 = pd.read_csv(fn_stack_1not2)
+			df2not1 = pd.read_csv(fn_stack_2not1)
+
+		if STACK_TILES:
+			constant = num_stack_tile
+
+		if STACK_REALIZATIONS:
+			constant = num_stack_real
+
+
+		if 'truth' in MATCH_CAT1 or 'truth' in MATCH_CAT2:
+
+			if 'truth' in MATCH_CAT1:
+				frac_recov = get_fraction_recovered(cat_type=MATCH_CAT1, inj=True, inj_20percent=INJ1_20PERCENT, realization_number=SAMPLE_R, tile_name=SAMPLE_T, df=df1not2, constant=constant)
+
+			if 'truth' in MATCH_CAT2:
+				frac_recov = get_fraction_recovered(cat_type=MATCH_CAT2, inj=True, inj_20percent=INJ2_20PERCENT, realization_number=SAMPLE_R, tile_name=SAMPLE_T, df=df2not1, consant=constant)
+
+			recovered = frac_recov 
+
+
+		if 'truth' not in MATCH_CAT1 and 'truth' not in MATCH_CAT2:
+			# This will not be used, is a placeholder #
+			recovered = None
+
+
+
+
+	for t in ALL_TILES:
 
 		for r in ALL_REALIZATIONS:
 
@@ -2960,8 +3071,10 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 			# Write headers #
 			fd_nop, fd_mag_bins, fd_flag = fd_first_write(fn_nop=fn_nop, fn_mag_bins=fn_mag_bins, fn_flag=fn_flag)
 
+
+
 			if STACK_REALIZATIONS is False and STACK_TILES is False:
-				print 'Not stacking realizations...\n'
+				print 'Not stacking realizations and not stacking tiles ...\n'
 
 				# Filenames for catalogs #
 				if RUN_TYPE is None:
@@ -2974,35 +3087,23 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 				df1not2 = pd.read_csv(fn_1not2)
 				df2not1 = pd.read_csv(fn_2not1)
 
-			#FIXME under constr. Won't work for stacked catalogs.
-			### Objects recovered from truth catalog ###
 
+
+
+
+			### Objects recovered from truth catalog (truth catalogs ONLY) ###
 			if 'truth' in MATCH_CAT1 or 'truth' in MATCH_CAT2:
+
 
 				if STACK_TILES is False and STACK_REALIZATIONS is False:
 					if 'truth' in MATCH_CAT1:
-						fn = get_catalog(cat_type=MATCH_CAT1, inj=True, inj_20percent=INJ1_20PERCENT, realization_number=r, tile_name=t, filter_name=None)
-						not_recovered = df1not2.shape[0]
+						 frac_recov = get_fraction_recovered(cat_type=MATCH_CAT1, inj=True, inj_20percent=INJ1_20PERCENT, realization_number=r, tile_name=t, df=df1not2, constant=1)
 					if 'truth' in MATCH_CAT2:
-						fn = get_catalog(cat_type=MATCH_CAT2, inj=True, inj_20percent=INJ2_20PERCENT, realization_number=r, tile_name=t, filter_name=None)
-						not_recovered = df2not1.shape[0]
-					# Get total number of objects in truth catalog #
-					constant = 1
-					hdul = fits.open(fn)
-					data = hdul[1].data
-					tot = data.shape[0]*constant
-					# Percent of objects recovered #
-					recovered = float(tot-not_recovered)/tot
-					print 'Recovered: ', tot-not_recovered, '/', tot, '\n'
+						frac_recov = get_fraction_recovered(cat_type=MATCH_CAT2, inj=True, inj_20percent=INJ2_20PERCENT, realization_number=r, tile_name=t, df=df2not1, constant=1)
+					recovered = frac_recov 
 
-				if STACK_TILES: 
-					if 'truth' in MATCH_CAT1:
-                                                fn = get_catalog(cat_type=MATCH_CAT1, inj=True, inj_20percent=INJ1_20PERCENT, realization_number=SAMPLE_R, tile_name=SAMPLE_T, filter_name=None)
-                                                not_recovered = df1not2.shape[0]
-					if 'truth' in MATCH_CAT2:
-                                                fn = get_catalog(cat_type=MATCH_CAT2, inj=True, inj_20percent=INJ2_20PERCENT, realization_number=SAMPLE_R, tile_name=SAMPLE_T, filter_name=None)
-                                                not_recovered = df2not1.shape[0]
-					constant = len(ALL_TILES)
+					# TILE \t REALIZATION \t FILTER \t PERCENT_RECOVERED #
+					fd_full_recovered_log.write(str(t) + '\t' + str(r) + '\t' + 'griz\t' + str(recovered*100) + '\n')
 
 			if 'truth' not in MATCH_CAT1 and 'truth' not in MATCH_CAT2:
 				# This will not be used, is a placeholder #
@@ -3293,3 +3394,8 @@ if RUN_TYPE_LOOP:
 		RUN_TYPE = run_type
 		make_plots(mag_hdr1=M_HDR1, mag_hdr2=M_HDR2, mag_err_hdr1=M_ERR_HDR1, mag_err_hdr2=M_ERR_HDR2)
 
+
+
+#FIXME close this at another time?
+fd_full_log.close()
+fd_full_recovered_log.close()
