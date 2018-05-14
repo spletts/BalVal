@@ -67,7 +67,9 @@ ALL_FILTERS = [ 'g', 'r', 'i', 'z' ]
 #ALL_TILES = [ 'DES0347-5540', 'DES2329-5622', 'DES2357-6456' ]
 
 
-
+# For stacked catalogs #
+SAMPLE_R = ALL_REALIZATIONS[0]
+SAMPLE_T = ALL_TILES[0]
 
 
 
@@ -84,7 +86,7 @@ CM_T_ERR_COLORBAR = False
 CM_T_COLORBAR = False
 BIN_CM_T_S2N = False
 # Normalizes plot to 1-sigma magnitude error. If NORMALIZE is True, PLOT_1SIG must be True else errors will not be computed and normalization cannot be performed #
-NORMALIZE = True
+NORMALIZE = False
 
 # Use quality cuts introduced by Eric Huff? Link: https://github.com/sweverett/Balrog-GalSim/blob/master/plots/balrog_catalog_tests.py. Can only be performed if catalog has all the necessary headers: cm_s2n_r, cm_T, cm_T_err, and psfrec_T. #
 EH_CUTS = False
@@ -105,10 +107,10 @@ SWAP_HAX = False
 
 ### Catalog attributes ###
 # !!!!! Allowed values: y3_gold, sof, mof, star_truth, gal_truth, coadd. Both can be 'sof' and both can be 'mof' if INJ1 and INJ2 are different. Note that truth catalogs always have INJ=True. #
-MATCH_CAT1, MATCH_CAT2 = 'gal_truth', 'mof'
+MATCH_CAT1, MATCH_CAT2 = 'gal_truth', 'sof'
 # !!!!! Booleans. Examine injected catalogs? #
 INJ1, INJ2 = True, True
-
+INJ1_20PERCENT, INJ2_20PERCENT = True, True
 
 ### Handle nonsensical combinations ###
 # Always non injections #
@@ -205,7 +207,7 @@ class CoaddCat():
 	"""Declare headers for coadd catalogs .../coadd/{tile}_{filter}_cat.fits. There is a separate catalog for each filter."""
 
         # Once matched, headers will have form 'hdr_1' or 'hdr_2' with a suffix (suf) #
-	def __init__(self, inj, suf):
+	def __init__(self, inj, inj_20percent, suf):
 		"""Declare headers.
 
 		Args:
@@ -215,7 +217,9 @@ class CoaddCat():
 
 		# For plot title #
 		if inj:
-			self.title_piece = 'Inj Coadd Cat'
+			self.title_piece = '10% Inj Coadd Cat'
+		if inj_20percent:
+			self.title_piece = '20% Inj Coadd Cat'
 		if inj is False:
 			self.title_piece = 'Base Coadd Cat'
 		self.axlabel = 'meas'
@@ -261,7 +265,7 @@ class SOFGalTruthCat():
 	"""Declare headers and axes labels for galaxy truth catalogs in the sof directory /data/des71.a/data/kuropat/des2247-4414_sof/."""
 
 	# Once matched, headers will have form 'hdr_1' or 'hdr_2' with a suffix (suf) #
-	def __init__(self, inj, suf):
+	def __init__(self, inj, inj_20percent, suf):
 		"""Declare constants.
 
                 Args:
@@ -271,7 +275,9 @@ class SOFGalTruthCat():
 
 		# `inj` forced True for truth catalogs #
 		if inj:
-			self.title_piece = 'Inj Gal Truth Cat'
+			self.title_piece = '10% Inj Gal Truth Cat'
+		if inj_20percent:
+			self.title_piece = '20% Inj Gal Truth Cat'
 		self.axlabel = 'true'
 		# Headers are the same as MOFCat class. Reproduced below for clarity in ms_plotter.py #
 		# Magnitude, is string of form '(mag_g, mag_r, mag_i, mag_z)' #
@@ -314,7 +320,7 @@ class SOFCat():
         """Declare headers and axis labels for sof catalog in /data/des71.a/data/kuropat/des2247-4414_sof/y3v02/balrog_images/{realization}/{tile}/sof/{tile}_sof.fits and /data/des71.a/data/kuropat/sof_stars/y3v02/balrog_images/{realization}/{tile}/mof/{tile}_mof.fits"""
 
 	# Once matched, headers will have form 'hdr_1' or 'hdr_2' with a suffix (suf) #
-        def __init__(self, inj, suf):
+        def __init__(self, inj, inj_20percent, suf):
 		"""Declare constants.
 
                 Args:
@@ -323,7 +329,9 @@ class SOFCat():
                 """
 
                 if inj:
-                        self.title_piece = 'Inj SOF Cat'
+                        self.title_piece = '10% Inj SOF Cat'
+		if inj_20percent:
+			self.title_piece = '20% Inj SOF Cat'
                 if inj is False:
                         self.title_piece = 'Base SOF Cat'
 		self.axlabel = 'meas'
@@ -368,7 +376,7 @@ class MOFCat():
 	"""Declare headers and axes labels for MOF catalog. Currently, the galaxy truth catalogs are created using MOF and have the same headers. Works (mostly) with /data/des71.a/data/kuropat/sof_stars/y3v02/balrog_images/{realization}/{tile}/{tile}_{realization}_balrog_truth_cat_gals.fits, /data/des71.a/data/kuropat/sof_stars/y3v02/balrog_images/{realization}/{tile}/mof/{tile}_mof.fits, ..."""
 
 	# Once matched, headers will have form 'hdr_1' or 'hdr_2' with a suffix (suf) #
-        def __init__(self, inj, suf):
+        def __init__(self, inj, inj_20percent, suf):
 		"""Declare constants.
 
 		Args:
@@ -378,7 +386,9 @@ class MOFCat():
 
 		# For plot title #
 		if inj:
-			self.title_piece = 'Inj MOF Cat'
+			self.title_piece = '10% Inj MOF Cat'
+		if inj_20percent:
+			self.title_piece = '20% Inj MOF Cat'
 		if inj is False:
 			self.title_piece = 'Base MOF Cat'
 		self.axlabel = 'meas'
@@ -422,7 +432,7 @@ class StarTruthCat(): #are there sep headers for MOFStarTruthCat and SOFStarTrut
         """Declare headers and axes labels for star truth catalogs in /data/des71.a/data/kuropat/sof_stars/."""
 
 	# Once matched, headers will have form 'hdr_1' or 'hdr_2' with a suffix (suf) #
-	def __init__(self, inj, suf):
+	def __init__(self, inj, inj_20percent, suf):
 		"""Declare constants.
 	
 		Args:
@@ -432,7 +442,9 @@ class StarTruthCat(): #are there sep headers for MOFStarTruthCat and SOFStarTrut
 	
 		# `inj` forced True for truth catalogs #	
 		if inj:
-			self.title_piece = 'Inj Star Truth Cat'
+			self.title_piece = '10% Inj Star Truth Cat'
+		if inj_20percent:
+			self.title_piece = '20% Inj Star Truth Cat'
 		self.axlabel = 'true'
 		# Magnitude #
 		self.mag_hdr = 'g_Corr' + str(suf) 
@@ -475,7 +487,7 @@ class Y3Gold():
 	"""Declare headers and axes labels for Y3 Gold catalog (https://cdcvs.fnal.gov/redmine/projects/des-y3/wiki/Full_list_of_Y3_GOLD_2_0_Columns).""" 
 
 	# Once matched, headers will have form 'hdr_1' or 'hdr_2' with a suffix (suf) #
-	def __init__(self, inj, suf):
+	def __init__(self, inj, inj_20percent, suf):
                 """Declare constants.
 
                 Args:
@@ -539,7 +551,7 @@ class Y3Gold():
 
 
 
-def get_class(cat_type, inj, suf):
+def get_class(cat_type, inj, inj_20percent, suf):
         """Get the appropriate class for the catalog type.
 
         Args:
@@ -551,19 +563,19 @@ def get_class(cat_type, inj, suf):
         """
 
         if cat_type == 'gal_truth':
-                cat_type_class = SOFGalTruthCat(inj=inj, suf=suf)
+                cat_type_class = SOFGalTruthCat(inj=inj, inj_20percent=inj_20percent, suf=suf)
 
         if cat_type == 'mof':
-                cat_type_class = MOFCat(inj=inj, suf=suf)
+                cat_type_class = MOFCat(inj=inj, inj_20percent=inj_20percent, suf=suf)
 
         if cat_type == 'star_truth':
-                cat_type_class = StarTruthCat(inj=inj, suf=suf)
+                cat_type_class = StarTruthCat(inj=inj, inj_20percent=inj_20percent, suf=suf)
 
         if cat_type == 'sof':
-                cat_type_class = SOFCat(inj=inj, suf=suf)
+                cat_type_class = SOFCat(inj=inj, inj_20percent=inj_20percent, suf=suf)
 
         if cat_type == 'coadd':
-                cat_type_class = CoaddCat(inj=inj, suf=suf)
+                cat_type_class = CoaddCat(inj=inj, inj_20percent=inj_20percent, suf=suf)
 
 	if cat_type == 'y3_gold':
 		cat_type_class = Y3Gold(inj=inj, suf=suf)
@@ -692,10 +704,10 @@ def get_reg_names(tile_name, realization_number):
 ### For data analysis ###
 # CLASS1 refers to in1 in ms_matcher. in1 appends _1 to all the headers, hence suf=1. fof_matcher is done such that injected catalogs have no suffix #
 if RUN_TYPE is not None:
-	CLASS1 = get_class(cat_type=MATCH_CAT1, inj=INJ1, suf='')
+	CLASS1 = get_class(cat_type=MATCH_CAT1, inj=INJ1, inj_20percent=INJ1_20PERCENT, suf='')
 if RUN_TYPE is None:
-	CLASS1 = get_class(cat_type=MATCH_CAT1, inj=INJ1, suf='_1')
-CLASS2 = get_class(cat_type=MATCH_CAT2, inj=INJ2, suf='_2')
+	CLASS1 = get_class(cat_type=MATCH_CAT1, inj=INJ1, inj_20percent=INJ1_20PERCENT, suf='_1')
+CLASS2 = get_class(cat_type=MATCH_CAT2, inj=INJ2, inj_20percent=INJ2_20PERCENT, suf='_2')
 
 
 # Get arguments to pass to ms_matcher. Need to transform header of form 'ra_1' to 'ra', hence [:-2] #
@@ -2553,7 +2565,7 @@ def get_y3_gold_mag(df, mag_hdr):
 
 
 
-def get_catalog(cat_type, inj, realization_number, tile_name, filter_name):
+def get_catalog(cat_type, inj, inj_20percent, realization_number, tile_name, filter_name):
         """Get catalog to analyze.
 	
         Args:
@@ -2567,7 +2579,8 @@ def get_catalog(cat_type, inj, realization_number, tile_name, filter_name):
         """
 
 	if BALROG_RUN == 'TAMU_Balrog':
-		fn = get_tamu_catalog(cat_type=cat_type, inj=inj, realization_number=realization_number, tile_name=tile_name, filter_name=filter_name)
+		fn = get_tamu_catalog(cat_type=cat_type, inj=inj, inj_20percent=inj_20percent, realization_number=realization_number, tile_name=tile_name, filter_name=filter_name)
+
 
 	if BALROG_RUN != 'TAMU_Balrog':
 		if cat_type == 'gal_truth' and inj:
@@ -2595,6 +2608,7 @@ def get_catalog(cat_type, inj, realization_number, tile_name, filter_name):
 		if cat_type == 'coadd' and inj is False:
 			fn = os.path.join(BASEPATH, 'y3v02', tile_name, 'coadd', tile_name+'_'+filter_name+'_cat.fits')
 
+
 	# Y3 catalogs cannot be injected #
 	if cat_type == 'y3_gold':
 		# !!!!! User may need to alter path to Y3 Gold catalog #
@@ -2610,23 +2624,43 @@ def get_catalog(cat_type, inj, realization_number, tile_name, filter_name):
 
 
 
-def get_tamu_catalog(cat_type, inj, realization_number, tile_name, filter_name):
+def get_tamu_catalog(cat_type, inj, inj_20percent, realization_number, tile_name, filter_name):
 	"""Get catalog for TAMU tests"""
+	
+	if inj_20percent:
 
-	if cat_type == 'mof' and inj:
-		fn = os.path.join(BASEPATH, tile_name, 'real_' + realization_number + '_' + tile_name + '_mof.fits')
-	if cat_type == 'mof' and inj is False:
-		fn = os.path.join(BASEPATH, tile_name, 'base_' + tile_name + '_mof.fits')
+		if cat_type == 'mof' and inj:
+                        fn = os.path.join(BASEPATH, tile_name + '_20', 'real_' + realization_number + '_' + tile_name + '_mof.fits')
+		if cat_type == 'mof' and inj is False:
+			fn = os.path.join(BASEPATH, tile_name + '_20', 'base_' + tile_name + '_mof.fits')
 
-	if cat_type == 'sof' and inj:
-		fn = os.path.join(BASEPATH, tile_name, 'real_' + realization_number + '_' + tile_name + '_sof.fits') 
-	if cat_type == 'sof' and inj is False:
-		fn = os.path.join(BASEPATH, tile_name, 'base_' + tile_name + '_sof.fits')
+                if cat_type == 'sof' and inj:
+                        fn = os.path.join(BASEPATH, tile_name + '_20', 'real_' + realization_number + '_' + tile_name + '_sof.fits')
+		if cat_type == 'sof' and inj is False:
+			fn = os.path.join(BASEPATH, tile_name + '_20', 'base_' + tile_name + '_sof.fits')
 
-	if cat_type == 'gal_truth':
-		fn = os.path.join(BASEPATH, tile_name, tile_name + '_' + realization_number + '_balrog_truth_cat_gals.fits')
-	if cat_type == 'star_truth':
-		fn = os.path.join(BASEPATH, tile_name, tile_name + '_' + realization_number + '_balrog_truth_cat_stars.fits')
+                if cat_type == 'gal_truth' and inj:
+                        fn = os.path.join(BASEPATH, tile_name + '_20', tile_name + '_' + realization_number + '_balrog_truth_cat_gals.fits')
+
+		if cat_type == 'star_truth' and inj:
+                        fn = os.path.join(BASEPATH, tile_name + '_20', tile_name + '_' + realization_number + '_balrog_truth_cat_stars.fits')
+
+	# 10% injection #
+	if inj_20percent is False:
+		if cat_type == 'mof' and inj:
+			fn = os.path.join(BASEPATH, tile_name, 'real_' + realization_number + '_' + tile_name + '_mof.fits')
+		if cat_type == 'mof' and inj is False:
+			fn = os.path.join(BASEPATH, tile_name, 'base_' + tile_name + '_mof.fits')
+
+		if cat_type == 'sof' and inj:
+			fn = os.path.join(BASEPATH, tile_name, 'real_' + realization_number + '_' + tile_name + '_sof.fits') 
+		if cat_type == 'sof' and inj is False:
+			fn = os.path.join(BASEPATH, tile_name, 'base_' + tile_name + '_sof.fits')
+
+		if cat_type == 'gal_truth':
+			fn = os.path.join(BASEPATH, tile_name, tile_name + '_' + realization_number + '_balrog_truth_cat_gals.fits')
+		if cat_type == 'star_truth':
+			fn = os.path.join(BASEPATH, tile_name, tile_name + '_' + realization_number + '_balrog_truth_cat_stars.fits')
 
 	return fn
 
@@ -2653,14 +2687,14 @@ def matcher(realization_number, tile_name, filter_name):
 
         # Input catalogs for STILTS #
 	if MATCH_CAT1 is not 'coadd':
-		in1 = get_catalog(cat_type=MATCH_CAT1, inj=INJ1, realization_number=realization_number, tile_name=tile_name, filter_name=filter_name)
+		in1 = get_catalog(cat_type=MATCH_CAT1, inj=INJ1, inj_20percent=INJ1_20PERCENT, realization_number=realization_number, tile_name=tile_name, filter_name=filter_name)
 	if MATCH_CAT1 == 'coadd':
-		in1 =  get_coadd_matcher_catalog(cat_type=MATCH_CAT1, inj=INJ1, realization_number=realization_number, tile_name=tile_name, mag_hdr=M_HDR1, err_hdr=M_ERR_HDR1)
+		in1 =  get_coadd_matcher_catalog(cat_type=MATCH_CAT1, inj=INJ1, inj_20percent=INJ1_20PERCENT, realization_number=realization_number, tile_name=tile_name, mag_hdr=M_HDR1, err_hdr=M_ERR_HDR1)
 
 	if MATCH_CAT2 is not 'coadd':
-		in2 = get_catalog(cat_type=MATCH_CAT2, inj=INJ2, realization_number=realization_number, tile_name=tile_name, filter_name=filter_name)
+		in2 = get_catalog(cat_type=MATCH_CAT2, inj=INJ2, inj_20percent=INJ2_20PERCENT, realization_number=realization_number, tile_name=tile_name, filter_name=filter_name)
 	if MATCH_CAT2 == 'coadd':
-		in2 =  get_coadd_matcher_catalog(cat_type=MATCH_CAT2, inj=INJ2, realization_number=realization_number, tile_name=tile_name, mag_hdr=M_HDR2, err_hdr=M_ERR_HDR2)
+		in2 =  get_coadd_matcher_catalog(cat_type=MATCH_CAT2, inj=INJ2, inj_20percent=INJ2_20PERCENT, realization_number=realization_number, tile_name=tile_name, mag_hdr=M_HDR2, err_hdr=M_ERR_HDR2)
 
         # !!!!! User may wish to edit directory structure. Output catalog name for STILTS #
 	match_dir = os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, tile_name, realization_number, 'catalog_compare')	
@@ -2807,6 +2841,8 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 			
 		if STACK_TILES:
 
+			#new_all_tiles, return df or fn?  = stack_tiles()
+
 			stack_dir = os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, 'stack', r)
 
 			# Check dir existence and handle nonexistence #
@@ -2924,7 +2960,7 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 			# Write headers #
 			fd_nop, fd_mag_bins, fd_flag = fd_first_write(fn_nop=fn_nop, fn_mag_bins=fn_mag_bins, fn_flag=fn_flag)
 
-			if STACK_REALIZATIONS is False and ALL_TILES is False:
+			if STACK_REALIZATIONS is False and STACK_TILES is False:
 				print 'Not stacking realizations...\n'
 
 				# Filenames for catalogs #
@@ -2932,29 +2968,41 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 					fn_match, fn_1not2, fn_2not1 = matcher(realization_number=r, tile_name=t, filter_name=None)
 				if RUN_TYPE is not None:
 					fn_match, fn_1not2, fn_2not1 = fof_matcher(realization_number=r, tile_name=t)
-				# DataFrame #
+
+				# Get DataFrame #
 				df1and2 = pd.read_csv(fn_match)
 				df1not2 = pd.read_csv(fn_1not2)
 				df2not1 = pd.read_csv(fn_2not1)
 
-			#FIXME remove comment
 			#FIXME under constr. Won't work for stacked catalogs.
 			### Objects recovered from truth catalog ###
-			recovered = None #FIXME
-			if STACK_TILES is False and 'truth' in MATCH_CAT1 or 'truth' in MATCH_CAT2:
-				if 'truth' in MATCH_CAT1:
-					fn = get_catalog(cat_type=MATCH_CAT1, inj=True, realization_number=r, tile_name=t, filter_name=None)
-					not_recovered = df1not2.shape[0]
-				if 'truth' in MATCH_CAT2:
-					fn = get_catalog(cat_type=MATCH_CAT2, inj=True, realization_number=r, tile_name=t, filter_name=None)
-					not_recovered = df2not1.shape[0]
-				# Get total number of objects in truth catalog #
-				hdul = fits.open(fn)
-				data = hdul[1].data
-				tot = data.shape[0]
-				# Percent of objects recovered #
-				recovered = float(tot-not_recovered)/tot
-				print 'Recovered: ', tot-not_recovered, '/', tot, '\n'
+
+			if 'truth' in MATCH_CAT1 or 'truth' in MATCH_CAT2:
+
+				if STACK_TILES is False and STACK_REALIZATIONS is False:
+					if 'truth' in MATCH_CAT1:
+						fn = get_catalog(cat_type=MATCH_CAT1, inj=True, inj_20percent=INJ1_20PERCENT, realization_number=r, tile_name=t, filter_name=None)
+						not_recovered = df1not2.shape[0]
+					if 'truth' in MATCH_CAT2:
+						fn = get_catalog(cat_type=MATCH_CAT2, inj=True, inj_20percent=INJ2_20PERCENT, realization_number=r, tile_name=t, filter_name=None)
+						not_recovered = df2not1.shape[0]
+					# Get total number of objects in truth catalog #
+					constant = 1
+					hdul = fits.open(fn)
+					data = hdul[1].data
+					tot = data.shape[0]*constant
+					# Percent of objects recovered #
+					recovered = float(tot-not_recovered)/tot
+					print 'Recovered: ', tot-not_recovered, '/', tot, '\n'
+
+				if STACK_TILES: 
+					if 'truth' in MATCH_CAT1:
+                                                fn = get_catalog(cat_type=MATCH_CAT1, inj=True, inj_20percent=INJ1_20PERCENT, realization_number=SAMPLE_R, tile_name=SAMPLE_T, filter_name=None)
+                                                not_recovered = df1not2.shape[0]
+					if 'truth' in MATCH_CAT2:
+                                                fn = get_catalog(cat_type=MATCH_CAT2, inj=True, inj_20percent=INJ2_20PERCENT, realization_number=SAMPLE_R, tile_name=SAMPLE_T, filter_name=None)
+                                                not_recovered = df2not1.shape[0]
+					constant = len(ALL_TILES)
 
 			if 'truth' not in MATCH_CAT1 and 'truth' not in MATCH_CAT2:
 				# This will not be used, is a placeholder #
@@ -3045,7 +3093,7 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 
 
 
-def get_coadd_matcher_catalog(cat_type, inj, realization_number, mag_hdr, err_hdr, tile_name):
+def get_coadd_matcher_catalog(cat_type, inj, inj_20percent, realization_number, mag_hdr, err_hdr, tile_name):
 	"""Make FITS file that includes a column of form '(m_g, m_r, m_i, m_z)' where m is magnitude. Column will be added to '..._i_cat.fits'. This will be used in matcher().
 
 	Args:
@@ -3079,7 +3127,7 @@ def get_coadd_matcher_catalog(cat_type, inj, realization_number, mag_hdr, err_hd
 		# Get list of filenames #
 		fn_griz = []
 		for f in ALL_FILTERS:
-			fn_griz.append(get_catalog(cat_type=cat_type, inj=inj, realization_number=realization_number, tile_name=tile_name, filter_name=f))
+			fn_griz.append(get_catalog(cat_type=cat_type, inj=inj, inj_20percent=inj_20percent, realization_number=realization_number, tile_name=tile_name, filter_name=f))
 		fn_g, fn_r, fn_i, fn_z = fn_griz
 
 		# Get coadd magnitude (mag_c) and magnitude error to be of form '(m_g, m_r, m_i, m_z)'. Recall that this is a string #
