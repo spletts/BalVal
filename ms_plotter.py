@@ -19,6 +19,7 @@ Megan Splettstoesser mspletts@fnal.gov"""
 from astropy.io import fits
 from astropy.table import Column
 from astropy.table import Table
+import csv
 import fileinput
 import matplotlib.pyplot as plt
 import matplotlib
@@ -77,11 +78,10 @@ SAMPLE_T = ALL_TILES[0]
 
 ### Colorbar ###
 # !!!!! Add colorbar according to one of the following (only one can be True at a time). If all are False a scatter-plot is made. Colorbars cannot be used if NORMALIZE is True. #
-# New default TODO test #
-HEXBIN = False
 HIST_2D = True
+HEXBIN = False
 CM_T_S2N_COLORBAR = False
-SCATTER = False #FIXME add to readme.md
+SCATTER = False 
 CM_T_ERR_COLORBAR = False
 CM_T_COLORBAR = False
 BIN_CM_T_S2N = False
@@ -95,8 +95,8 @@ EH_CUTS = False
 PLOT_1SIG = True
 
 # !!!!! What to do with the plot? #
-SAVE_PLOT = True
-SHOW_PLOT = True
+SAVE_PLOT = False
+SHOW_PLOT = False
 
 # !!!!! Limits for the vertical axis. 'None' is an allowed value and will result in default scaling #
 YLOW, YHIGH = None, None 
@@ -140,7 +140,7 @@ if 'y3_gold' in (MATCH_CAT1, MATCH_CAT2):
 
 # !!!!! Must be used with realization=all at command line #
 STACK_REALIZATIONS = False
-STACK_TILES = True
+STACK_TILES = False
 
 
 # !!!!! Make 2x2 subplots of each griz filter? Or make individual plots? #
@@ -760,7 +760,6 @@ TITLE_PIECE1, TITLE_PIECE2 = CLASS1.title_piece, CLASS2.title_piece
 MATCH_TYPE = get_match_type(title_piece1=TITLE_PIECE1, title_piece2=TITLE_PIECE2)
 
 
-#FIXME under const
 fn_full_log = os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, 'all_flags_all_1sig.csv') 
 fd_full_log = open(fn_full_log, 'w')
 fd_full_log.write('TILE\tREALIZATION\tFILTER\tRUN_TYPE\tTOTAL_MATCHES\tTOTAL_FLAGS\tPERCENT_FLAGS\tTOTAL_1SIGMA\tPERCENT_1SIGMA\n')
@@ -768,6 +767,14 @@ fd_full_log.write('TILE\tREALIZATION\tFILTER\tRUN_TYPE\tTOTAL_MATCHES\tTOTAL_FLA
 fn_full_recovered_log = os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, 'all_recovered.csv')
 fd_full_recovered_log = open(fn_full_recovered_log, 'w')
 fd_full_recovered_log.write('TILE\tREALIZATION\tFILTER\tPERCENT_RECOVERED\n')
+
+# Make pandas-readable csv #
+FN_LOG = os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, 'log_'+MATCH_TYPE+'.csv')
+with open(FN_LOG, 'wb') as csvfile:
+	writer = csv.writer(csvfile, delimiter=',')
+	# Write headers #
+	writer.writerow(['TILE', 'REALIZATION', 'FILTER', 'TOTAL_MATCHES', 'TOTAL_FLAGGED_OBJECTS', 'PERCENT_FLAGGED_OBJECTS', 'TOTAL_1SIGMA', 'PERCENT_1SIGMA', 'PERCENT_RECOVERED_FLAGS_INCLUDED', 'PERCENT_RECOVERED_FLAGS_REMOVED'])
+
 
 
 def fd_first_write(fn_nop, fn_mag_bins, fn_flag):
@@ -1119,7 +1126,7 @@ def handle_flags(df, flag_hdr1, flag_hdr2, filter_name, full_magnitude1, full_ma
                                 counter_idx_bad += 1
 
 				### Write flags to file with headers TILE, REALIZATION, FILTER, RUN_TYPE, FLAG1_HEADER, FLAG2_HEADER, FLAG1_VALUE, FLAG2_VALUE, MAG1, MAG2 ### 
-				fd_flag.write(str(tile_name) + str(realization_number) + '\t' + str(filter_name) + '\t' + str(RUN_TYPE) + '\t' + str(flag_hdr1) + '\t' + str(flag_hdr2) + '\t' + str(flag1[i]) + '\t' + str(flag2[i]) + '\t' + str(full_magnitude1[i]) + '\t' + str(full_magnitude2[i]) +'\n')
+				fd_flag.write(str(tile_name) + '\t' + str(realization_number) + '\t' + str(filter_name) + '\t' + str(RUN_TYPE) + '\t' + str(flag_hdr1) + '\t' + str(flag_hdr2) + '\t' + str(flag1[i]) + '\t' + str(flag2[i]) + '\t' + str(full_magnitude1[i]) + '\t' + str(full_magnitude2[i]) +'\n')
 
 
 
@@ -1717,7 +1724,7 @@ def logger(delta_mag, tile_name, filter_name, realization_number, clean_magnitud
             full_magnitude (list of floats) -- Values read directly from pandas DataFrame via `df[hdr]`; no objects removed using nonzero flag values and no quality cuts performed.
             realization_number (int) -- Allowed values: 0 1 2 None. Refers to Balrog injection and None refers to a one-realization run.
         Returns:
-            0
+            percent_in_1sig (float) -- Percent of objects within 1-sigma
 	"""
 
 	if NORMALIZE:
@@ -1725,17 +1732,45 @@ def logger(delta_mag, tile_name, filter_name, realization_number, clean_magnitud
 	if NORMALIZE is False:
 		num_1sig = one_sigma_counter(delta_mag=delta_mag, clean_magnitude1=clean_magnitude1, bins=bins, hax_mag=hax_mag, error=error) 
 
+	num_flags = len(full_magnitude1)-len(clean_magnitude1)
 
-		num_flags = len(full_magnitude1)-len(clean_magnitude1)
-
-		# TILE, REALIZATION, FILTER, RUN_TYPE, TOTAL_MATCHES, TOTAL_FLAGS, PERCENT_FLAGS, TOTAL_1SIGMA, PERCENT_1SIGMA #
-		fd_nop.write( str(tile_name) + ' \t ' + str(realization_number) + ' \t ' + str(filter_name) + ' \t ' + str(RUN_TYPE) + ' \t ' + str(len(full_magnitude1)) + ' \t ' + str(num_flags) + ' \t ' + str(float(num_flags)/len(full_magnitude1)*100) + ' \t ' + str(num_1sig) + ' \t ' + str(float(num_1sig)/len(clean_magnitude1)*100) + '\n')
+	# TILE, REALIZATION, FILTER, RUN_TYPE, TOTAL_MATCHES, TOTAL_FLAGS, PERCENT_FLAGS, TOTAL_1SIGMA, PERCENT_1SIGMA #
+	fd_nop.write( str(tile_name) + ' \t ' + str(realization_number) + ' \t ' + str(filter_name) + ' \t ' + str(RUN_TYPE) + ' \t ' + str(len(full_magnitude1)) + ' \t ' + str(num_flags) + ' \t ' + str(float(num_flags)/len(full_magnitude1)*100) + ' \t ' + str(num_1sig) + ' \t ' + str(float(num_1sig)/len(clean_magnitude1)*100) + '\n')
 
 	fd_full_log.write( str(tile_name) + ' \t ' + str(realization_number) + ' \t ' + str(filter_name) + ' \t ' + str(RUN_TYPE) + ' \t ' + str(len(full_magnitude1)) + ' \t ' + str(num_flags) + ' \t ' + str(float(num_flags)/len(full_magnitude1)*100) + ' \t ' + str(num_1sig) + ' \t ' + str(float(num_1sig)/len(clean_magnitude1)*100) + '\n')
 
 	percent_in_1sig = float(num_1sig)/len(clean_magnitude1)
 
-        return percent_in_1sig #FIXME edit Returns
+
+	# Write to log.csv with headers: 'TILE', 'REALIZATION', 'FILTER', 'TOTAL_MATCHES', 'TOTAL_FLAGGED_OBJECTS', 'PERCENT_FLAGGED_OBJECTS', 'TOTAL_1SIGMA', 'PERCENT_1SIGMA', 'PERCENT_RECOVERED_FLAGS_INCLUDED', 'PERCENT_RECOVERED_FLAGS_REMOVED' #
+	if 'truth' in MATCH_CAT1 or 'truth' in MATCH_CAT2:
+		if INJ1_20PERCENT and INJ2_20PERCENT:
+			const1 = 10000.0
+		if INJ1_20PERCENT is False and INJ2_20PERCENT is False:
+			const1 = 5000.0
+		# TODO calculate percent recovered when matching between 10% and 20%
+		if STACK_TILES:
+			const2 = len(ALL_TILES)
+		if STACK_REALIZATIONS:
+			const2 = len(ALL_REALIZATIONS)
+		if STACK_TILES is False and STACK_REALIZATIONS is False:
+			const2 = 1
+		# Including flags #
+		percent_recovered_flags = 100.0*len(full_magnitude1)/(const1*const2)
+		# Not including flags #
+		percent_recovered_flags_rm = 100.0*len(clean_magnitude1)/(const1*const2)
+
+	if 'truth' not in MATCH_CAT1 and 'truth' not in MATCH_CAT2:
+		percent_recovered_flags = None
+		percent_recovered_flags_rm = None
+
+	# Append to csv #	
+	with open(FN_LOG, 'a') as csvfile:
+		writer = csv.writer(csvfile, delimiter=',')
+		writer.writerow([str(tile_name), str(realization_number), str(filter_name), str(len(full_magnitude1)), str(num_flags), str(100.0*num_flags/len(full_magnitude1)), str(num_1sig), str(100.0*num_1sig/len(clean_magnitude1)), str(percent_recovered_flags), str(percent_recovered_flags_rm)])
+
+
+        return percent_in_1sig
 
 
 
@@ -3296,7 +3331,7 @@ def make_region_files(df_match, df_1not2, df_2not1, realization_number, tile_nam
 
 		### Write to region file for matched catalog. Units are arcseconds. ###
 		# Coadds allow for elliptical regions #
-		if (MATCH_CAT1 or MATCH_CAT2) in ('coadd', 'y3_gold'): #FIXME fix logic
+		if 'coadd' in (MATCH_CAT1, MATCH_CAT2) or 'y3_gold' in (MATCH_CAT1, MATCH_CAT2):
 			### Get semimajor and semiminor axes (a and b, respectively) and orientation. Coadds and Y3 Gold have these values. ###
 			a_match, b_match = df_match[MAJOR_AX_HDR1], df_match[MINOR_AX_HDR1]
 			a_1not2, b_1not2 = df_1not2[MAJOR_AX_HDR1], df_1not2[MINOR_AX_HDR1]
