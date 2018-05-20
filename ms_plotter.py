@@ -80,8 +80,8 @@ SAMPLE_T = ALL_TILES[0]
 
 ### Colorbar ###
 # !!!!! Add colorbar according to one of the following (only one can be True at a time). If all are False a scatter-plot is made. Colorbars cannot be used if NORMALIZE is True. #
-HIST_2D = False
-CORNER_HIST_2D = True
+HIST_2D = True
+CORNER_HIST_2D = False
 HEXBIN = False
 CM_T_S2N_COLORBAR = False
 SCATTER = False 
@@ -97,14 +97,17 @@ EH_CUTS = False
 # !!!!! Plot 1-sigma magnitude error curve? Must be True if NORMALIZE is True. If NORMALIZE is True will also plot the 68th percentile of the data in each error bin. #
 PLOT_1SIG = True
 
+# Plot colors not magnitudes?
+PLOT_COLOR = True 
+
 # !!!!! What to do with the plot? #
 SAVE_PLOT = False
 SHOW_PLOT = True
 
 # !!!!! Limits for the vertical axis. 'None' is an allowed value and will result in default scaling #
-YLOW, YHIGH = -3, 3
+YLOW, YHIGH = None, None
 
-CENTER_ERR_ABT_ZERO = False 
+CENTER_ERR_ABT_ZERO = True 
 
 # Swap horizontal axis? Default is magnitude1. Matching script ms_matcher determines which catalog is 1 and which is 2. Generally SWAP_HAX does not need to be changed unless the truth catalog values are not on the horizontal axis. #
 SWAP_HAX = False
@@ -1922,7 +1925,7 @@ def get_colorbar_value(df, cm_t_hdr, cm_t_err_hdr, idx_good, clean_magnitude1, c
 
 
 
-def get_errors(mag_err_hdr1, mag_err_hdr2, df, filter_name, idx_good):
+def get_error(mag_err_hdr, flux_hdr, cov_hdr, df, filter_name, idx_good, match_cat):
 	"""Get errors for plot.
 
 	Args:
@@ -1933,31 +1936,42 @@ def get_errors(mag_err_hdr1, mag_err_hdr2, df, filter_name, idx_good):
 	"""
 
         if PLOT_1SIG:
-                if mag_err_hdr1 is None:
-                        err1 = calculate_total_fractional_magnitude_error(df=df, flux_hdr=CM_FLUX_HDR1, cov_hdr=CM_FLUX_COV_HDR1, filter_name=filter_name, idx_good=idx_good)
-                if mag_err_hdr1 is not None:
-			if MATCH_CAT1 == 'coadd':
-				err1 = get_floats_from_string(df=df, hdr=mag_err_hdr1, filter_name=filter_name)
-			if MATCH_CAT1 == 'star_truth' or MATCH_CAT1 == 'y3_gold':
-                                err1 = df[str(mag_err_hdr1[:-2]) + '_' + filter_name.upper() + str(mag_err_hdr1[-2:])]
+                if mag_err_hdr is None:
+                        magError = calculate_total_fractional_magnitude_error(df=df, flux_hdr=flux_hdr, cov_hdr=cov_hdr, filter_name=filter_name, idx_good=idx_good)
+                if mag_err_hdr is not None:
+			if match_cat == 'coadd':
+				magError = get_floats_from_string(df=df, hdr=mag_err_hdr, filter_name=filter_name)
+			if match_cat == 'star_truth' or match_cat== 'y3_gold':
+                                magError = df[str(mag_err_hdr[:-2]) + '_' + filter_name.upper() + str(mag_err_hdr[-2:])]
 			# Pass good indices #
-			err1 = np.array(err1)[idx_good]
+			magError = np.array(magError)[idx_good]
+		
 
-                if mag_err_hdr2 is None:
-                        err2 = calculate_total_fractional_magnitude_error(df=df, flux_hdr=CM_FLUX_HDR2, cov_hdr=CM_FLUX_COV_HDR2, filter_name=filter_name, idx_good=idx_good)
-                if mag_err_hdr2 is not None:
-			if MATCH_CAT2 == 'coadd':
-				err2 = get_floats_from_string(df=df, hdr=mag_err_hdr2, filter_name=filter_name)
-			if MATCH_CAT2 == 'star_truth' or MATCH_CAT2 == 'y3_gold':
-				err2 = df[str(mag_err_hdr2[:-2]) + '_' + filter_name.upper() + str(mag_err_hdr2[-2:])] 
-			# Pass good indices #
-			err2 = np.array(err2)[idx_good]
+		if PLOT_COLOR:
+			if filter_name == 'g': filterFollow = 'r'
+			if filter_name == 'r': filterFollow = 'i'
+			if filter_name == 'i': filterFollow = 'z'
+			if filter_name == 'z': filterFollow = 'g' #FIXME must be lambda_short - lambda_long	
+			
+			if mag_err_hdr is None:
+				magErrorFollow = calculate_total_fractional_magnitude_error(df=df, flux_hdr=flux_hdr, cov_hdr=cov_hdr, filter_name=filterFollow, idx_good=idx_good)
+			if mag_err_hdr is None:
+				if match_cat == 'coadd':
+					magErrorFollow = get_floats_from_string(df=df, hdr=mag_err_hdr, filter_name=filterFollow)
+				if match_cat == 'star_truth' or match_cat== 'y3_gold':
+					magErrorFollow = df[str(mag_err_hdr[:-2]) + '_' + filterFollow.upper() + str(mag_err_hdr[-2:])]	
+
+			colorError = (np.array(magError)**2 + np.array(magErrorFollow)**2)**0.5
+
+			error = colorError
+
+		if PLOT_COLOR is False: error = magError
 
 
         if PLOT_1SIG is False:
-                err1, err2 = None, None
+		error = None
 
-	return err1, err2
+	return error 
 
 
 
@@ -1992,6 +2006,84 @@ def get_good_data(df, hdr, idx_good, magnitude, filter_name):
 
 
 
+def get_color_from_magnitude(df, hdr, clean_magnitude_a, filter_name, idx_good):
+	"""Get colors '(c1, c2, c3, c4)' from magnitudes"""
+
+	if filter_name == 'g': filter2 = 'r'
+	if filter_name == 'r': filter2 = 'i'
+	if filter_name == 'i': filter2 = 'z'
+	if filter_name == 'z': filter2 = 'g' #FIXME must be lambda_short - lambda_long
+
+	clean_magnitude_b = np.array(get_floats_from_string(df=df, hdr=hdr, filter_name=filter2))[idx_good]
+	cleanColor = clean_magnitude_a - clean_magnitude_b
+
+
+	return cleanColor
+
+
+
+
+
+
+
+
+
+def get_plot_labels(inj, mag_hdr, axlabel, match_cat, filter_name, cm_t_hdr, cm_t_err_hdr):
+	"""Get labels for x and y axis"""
+
+
+	if inj: pref = 'inj_'
+	if inj is False:
+		if match_cat != 'y3_gold':
+			pref = 'base_'
+		if match_cat == 'y3_gold':
+			pref = 'Y3_'
+
+
+	# Transform 'mag_2' to 'mag_true' or 'mag_meas' #
+	mag_axlabel = str(mag_hdr[:-2]) + '_' + str(axlabel)
+
+	# 'mag_true' --> 'mag_{filter}_true' and bold {filter} #
+	mag_axlabel = mag_axlabel[:-4] + '$\\bf{' + str(filter_name) + '}$_' + mag_axlabel[-4:]	
+
+	mag_axlabel = pref + mag_axlabel
+
+        # Coadd catalogs. Combined to get '(m_g, m_r, m_i, m_z)' then matched.  #
+	if match_cat == 'coadd':
+		mag_axlabel = 'MAG_AUTO_' + '$\\bf{' + str(filter_name) + '}$_' + str(axlabel) 
+
+
+	if CM_T_COLORBAR: cbar_label = pref + cm_t_hdr + '_' + str(axlabel)
+	if CM_T_ERR_COLORBAR: cbar_label = pref + cm_t_err_hdr + '_' + str(axlabel)
+	if CM_T_S2N_COLORBAR: cbar_label = 'cm_T_s2n_' + str(axlabel)
+
+	if cm_t_hdr is not None: cm_t_axlabel = pref + str(cm_t_hdr[:-2]) + '_' + str(axlabel)
+	if cm_t_hdr is None: cm_t_axlabel = None
+
+
+	if cm_t_err_hdr is not None: cm_t_err_axlabel = pref + str(cm_t_err_hdr[:-2]) + '_' + str(axlabel) 
+	if cm_t_err_hdr is None: cm_t_err_axlabel = None
+
+
+	if filter_name == 'g': color_axlabel = '$\\bf{(g-r)}$_' + str(axlabel) 
+	if filter_name == 'r': color_axlabel = '$\\bf{(r-i)}$_' + str(axlabel)
+	if filter_name == 'i': color_axlabel = '$\\bf{(i-z)}$_' + str(axlabel)
+	if filter_name == 'z': color_axlabel = '$\\bf{(z-g)}$_' + str(axlabel) #FIXME
+
+	color_axlabel = pref + color_axlabel	
+
+	
+	if PLOT_COLOR:
+		hax_label = color_axlabel
+	if PLOT_COLOR is False:
+		hax_label = mag_axlabel
+
+	return hax_label, color_axlabel
+
+
+
+
+
 
 
 
@@ -2005,78 +2097,49 @@ def get_plot_variables(filter_name, df, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_er
 	Returns:
 	"""
 
-	 # Rewrite mag_axlabels. Transform, for example, cm_mag_true to cm_mag_{filter}_true or psf_mag_meas to psf_mag_{filter}_meas #
-        if RUN_TYPE is None:
-                mag_axlabel1 = str(mag_hdr1[:-2]) + '_' + str(AXLABEL1)
-        if RUN_TYPE is not None:
-                mag_axlabel1 = str(mag_hdr1) + '_' + str(AXLABEL1)
-        mag_axlabel2 = str(mag_hdr2[:-2]) + '_' + str(AXLABEL2)
-
-        # Transform, for example, cm_mag_true to cm_mag_{filter}_true, or psf_mag_meas to psf_mag_{filter}_meas #
-	mag_axlabel1 = mag_axlabel1[:-4] + '$\\bf{' + str(filter_name) + '}$_' + mag_axlabel1[-4:]
-	mag_axlabel2 = mag_axlabel2[:-4] + '$\\bf{' + str(filter_name) + '}$_' + mag_axlabel2[-4:]
-
-        if INJ1:
-                mag_axlabel1 = 'inj_' + mag_axlabel1
-        if INJ2:
-                mag_axlabel2 = 'inj_' + mag_axlabel2
-
-	if INJ1 is False:
-		if MATCH_CAT1 != 'y3_gold':
-			mag_axlabel1 = 'base_' + mag_axlabel1
-		if MATCH_CAT1 == 'y3_gold':
-			mag_axlabel1 = 'Y3_' + mag_axlabel1
-	if INJ2 is False:
-		if MATCH_CAT2 != 'y3_gold':
-			mag_axlabel2 = 'base_' + mag_axlabel2
-		if MATCH_CAT2 == 'y3_gold':
-			mag_axlabel2 = 'Y3_' + mag_axlabel2
-	
-	# Coadd catalogs. Combined to get '(m_g, m_r, m_i, m_z)' then matched.  #
-	if MATCH_CAT1 == 'coadd':
-		mag_axlabel1 = 'MAG_AUTO_'+ str(AXLABEL1)
-	if MATCH_CAT2 == 'coadd':
-		mag_axlabel2 = 'MAG_AUTO_'+ str(AXLABEL2)
-
-        if CM_T_HDR1 is not None:
-                cm_t_axlabel1 = str(CM_T_HDR1[:-2]) + '_' + str(AXLABEL1)
-        if CM_T_HDR2 is not None:
-                cm_t_axlabel2 = str(CM_T_HDR2[:-2]) + '_' + str(AXLABEL2)
-
-        if CM_T_ERR_HDR1 is not None:
-                cm_t_err_axlabel1 = str(CM_T_ERR_HDR1[:-2]) + '_' + str(AXLABEL1)
-        if CM_T_ERR_HDR2 is not None:
-                cm_t_err_axlabel2 = str(CM_T_ERR_HDR2[:-2]) + '_' + str(AXLABEL2)
+	### Axes labels ###
+	#TODO haxLabel, cbarLabel = 
+	haxLabel1, cbarLabel1 = get_plot_labels(inj=INJ1, mag_hdr=mag_hdr1, axlabel=AXLABEL1, match_cat=MATCH_CAT1, filter_name=filter_name, cm_t_hdr=CM_T_HDR1, cm_t_err_hdr=CM_T_ERR_HDR1)
+	haxLabel2, cbarLabel2 = get_plot_labels(inj=INJ2, mag_hdr=mag_hdr2, axlabel=AXLABEL2, match_cat=MATCH_CAT2, filter_name=filter_name, cm_t_hdr=CM_T_HDR2, cm_t_err_hdr=CM_T_ERR_HDR2)
 
 
+	vaxLabel = get_ylabel(label1=haxLabel1, label2=haxLabel2, filter_name=filter_name)
 
-	### Define variables ###
-
-	# Get magnitude1 #
+	### Magnitudes ###
 	fullMag1 = get_floats_from_string(df=df, hdr=mag_hdr1, filter_name=filter_name)
-
-	# Get magnitude2 #
 	fullMag2 = get_floats_from_string(df=df, hdr=mag_hdr2, filter_name=filter_name)
 
 
 
 	### Clean the data: removed flags and/or perform quality cuts ###
 	if EH_CUTS:
-		idx_good = get_good_index_using_quality_cuts(df, full_magnitude1=fullMag1, full_magnitude2=fullMag2, cm_flag_hdr1=CM_FLAGS_HDR1, cm_flag_hdr2=CM_FLAGS_HDR2, flag_hdr1=FLAGS_HDR1, flag_hdr2=FLAGS_HDR2)[0]
+		idxGood = get_good_index_using_quality_cuts(df, full_magnitude1=fullMag1, full_magnitude2=fullMag2, cm_flag_hdr1=CM_FLAGS_HDR1, cm_flag_hdr2=CM_FLAGS_HDR2, flag_hdr1=FLAGS_HDR1, flag_hdr2=FLAGS_HDR2)[0]
 	
 	if EH_CUTS is False:
-                idx_good = get_good_index_using_primary_flags(df=df, full_magnitude1=fullMag1, full_magnitude2=fullMag2, cm_flag_hdr1=CM_FLAGS_HDR1, cm_flag_hdr2=CM_FLAGS_HDR2, flag_hdr1=FLAGS_HDR1, flag_hdr2=FLAGS_HDR2, filter_name=filter_name)[0]
+                idxGood = get_good_index_using_primary_flags(df=df, full_magnitude1=fullMag1, full_magnitude2=fullMag2, cm_flag_hdr1=CM_FLAGS_HDR1, cm_flag_hdr2=CM_FLAGS_HDR2, flag_hdr1=FLAGS_HDR1, flag_hdr2=FLAGS_HDR2, filter_name=filter_name)[0]
 
-	cleanMag1 = get_good_data(df=df, hdr=mag_hdr1, idx_good=idx_good, magnitude=True, filter_name=filter_name)
-	cleanMag2 = get_good_data(df=df, hdr=mag_hdr2, idx_good=idx_good, magnitude=True, filter_name=filter_name)
+	# if PLOT_COLOR or PLOT_MAG
+	cleanMag1 = get_good_data(df=df, hdr=mag_hdr1, idx_good=idxGood, magnitude=True, filter_name=filter_name)
+	cleanMag2 = get_good_data(df=df, hdr=mag_hdr2, idx_good=idxGood, magnitude=True, filter_name=filter_name)
 
 
 	# Some variables set to None because must pass to plotter() #
-	cbar_val, cbar_idx_bins, cbar_bins, cbar_axlabel = get_colorbar_value(df=df, cm_t_hdr=CM_T_HDR2, cm_t_err_hdr=CM_T_ERR_HDR2, idx_good=idx_good, clean_magnitude1=cleanMag1, clean_magnitude2=cleanMag2, axlabel=AXLABEL2, inj=INJ2)
+        cbar_val, cbar_idx_bins, cbar_bins, cbar_axlabel = get_colorbar_value(df=df, cm_t_hdr=CM_T_HDR2, cm_t_err_hdr=CM_T_ERR_HDR2, idx_good=idxGood, clean_magnitude1=cleanMag1, clean_magnitude2=cleanMag2, axlabel=AXLABEL2, inj=INJ2)
 
 
-	### Define errors ###
-	err1, err2 = get_errors(mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, df=df, filter_name=filter_name, idx_good=idx_good)
+        ### Define errors. Handles the case when PLOT_COLOR=True. ###
+	err1 = get_error(mag_err_hdr=mag_err_hdr1, flux_hdr=CM_FLUX_HDR1, cov_hdr=CM_FLUX_COV_HDR1, df=df, filter_name=filter_name, idx_good=idxGood, match_cat=MATCH_CAT1)
+	err2 = get_error(mag_err_hdr=mag_err_hdr2, flux_hdr=CM_FLUX_HDR2, cov_hdr=CM_FLUX_COV_HDR2, df=df, filter_name=filter_name, idx_good=idxGood, match_cat=MATCH_CAT2)
+
+
+
+	if PLOT_COLOR is False:
+		cleanData1 = cleanMag1; cleanData2 = cleanMag2
+
+	if PLOT_COLOR:
+		cleanColor1 = get_color_from_magnitude(df=df, hdr=mag_hdr1, filter_name=filter_name, idx_good=idxGood, clean_magnitude_a=cleanMag1)
+		cleanColor2 = get_color_from_magnitude(df=df, hdr=mag_hdr2, filter_name=filter_name, idx_good=idxGood, clean_magnitude_a=cleanMag2)
+		cleanData1 = cleanColor1; cleanData2 = cleanColor2
 
 
 	### Write flags to file ###
@@ -2096,7 +2159,10 @@ def get_plot_variables(filter_name, df, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_er
 		get_flag_type(df=df, k=counter_flag_type_printout)
 		counter_flag_type_printout += 1
 
-	return cbar_val, cbar_idx_bins, cbar_bins, err1, err2, cleanMag1, cleanMag2, idx_good, cbar_axlabel, fullMag1, mag_axlabel1, mag_axlabel2	
+
+	#FIXME return cleanHax, cleanVax general instead of mag
+	#return cbar_val, cbar_idx_bins, cbar_bins, err1, err2, cleanMag1, cleanMag2, idxGood, cbar_axlabel, fullMag1, haxLabel1, haxLabel2, vaxLabel
+	return cbar_val, cbar_idx_bins, cbar_bins, err1, err2, cleanData1, cleanData2, idxGood, cbar_axlabel, fullMag1, haxLabel1, haxLabel2, vaxLabel
 
 
 
@@ -2110,13 +2176,21 @@ def get_plot_variables(filter_name, df, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_er
 def get_ylabel(label1, label2, filter_name):
 	"""Shorten vertical axis label for ease of readibility"""
 
+	shared_label = ''
+
 	### Look for similarities in vertical axis labels and build a shared label ###
         # Phrases that may be shared: inj, meas, true, cm_mag_{filter} or psf_mag #
-        shared_label = ''
         if 'inj' in label1 and 'inj' in label2: shared_label += 'inj_'
 	if 'base' in label1 and 'base' in label2: shared_label += 'base_'
+
 	# Bold filter #
+	if PLOT_COLOR:
+		# FIXME add 'cm_' to label? 
+                idx1, idx2 = label1.find('_$')+1, label1.find('$_')
+                # Note: label1 should match label2 #
+                shared_label += label1[idx1:idx2] + '$_'
         if 'cm_mag' in label1 and 'cm_mag' in label2: shared_label += 'cm_mag_$\\bf{' + filter_name + '}$_'
+
         if 'true' in label1 and 'true' in label2: shared_label += 'true'
         if 'meas' in label1 and 'meas' in label2: shared_label += 'meas'
 
@@ -2150,7 +2224,7 @@ def get_ylabel(label1, label2, filter_name):
 
 
 
-def plotter(mag_hdr1, mag_hdr2, cbar_val, error1, error2, filter_name, clean_magnitude1, full_magnitude1, mag_axlabel1, clean_magnitude2, mag_axlabel2, plot_title, realization_number, tile_name, idx_bins, bins, cbar_axlabel, plot_name, fd_nop, fd_mag_bins):
+def plotter(mag_hdr1, mag_hdr2, cbar_val, error1, error2, filter_name, clean_magnitude1, full_magnitude1, mag_axlabel1, clean_magnitude2, mag_axlabel2, plot_title, realization_number, tile_name, idx_bins, bins, cbar_axlabel, plot_name, fd_nop, fd_mag_bins, vax_label):
 	"""Plot a single magnitude versus delta-magnitude plot.
 
 	Args:
@@ -2390,17 +2464,14 @@ def plotter(mag_hdr1, mag_hdr2, cbar_val, error1, error2, filter_name, clean_mag
 		#'norm':matplotlib.colors.LogNorm()
 
 
-
-	# Labels and appearance #
-	ylabel = get_ylabel(label1=mag_axlabel1, label2=mag_axlabel2, filter_name=filter_name)
 	
 	### Axes labels ###
 	# Horizontal axis labels #
 	if SWAP_HAX: plt.xlabel(str(mag_axlabel2))
 	if SWAP_HAX is False: plt.xlabel(str(mag_axlabel1))
 	# Vertical axis label #
-	if NORMALIZE: plt.ylabel('('+ ylabel + ') / $\sigma$')
-        if NORMALIZE is False: plt.ylabel(ylabel)
+	if NORMALIZE: plt.ylabel('('+ vax_label + ') / $\sigma$')
+        if NORMALIZE is False: plt.ylabel(vax_label)
 
 	plt.axhline(y=0.0, color='k', linestyle=':', linewidth=0.5)
 
@@ -2477,7 +2548,7 @@ def subplotter(df, flag_idx, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, plo
 	for f in ALL_FILTERS:
 
 		### Define variables ###
-		cbar_val, cbar_idx_bins, cbar_bins, err1, err2, cleanMag1, cleanMag2, index_good, cbar_axlabel, fullMag1, mag_axlabel1, mag_axlabel2 = get_plot_variables(filter_name=f, df=df, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization_number=realization_number, tile_name=tile_name, mag_axlabel1=M_AXLABEL1, mag_axlabel2=M_AXLABEL2, fd_flag=fd_flag)
+		cbar_val, cbar_idx_bins, cbar_bins, err1, err2, cleanMag1, cleanMag2, index_good, cbar_axlabel, fullMag1, mag_axlabel1, mag_axlabel2, vaxLabel = get_plot_variables(filter_name=f, df=df, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization_number=realization_number, tile_name=tile_name, mag_axlabel1=M_AXLABEL1, mag_axlabel2=M_AXLABEL2, fd_flag=fd_flag)
 
 
 
@@ -2485,7 +2556,7 @@ def subplotter(df, flag_idx, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, plo
 		if SUBPLOT:
 			plt.subplot(2, 2, counter_subplot)
 
-		plotter(mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, cbar_val=cbar_val, plot_title=plot_title, error1=err1, error2=err2, filter_name=f, full_magnitude1=fullMag1, clean_magnitude1=cleanMag1, clean_magnitude2=cleanMag2, mag_axlabel1=mag_axlabel1, mag_axlabel2=mag_axlabel2, realization_number=realization_number, tile_name=tile_name, idx_bins=cbar_idx_bins, bins=cbar_bins, cbar_axlabel=cbar_axlabel, plot_name=plot_name, fd_nop=fd_nop, fd_mag_bins=fd_mag_bins)
+		plotter(mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, cbar_val=cbar_val, plot_title=plot_title, error1=err1, error2=err2, filter_name=f, full_magnitude1=fullMag1, clean_magnitude1=cleanMag1, clean_magnitude2=cleanMag2, mag_axlabel1=mag_axlabel1, mag_axlabel2=mag_axlabel2, realization_number=realization_number, tile_name=tile_name, idx_bins=cbar_idx_bins, bins=cbar_bins, cbar_axlabel=cbar_axlabel, plot_name=plot_name, fd_nop=fd_nop, fd_mag_bins=fd_mag_bins, vax_label=vaxLabel)
 
 		counter_subplot += 1
 
@@ -3139,7 +3210,6 @@ def stack_realizations(realization_number):
 
 
 
-#FIXME
 def get_fraction_recovered(cat_type, inj, inj_20percent, realization_number, tile_name, df, constant):
 	"""Get fraction of injected objects recovered after matching"""
 
