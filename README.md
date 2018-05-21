@@ -36,7 +36,7 @@ Parameter(s) | Type | Allowed values (if Type not bool) | Description
 | `RUN_TYPE` | str | `None` `'ok'` `'rerun'` | `'ok'`: FOF groups *un*changed after Balrog-injection. `'rerun'`: FOF groups changed after Balrog-injection. `None`: FOF analysis not conducted. If `RUN_TYPE='rerun'` or `RUN_TYPE='ok'` then `MATCH_CAT1` `MATCH_CAT2` `INJ1` and `INJ2` will be overwritten.
 | `NORMALIZE` | bool | | Normalize plot to 1-sigma magnitude error? Error calculation uses measured catalogs only.
 | `HIST_2D` | bool | | Plot a 2D histogram?
-| `CORNER_HIST_2D` | bool | Make plot using [corner.py](https://github.com/dfm/corner.py)? Plot automatically adds 1-sigma and 2-sigma contours.
+| `CORNER_HIST_2D` | bool | | Make plot using [corner.py](https://github.com/dfm/corner.py)? Plot automatically adds 1-sigma and 2-sigma contours.
 | `SCATTER` | bool | | Scatter plot?
 |`HEXBIN` | bool | | Plot density via `hexbin()`?
 |`CM_T_S2N_COLORBAR` | bool | | Plot a colorbar according to cm_T signal-to-noise?
