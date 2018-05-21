@@ -9,7 +9,7 @@ ___
 
 `ms_fof_matcher` and `ms_par.py` analyse FOF groups. `ms_fof_matcher` uses STILTS.
 
-`ms_plotter.py` calls `ms_matcher` or `ms_fof_matcher` (which calls `ms_par.py`), analyses the matched catalog, and produces various magnitude versus Delta-magnitude plots.
+`ms_plotter.py` calls `ms_matcher` or `ms_fof_matcher` (which calls `ms_par.py`), analyses the matched catalog, and produces various plots.
 
 ___
 
@@ -17,7 +17,7 @@ ___
 
 General: `$python ms_plotter.py base_path_to_catalogs output_directory realizations tiles`
 
-Ex: `$python ms_plotter.py /data/des71.a/data/kuropat/des2247-4414_sof/y3v02/ /BalVal/ 0,1 DES2247-4414`
+Ex: `$python ms_plotter.py /data/des71.a/data/kuropat/des2247-4414_sof/ /BalVal/ 0,1 DES2247-4414`
 
 `None` is an allowed value for `realizations`. `all` is an allowed value for both `realizations` and `tiles`. If `all` is used ensure that `ALL_TILES` and `ALL_REALIZATIONS` are set correctly in `ms_plotter.py`. Alternatively, one can list realizations at the command line with commas and _no_ spaces separating the realizations (similarly for tiles).
 
@@ -30,11 +30,13 @@ User sets plot attributes and catalog attributes within `ms_plotter.py`. A table
 Parameter(s) | Type | Allowed values (if Type not bool) | Description
 --- | --- | --- | ---
 |`MATCH_CAT1` `MATCH_CAT2` | str | `mof` `sof` `star_truth` `gal_truth` `y3_gold` `coadd`  | Type of catalogs to analyse
-|`INJ1` `INJ2` | bool | | Are `MATCH_CAT1` `MATCH_CAT2` Balrog-injected?  If `realizations=None` then the following is forced `INJ1, INJ2 = False, False`
+|`INJ1` `INJ2` | bool | | Are `MATCH_CAT1` `MATCH_CAT2` Balrog-injected?  If `realizations=None` then the following is forced: `INJ1, INJ2 = False, False`
 |`INJ1_20PERCENT` `INJ2_20PERCENT` | bool | 
+| `PLOT_COLOR` | bool | | If `True` plots colors (g-r) (r-z) (i-z) .....
 | `RUN_TYPE` | str | `None` `'ok'` `'rerun'` | `'ok'`: FOF groups *un*changed after Balrog-injection. `'rerun'`: FOF groups changed after Balrog-injection. `None`: FOF analysis not conducted. If `RUN_TYPE='rerun'` or `RUN_TYPE='ok'` then `MATCH_CAT1` `MATCH_CAT2` `INJ1` and `INJ2` will be overwritten.
 | `NORMALIZE` | bool | | Normalize plot to 1-sigma magnitude error? Error calculation uses measured catalogs only.
-| `HIST_2D` | bool | | Plot a 2D histogram? By default this is True.
+| `HIST_2D` | bool | | Plot a 2D histogram?
+| `CORNER_HIST_2D` | bool | | Make plot using [corner.py](https://github.com/dfm/corner.py)? Plot automatically adds 1-sigma and 2-sigma contours.
 | `SCATTER` | bool | | Scatter plot?
 |`HEXBIN` | bool | | Plot density via `hexbin()`?
 |`CM_T_S2N_COLORBAR` | bool | | Plot a colorbar according to cm_T signal-to-noise?
@@ -45,7 +47,7 @@ Parameter(s) | Type | Allowed values (if Type not bool) | Description
 | `YLOW` `YHIGH` | int or float | `None` and any real number | Limits for the vertical axis of plot. `None` results in default scaling
 | `STACK_REALIZATIONS` | bool | | If `True` catalogs are matched, then stacked and plotted on a single plot. Must be used with `realizations=all` at command line
 | `PLOT_68P` | bool | | Only considered if `NORMALIZE=True`. Plot the 68th percentile of the vertical axis centered about zero?
-| `PLOT_34P_SPLIT` | bool | Only considered if `NORMALIZE=True`. Plot the 34th percentile of the positive and negative vertical axis?
+| `PLOT_34P_SPLIT` | bool | | Only considered if `NORMALIZE=True`. Plot the 34th percentile of the positive and negative vertical axis?
 | `SUBPLOT` | bool | | If `True` four subplots (one for each griz filter) are created in a 2x2 grid. If `False` plots are made individually
 | `MOF` | bool | | Only used if `RUN_TYPE` is not `None`. Does `BASEPATH` entered at command line contain MOF (`MOF=True` or SOF `MOF=False` catalogs?
 | `MAKE_REG`| bool | | If `True`, three DS9 region files created: 1) objects in both catalogs, 2) objects in the first not second catalog, 3) objects in second not first  
@@ -109,11 +111,6 @@ Allowed values for `{plot_type}`: `normalized` `scatter`.
 Region files are saved in: `/{OUTDIR}/outputs/{BALROG_RUN}/{MATCH_TYPE}/{tile}/{realization}/region_files/`
 
 Region files for `ok` and `rerun` FOF groups are saved in: `/{OUTDIR}/outputs/{BALROG_RUN}/{MATCH_TYPE}/{tile}/{realization}/region_files/fof_analysis/`
-
-
-**Defaults**
-
-...
 
 ___
 
