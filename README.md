@@ -32,7 +32,7 @@ Parameter(s) | Type | Allowed values (if Type not bool) | Description
 |`MATCH_CAT1` `MATCH_CAT2` | str | `mof` `sof` `star_truth` `gal_truth` `y3_gold` `coadd`  | Type of catalogs to analyse
 |`INJ1` `INJ2` | bool | | Are `MATCH_CAT1` `MATCH_CAT2` Balrog-injected?  If `realizations=None` then the following is forced: `INJ1, INJ2 = False, False`
 |`INJ1_20PERCENT` `INJ2_20PERCENT` | bool | 
-| `PLOT_COLOR` | bool | If `True` plots colors (g-r) (r-z) (i-z) .....
+| `PLOT_COLOR` | bool | | If `True` plots colors (g-r) (r-z) (i-z) .....
 | `RUN_TYPE` | str | `None` `'ok'` `'rerun'` | `'ok'`: FOF groups *un*changed after Balrog-injection. `'rerun'`: FOF groups changed after Balrog-injection. `None`: FOF analysis not conducted. If `RUN_TYPE='rerun'` or `RUN_TYPE='ok'` then `MATCH_CAT1` `MATCH_CAT2` `INJ1` and `INJ2` will be overwritten.
 | `NORMALIZE` | bool | | Normalize plot to 1-sigma magnitude error? Error calculation uses measured catalogs only.
 | `HIST_2D` | bool | | Plot a 2D histogram?
