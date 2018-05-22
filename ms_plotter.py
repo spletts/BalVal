@@ -80,10 +80,10 @@ SAMPLE_T = ALL_TILES[0]
 ################################################################### Specify plot and catalog attributes ###################################################################
 
 ### Catalog attributes ###
-# !!!!! Allowed values: y3_gold, sof, mof, star_truth, gal_truth, coadd. Both can be 'sof' and both can be 'mof' if INJ1 and INJ2 are different. Note that truth catalogs always have INJ=True. #
+# !!!!! Allowed values: y3_gold, sof, mof, star_truth, gal_truth, coadd. Both can be 'sof' and both can be 'mof' if INJ1_10PERCENT and INJ2_10PERCENT are different. Note that truth catalogs always have INJ=True. #
 MATCH_CAT1, MATCH_CAT2 = 'gal_truth', 'sof'
-# !!!!! Booleans. Examine injected catalogs? `INJ1` `INJ2` refer to 10% injections #
-INJ1, INJ2 = True, True
+# !!!!! Booleans. Examine injected catalogs? `INJ1_10PERCENT` `INJ2_10PERCENT` refer to 10% injections #
+INJ1_10PERCENT, INJ2_10PERCENT = True, True
 INJ1_20PERCENT, INJ2_20PERCENT = False, False
 
 # !!!!! What to do with the plot? #
@@ -91,8 +91,8 @@ SAVE_PLOT = False
 SHOW_PLOT = True
 
 ### Plot type ###
-HIST_2D = True
-CORNER_HIST_2D = False
+HIST_2D = False
+CORNER_HIST_2D = True
 HEXBIN = False
 SCATTER = False
 # `_COLORBAR` cannot be True if NORMALIZE is True #
@@ -124,17 +124,17 @@ SWAP_HAX = False
 ### Handle nonsensical combinations ###
 # Always non injections #
 if MATCH_CAT1 == 'y3_gold':
-	INJ1 = False
+	INJ1_10PERCENT = False
 if MATCH_CAT2 == 'y3_gold':
-        INJ2 = False
+        INJ2_10PERCENT = False
 if realizations[0] == 'None':
-	INJ1, INJ2 = False, False
+	INJ1_10PERCENT, INJ2_10PERCENT = False, False
 
 # Truth catalogs always injected #
 if 'truth' in MATCH_CAT1:
-	INJ1 = True
+	INJ1_10PERCENT = True
 if 'truth' in MATCH_CAT2:
-	INJ2 = True
+	INJ2_10PERCENT = True
 
 # !!!!! Only used if MATCH_CAT1 or MATCH_CAT2 is 'y3_gold'. If False, SOF catalogs exists in subdirectories of BASEPATH #
 Y3_MOF = None
@@ -171,7 +171,7 @@ if RUN_TYPE is not None:
                 MATCH_CAT1, MATCH_CAT2 = 'mof', 'mof'
         if MOF is False:
                 MATCH_CAT1, MATCH_CAT2 = 'sof', 'sof'
-        INJ1, INJ2 = True, False
+        INJ1_10PERCENT, INJ2_10PERCENT = True, False
 
 
 ### !!!!! Make region files? #
@@ -194,12 +194,12 @@ EH_CUTS = False
 
 # Catch errors from plot attributes and command line arguments #
 def catch_error():
-	"""Identify errors"""
+	"""Identify errors."""
 
 	msg = None
 
 	if STACK_REALIZATIONS and realizations[0] != 'all': msg = 'STACK_REALIZATIONS is True must be used with realization = all'
-	if STACK_TILES and '.dat' not in tiles[0] or STACK_TILES and len(tiles) == 1: msg = 'STACK_TILES must be used with multiple tiles'
+	if STACK_TILES and ('.dat' not in tiles[0] and len(tiles) == 1): msg = 'STACK_TILES must be used with multiple tiles'
 	if YLOW is not None and YHIGH is not None and YHIGH == YLOW: msg = 'YLOW and YHIGH cannot be equal'
 	if NORMALIZE and PLOT_1SIG is False: msg = 'If NORMALIZE is True so must be PLOT_1SIG'
 
@@ -215,9 +215,8 @@ def catch_error():
 	#TODO add NORMALIZE
 	if cbar_counter > 1: msg = 'Only one colorbar can be used. Edit HEXBIN, CM_T_S2N_COLORBAR, CM_T_ERR_COLORBAR, HIST_2D, CM_T_COLORBAR, BIN_CM_T_S2N'
 
-	if INJ1 is False and INJ2 is False and realizations[0] != 'None': 'If INJ1 and INJ2 are False realizations must be None at cmd line'
+	if INJ1_10PERCENT is False and INJ2_10PERCENT is False and realizations[0] != 'None': 'If INJ1_10PERCENT and INJ2_10PERCENT are False realizations must be None at cmd line'
 	if INJ1_20PERCENT is False and INJ2_20PERCENT is False and realizations[0] != 'None': 'If INJ1_20PERCENT and INJ2_20PERCENT are False realizations must be None at cmd line' 	
-	
 	return msg
 
 if catch_error() is not None:
@@ -225,8 +224,8 @@ if catch_error() is not None:
 
 
 
-# !!!!! Check that plots will not be overwritten, etc #
-NOTICE = raw_input(' \n !! CHECK BEFORE RUNNING !! \n Using catalogs -- ' + str(MATCH_CAT1) + ' & ' + str(MATCH_CAT2) + '\n Injected catalogs -- ' + str(INJ1) + ' & ' + str(INJ2) + ' \n Save plot(s) -- ' + str(SAVE_PLOT) + '\n Showing plot(s) -- ' + str(SHOW_PLOT) + '\n Normalize plot(s) -- ' + str(NORMALIZE) + '\n Stacking realizations -- ' + str(STACK_REALIZATIONS) + '\n Hexbin -- ' + str(HEXBIN) + '\n cm_T colorbar -- ' + str(CM_T_COLORBAR) + '\n cm_T_err colorbar -- ' + str(CM_T_ERR_COLORBAR) + '\n cm_T_s2n -- ' + str(CM_T_S2N_COLORBAR) + '\n Plot limits -- ' + str(YLOW) + ', ' + str(YHIGH) + '\n Plotting 1sigma curve -- ' + str(PLOT_1SIG) +'\n Plotting flagged objects -- ' + str(PLOT_FLAGGED_OBJS) + '\n Print flags and flag types -- ' + str(SHOW_FLAG_TYPE) + '\n Logging flags -- ' + str(LOG_FLAGS) + '\n --> Press enter to proceed, control+c to stop...\n')
+# !!!!! Check that plots will not be overwritten, etc # #FIXME update this
+NOTICE = raw_input(' \n !! CHECK BEFORE RUNNING !! \n Using catalogs -- ' + str(MATCH_CAT1) + ' & ' + str(MATCH_CAT2) + '\n Injected catalogs -- ' + str(INJ1_10PERCENT) + ' & ' + str(INJ2_10PERCENT) + ' \n Plotting color: ' + str(PLOT_COLOR) + ' \n Save plot(s) -- ' + str(SAVE_PLOT) + '\n Showing plot(s) -- ' + str(SHOW_PLOT) + '\n Normalize plot(s) -- ' + str(NORMALIZE) + '\n Stacking realizations -- ' + str(STACK_REALIZATIONS) + '\n Hexbin -- ' + str(HEXBIN) + '\n cm_T colorbar -- ' + str(CM_T_COLORBAR) + '\n cm_T_err colorbar -- ' + str(CM_T_ERR_COLORBAR) + '\n cm_T_s2n -- ' + str(CM_T_S2N_COLORBAR) + '\n Plot limits -- ' + str(YLOW) + ', ' + str(YHIGH) + '\n Plotting 1sigma curve -- ' + str(PLOT_1SIG) +'\n Plotting flagged objects -- ' + str(PLOT_FLAGGED_OBJS) + '\n Print flags and flag types -- ' + str(SHOW_FLAG_TYPE) + '\n Logging flags -- ' + str(LOG_FLAGS) + '\n --> Press enter to proceed, control+c to stop...\n')
 
 
 
@@ -242,21 +241,27 @@ class CoaddCat():
 	"""Declare headers for coadd catalogs .../coadd/{tile}_{filter}_cat.fits. There is a separate catalog for each filter."""
 
         # Once matched, headers will have form 'hdr_1' or 'hdr_2' with a suffix (suf) #
-	def __init__(self, inj, inj_20percent, suf):
-		"""Declare headers.
+	def __init__(self, inj_10percent, inj_20percent, suf):
+		"""Declare headers for matched (via join=1and2) catalog. Declare descriptive constants.
 
-		Args:
-			inj (bool) -- If `inj=True` refers to 10% Balrog-injected catalog. 
-			inj_20percent (bool) -- If `inj_20percent=True` refers to 20% Balrog-injected catalog. 
-			suf (str) -- Refers to order in which catalog was matched in ms_matcher. Allowed values: '_1' '_2'.
+		Parameters
+		----------
+		inj_10percent (bool)
+			If True refers to 10% Balrog-injected catalog. If False refers to base (non-Balrog-injected) catalog. 
+
+		inj_20percent (bool)
+			If True refers to 20% Balrog-injected catalog. If False refers to base (non-Balrog-injected) catalog. 
+
+		suf (str)
+			Refers to the order in which catalog was matched (via join=1and2) in ms_matcher (order set by STILTS parameters `in1` and `in2`). Allowed values: '_1' '_2'.
 		"""
 
 		# For plot title #
-		if inj:
+		if inj_10percent:
 			self.title_piece = '10% Inj Coadd Cat'
 		if inj_20percent:
 			self.title_piece = '20% Inj Coadd Cat'
-		if inj is False and inj_20percent is False:
+		if inj_10percent is False and inj_20percent is False:
 			self.title_piece = 'Base Coadd Cat'
 		self.axlabel = 'meas'
 		# Magnitude, is one number #
@@ -298,20 +303,26 @@ class CoaddCat():
 
 
 class GalTruthCat():
-	"""Declare headers and axes labels for galaxy truth catalogs in the sof directory /data/des71.a/data/kuropat/des2247-4414_sof/."""
+	"""Declare headers for galaxy truth catalogs. Note that as of May 2018 galaxy truth catalogs are created using MOF (thus have the same headers).""" 
 
 	# Once matched, headers will have form 'hdr_1' or 'hdr_2' with a suffix (suf) #
-	def __init__(self, inj, inj_20percent, suf):
-		"""Declare constants.
+	def __init__(self, inj_10percent, inj_20percent, suf):
+		"""Declare headers for matched (via join=1and2) catalog. Declare descriptive constants.
 
-		Args:
-                        inj (bool) -- If `inj=True` refers to 10% Balrog-injected catalog.
-                        inj_20percent (bool) -- If `inj_20percent=True` refers to 20% Balrog-injected catalog.
-                        suf (str) -- Refers to order in which catalog was matched in ms_matcher. Allowed values: '_1' '_2'.
-                """
+		Parameters
+		----------
+		inj_10percent (bool)
+			If True refers to 10% Balrog-injected catalog. If False refers to base (non-Balrog-injected) catalog.
+
+		inj_20percent (bool)
+			If True refers to 20% Balrog-injected catalog. If False refers to base (non-Balrog-injected) catalog.
+
+		suf (str)
+			Refers to the order in which catalog was matched (via join=1and2) in ms_matcher (order set by STILTS parameters `in1` and `in2`). Allowed values: '_1' '_2'.
+		"""
 
 		# `inj` forced True for truth catalogs #
-		if inj:
+		if inj_10percent:
 			self.title_piece = '10% Inj Gal Truth Cat'
 		if inj_20percent:
 			self.title_piece = '20% Inj Gal Truth Cat'
@@ -354,23 +365,29 @@ class GalTruthCat():
 
 
 class SOFCat():
-        """Declare headers and axis labels for sof catalog in /data/des71.a/data/kuropat/des2247-4414_sof/y3v02/balrog_images/{realization}/{tile}/sof/{tile}_sof.fits and /data/des71.a/data/kuropat/sof_stars/y3v02/balrog_images/{realization}/{tile}/mof/{tile}_mof.fits"""
+        """Declare headers for SOF catalogs.""" 
 
 	# Once matched, headers will have form 'hdr_1' or 'hdr_2' with a suffix (suf) #
-        def __init__(self, inj, inj_20percent, suf):
-		"""Declare constants.
+        def __init__(self, inj_10percent, inj_20percent, suf):
+		"""Declare headers for matched (via join=1and2) catalog. Declare descriptive constants.
 
-		Args:
-                        inj (bool) -- If `inj=True` refers to 10% Balrog-injected catalog.
-                        inj_20percent (bool) -- If `inj_20percent=True` refers to 20% Balrog-injected catalog.
-                        suf (str) -- Refers to order in which catalog was matched in ms_matcher. Allowed values: '_1' '_2'.
+                Parameters
+                ----------
+                inj_10percent (bool)
+                        If True refers to 10% Balrog-injected catalog. If False refers to base (non-Balrog-injected) catalog.
+
+                inj_20percent (bool)
+                        If True refers to 20% Balrog-injected catalog. If False refers to base (non-Balrog-injected) catalog.
+
+                suf (str)
+			Refers to the order in which catalog was matched (via join=1and2) in ms_matcher (order set by STILTS parameters `in1` and `in2`). Allowed values: '_1' '_2'.
                 """
 
-                if inj:
+                if inj_10percent:
                         self.title_piece = '10% Inj SOF Cat'
 		if inj_20percent:
 			self.title_piece = '20% Inj SOF Cat'
-                if inj is False:
+                if inj_10percent is False:
                         self.title_piece = 'Base SOF Cat'
 		self.axlabel = 'meas'
                 # Headers are the same as MOFCat class with the exception of cm_mof_flags_hdr. Reproduced below for clarity #
@@ -411,24 +428,30 @@ class SOFCat():
 
 
 class MOFCat():
-	"""Declare headers and axes labels for MOF catalog. Currently, the galaxy truth catalogs are created using MOF and have the same headers. Works (mostly) with /data/des71.a/data/kuropat/sof_stars/y3v02/balrog_images/{realization}/{tile}/{tile}_{realization}_balrog_truth_cat_gals.fits, /data/des71.a/data/kuropat/sof_stars/y3v02/balrog_images/{realization}/{tile}/mof/{tile}_mof.fits, ..."""
+	"""Declare headers for MOF catalogs."""
 
 	# Once matched, headers will have form 'hdr_1' or 'hdr_2' with a suffix (suf) #
-        def __init__(self, inj, inj_20percent, suf):
-		"""Declare constants.
+        def __init__(self, inj_10percent, inj_20percent, suf):
+		"""Declare headers for matched (via join=1and2) catalog. Declare descriptive constants.
 
-		Args:
-                        inj (bool) -- If `inj=True` refers to 10% Balrog-injected catalog.
-                        inj_20percent (bool) -- If `inj_20percent=True` refers to 20% Balrog-injected catalog.
-                        suf (str) -- Refers to order in which catalog was matched in ms_matcher. Allowed values: '_1' '_2'.
+                Parameters
+                ----------
+                inj_10percent (bool)
+                        If True refers to 10% Balrog-injected catalog. If False refers to base (non-Balrog-injected) catalog.
+
+                inj_20percent (bool)
+                        If True refers to 20% Balrog-injected catalog. If False refers to base (non-Balrog-injected) catalog.
+
+                suf (str)
+			Refers to the order in which catalog was matched (via join=1and2) in ms_matcher (order set by STILTS parameters `in1` and `in2`). Allowed values: '_1' '_2'.
                 """
 
 		# For plot title #
-		if inj:
+		if inj_10percent:
 			self.title_piece = '10% Inj MOF Cat'
 		if inj_20percent:
 			self.title_piece = '20% Inj MOF Cat'
-		if inj is False:
+		if inj_10percent is False:
 			self.title_piece = 'Base MOF Cat'
 		self.axlabel = 'meas'
 		# Magnitude, is string of form (mag_g, mag_r, mag_i, mag_z)  #
@@ -468,20 +491,26 @@ class MOFCat():
 
 
 class StarTruthCat(): #are there sep headers for MOFStarTruthCat and SOFStarTruthCat?
-        """Declare headers and axes labels for star truth catalogs in /data/des71.a/data/kuropat/sof_stars/."""
+        """Declare headers for star truth catalogs."""
 
 	# Once matched, headers will have form 'hdr_1' or 'hdr_2' with a suffix (suf) #
-	def __init__(self, inj, inj_20percent, suf):
-		"""Declare constants.
-	
-		Args:
-                        inj (bool) -- If `inj=True` refers to 10% Balrog-injected catalog.
-                        inj_20percent (bool) -- If `inj_20percent=True` refers to 20% Balrog-injected catalog.
-                        suf (str) -- Refers to order in which catalog was matched in ms_matcher. Allowed values: '_1' '_2'.
-                """
-	
+	def __init__(self, inj_10percent, inj_20percent, suf):
+                """Declare headers for matched (via join=1and2) catalog. Declare descriptive constants.
+
+                Parameters
+                ----------
+                inj_10percent (bool)
+                        If True refers to 10% Balrog-injected catalog. If False refers to base (non-Balrog-injected) catalog.
+
+                inj_20percent (bool)
+                        If True refers to 20% Balrog-injected catalog. If False refers to base (non-Balrog-injected) catalog.
+
+                suf (str)
+			Refers to the order in which catalog was matched (via join=1and2) in ms_matcher (order set by STILTS parameters `in1` and `in2`). Allowed values: '_1' '_2'.
+                """	
+
 		# `inj` forced True for truth catalogs #	
-		if inj:
+		if inj_10percent:
 			self.title_piece = '10% Inj Star Truth Cat'
 		if inj_20percent:
 			self.title_piece = '20% Inj Star Truth Cat'
@@ -524,16 +553,22 @@ class StarTruthCat(): #are there sep headers for MOFStarTruthCat and SOFStarTrut
 
 
 class Y3Gold():
-	"""Declare headers and axes labels for Y3 Gold catalog (https://cdcvs.fnal.gov/redmine/projects/des-y3/wiki/Full_bins_of_Y3_GOLD_2_0_Columns).""" 
+	"""Declare headers for Y3 Gold catalogs (https://cdcvs.fnal.gov/redmine/projects/des-y3/wiki/Full_bins_of_Y3_GOLD_2_0_Columns).""" 
 
 	# Once matched, headers will have form 'hdr_1' or 'hdr_2' with a suffix (suf) #
-	def __init__(self, inj, inj_20percent, suf):
-                """Declare constants.
+	def __init__(self, inj_10percent, inj_20percent, suf):
+                """Declare headers for matched (via join=1and2) catalog. Declare descriptive constants.
 
-		Args:
-                        inj (bool) -- If `inj=True` refers to 10% Balrog-injected catalog.
-                        inj_20percent (bool) -- If `inj_20percent=True` refers to 20% Balrog-injected catalog.
-                        suf (str) -- Refers to order in which catalog was matched in ms_matcher. Allowed values: '_1' '_2'.
+                Parameters
+                ----------
+                inj_10percent (bool)
+                        If True refers to 10% Balrog-injected catalog. If False refers to base (non-Balrog-injected) catalog.
+
+                inj_20percent (bool)
+                        If True refers to 20% Balrog-injected catalog. If False refers to base (non-Balrog-injected) catalog.
+
+                suf (str)
+                        Refers to the order in which catalog was matched (via join=1and2) in ms_matcher (order set by STILTS parameters `in1` and `in2`). Allowed values: '_1' '_2'.
                 """
 
 		inj = False
@@ -553,13 +588,16 @@ class Y3Gold():
 	 
 		self.title_piece = 'Y3 Gold Cat' 
                 self.axlabel = 'meas'
+
+		# Note: filter dependent headers -- MAG, MAG_ERR, FLUX, FLUX_COV, PSF_FLAGS #
+
                 # Magnitude # 
-                self.mag_hdr = pref1 + pref2 + 'MAG' + str(suf) # filter dependent
+                self.mag_hdr = pref1 + pref2 + 'MAG' + str(suf) 
                 self.mag_axlabel = 'mag_meas'
                 # For error calculation #
-                self.mag_err_hdr = pref1 + pref2 + 'MAG_ERR' + str(suf) # filter dependent
-                self.cm_flux_hdr = pref1 + pref2 + 'FLUX' + str(suf) # filter dependent
-                self.cm_flux_cov_hdr = pref1 + pref2 + 'FLUX_COV' + str(suf) # filter dependent
+                self.mag_err_hdr = pref1 + pref2 + 'MAG_ERR' + str(suf) 
+                self.cm_flux_hdr = pref1 + pref2 + 'FLUX' + str(suf) 
+                self.cm_flux_cov_hdr = pref1 + pref2 + 'FLUX_COV' + str(suf) 
                 # Size #
                 self.cm_t_hdr = pref1 + pref2 + 'T' + str(suf) 
                 self.cm_t_err_hdr = pref1 + pref2 + 'T_ERR' + str(suf)
@@ -567,11 +605,12 @@ class Y3Gold():
                 # Flags #
                 self.flags_hdr = 'FLAGS_GOLD' + str(suf)
                 self.obj_flags_hdr = pref1 + 'OBJ_FLAGS' + str(suf)
-                self.psf_flags_hdr = pref1 + 'PSF_FLAGS_filt' + str(suf) # filter dependent
+                self.psf_flags_hdr = pref1 + 'PSF_FLAGS_filt' + str(suf) 
                 self.cm_flags_hdr = pref1 + pref2 + 'FLAGS' + str(suf) 
                 self.cm_max_flags_hdr = None
-		# MOF_CM_MOF_FLAGS no SOF equivalent #
-                self.cm_mof_flags_hdr = pref1 + pref2 + 'FLAGS' + str(suf) # duplicate
+		# MOF_CM_MOF_FLAGS has no SOF equivalent #
+		# Note: is duplicate #
+                self.cm_mof_flags_hdr = pref1 + pref2 + 'FLAGS' + str(suf)
                 self.cm_flags_r_hdr = pref1 + pref2 + 'FLAGS_R' + str(suf)
                 # For region file #
 		# Note: there is also an ALPHAWIN_J2000 and DELTAWIN_J2000 #
@@ -592,38 +631,49 @@ class Y3Gold():
 
 
 
-def get_class(cat_type, inj, inj_20percent, suf):
+def get_class(cat_type, inj_10percent, inj_20percent, suf):
         """Get the appropriate class for the catalog type.
 
-        Args:
-                cat_type -- Catalog type. Allowed values: 'gal_truth', 'mof', 'star_truth', 'sof', 'coadd', 'y3_gold'.
-		inj (bool) -- If `inj=True` refers to 10% Balrog-injected catalog.
-		inj_20percent (bool) -- If `inj_20percent=True` refers to 20% Balrog-injected catalog.
-		suf (str) -- Refers to order in which catalog was matched in ms_matcher. Allowed values: '_1' '_2'.
-        Returns:
-                cat_type_class -- Points to the appropriate class which contains constants.
+        Parameters
+	----------
+	cat_type (str)
+                Catalog type. Set by `MATCH_CAT1` or `MATCH_CAT2`.
+
+	inj_10percent (bool)
+		If True refers to 10% Balrog-injected catalog. If False refers to base (non-Balrog-injected) catalog.
+
+	inj_20percent (bool)
+		If True refers to 20% Balrog-injected catalog. If False refers to base (non-Balrog-injected) catalog.
+
+	suf (str)
+		Refers to the order in which `cat_type` was matched (via join=1and2) in ms_matcher (order set by `in1` and `in2` in STILTS script). Allowed values: '_1' '_2'.
+
+        Returns
+	-------
+	_class_ (class)
+		Points to the appropriate class and class constants.
         """
 
         if cat_type == 'gal_truth':
-                cat_type_class = GalTruthCat(inj=inj, inj_20percent=inj_20percent, suf=suf)
+                _class_ = GalTruthCat(inj_10percent=inj_10percent, inj_20percent=inj_20percent, suf=suf)
 
         if cat_type == 'mof':
-                cat_type_class = MOFCat(inj=inj, inj_20percent=inj_20percent, suf=suf)
+                _class_ = MOFCat(inj_10percent=inj_10percent, inj_20percent=inj_20percent, suf=suf)
 
         if cat_type == 'star_truth':
-                cat_type_class = StarTruthCat(inj=inj, inj_20percent=inj_20percent, suf=suf)
+                _class_ = StarTruthCat(inj_10percent=inj_10percent, inj_20percent=inj_20percent, suf=suf)
 
         if cat_type == 'sof':
-                cat_type_class = SOFCat(inj=inj, inj_20percent=inj_20percent, suf=suf)
+                _class_ = SOFCat(inj_10percent=inj_10percent, inj_20percent=inj_20percent, suf=suf)
 
         if cat_type == 'coadd':
-                cat_type_class = CoaddCat(inj=inj, inj_20percent=inj_20percent, suf=suf)
+                _class_ = CoaddCat(inj_10percent=inj_10percent, inj_20percent=inj_20percent, suf=suf)
 
 	if cat_type == 'y3_gold':
-		cat_type_class = Y3Gold(inj=inj, suf=suf)
+		_class_ = Y3Gold(inj_10percent=inj_10percent, suf=suf)
 
 
-        return cat_type_class
+        return _class_
 
 
 
@@ -634,19 +684,20 @@ def get_class(cat_type, inj, inj_20percent, suf):
 
 
 def get_match_type(title_piece1, title_piece2):
-        """Transform plot title of form '10% Inj MOF Cat & 10% Inj Truth Cat' to '10%_inj_mof_cat_10%_inj_truth_cat'.
+        """Transform two strings of form '10% Inj MOF Cat' and '10% Inj Truth Cat' to '10%_inj_mof_cat_10%_inj_truth_cat'.
 
-        Args:
-                title_piece1, title_piece2 (str) -- Ex: 10 % Inj MOF
-        Return:
-                match_type (str) -- Ex: 10%_inj_mof_cat_10%_inj_truth_cat 
+        Parameters
+	----------
+	title_piece1, title_piece2 (str)
+		Set by `self.title_piece` in appropriate class. Class set by `MATCH_CAT*` `INJ*PERCENT`. Example: 10% Inj MOF Cat.
+
+        Returns
+	-------
+	match_type (str)
+		Reflects the order in which catalogs were matched (via join=1and2). Example: 10%_inj_mof_cat_10%_inj_truth_cat, where the injected MOF catalog was STILTS parameter `in1`.
         """
 
-        title_piece1, title_piece2 = title_piece1.lower(), title_piece2.lower()
-        title_piece1, title_piece2 = title_piece1.replace(' ', '_'), title_piece2.replace(' ', '_')
-        match_type = str(title_piece1)+'_'+str(title_piece2)
-
-        return match_type
+        return '_'.join([title_piece1.lower().replace(' ', '_'), title_piece2.lower().replace(' ', '_')]) 
 
 
 
@@ -659,14 +710,22 @@ def get_match_type(title_piece1, title_piece2):
 def get_log_file_names(tile_name, realization_number):
         """Generate names for log files. Relies on directory structure: /`OUTDIR`/log_files/`BALROG_RUN`/`MATCH_TYPE`/{tile}/{realization}/log_files/.
 
-        Args:
-		tile_name (str)
-		realization_number (str)
-        Returns:
-		fn1 (str) -- Complete filename for flag log files.
-		fn2 (str) -- Complete filename for error calculation log file.
-		fn3 (str) -- Complete filename for number of objects matched, number of objects flagged, number of objects within 1sigma_mag, etc.
-                fn1, fn2, fn3 (str) -- Complete filenames for flag log file, magnitude log, number of objects plotted log, number of objects within 1sigma, respectively.
+        Parameters
+	----------
+	tile_name (str)
+
+	realization_number (str)
+
+        Returns
+	-------
+	fn1 (str)
+		Complete filename for flag log file.
+
+	fn2 (str)
+		Complete filename for error calculation log file.
+
+	fn3 (str)
+		Complete filename for log file containting number of objects matched, number of objects flagged, number of objects within 1sigma_mag, etc.
         """
 
         # !!!!! User may wish to edit directory structure #
@@ -682,13 +741,16 @@ def get_log_file_names(tile_name, realization_number):
                         print 'Making directory ', log_dir, '...\n'
                         os.makedirs(log_dir)
 
-        fn1 = os.path.join(log_dir, 'flag_log_'+str(tile_name)+'_'+str(realization_number)+'_'+str(MATCH_TYPE)+'.log')
-        fn2 = os.path.join(log_dir, 'err_calc_'+str(tile_name)+'_'+str(realization_number)+'_'+str(MATCH_TYPE)+'.log')
-	fn3 = os.path.join(log_dir, 'num_flags_num_1sig_'+str(tile_name)+'_'+str(realization_number)+'_'+str(MATCH_TYPE)+'.log')
+	# Repeated #
+	fn_rep = '_'.join([tile_name, realization_number, MATCH_TYPE])
+	fn1 = os.path.join(log_dir, 'flag_log_'+fn_rep+'.log')
+	fn2 = os.path.join(log_dir, 'err_calc_'+fn_rep+'.log')
+	fn3 = os.path.join(log_dir, 'num_flags_num_1sig_'+fn_rep+'.log')
 
         if RUN_TYPE is not None:
-		fn1 = fn1[:-4] + '_' + str(RUN_TYPE) + fn1[-4:]; fn2 = fn2[:-4] + '_' + str(RUN_TYPE) + fn2[-4:]
-		fn3 = fn3[:-4] + '_' + str(RUN_TYPE) + fn3[-4:]; fn4 = fn4[:-4] + '_' + str(RUN_TYPE) + fn4[-4:]
+		fn1 = '_'.join([fn1[:-4], RUN_TYPE, fn1[-4:]])
+		fn2 = '_'.join([fn2[:-4], RUN_TYPE, fn2[-4:]])
+		fn3 = '_'.join([fn3[:-4], RUN_TYPE, fn3[-4:]])
 
         print '-----> Saving log file for flags as: ', fn1, '\n'
         print '-----> Saving log file for magnitude and error bins as: ', fn2, '\n'
@@ -706,15 +768,24 @@ def get_log_file_names(tile_name, realization_number):
 
 
 def get_reg_names(tile_name, realization_number):
-	"""Generate names for region files of different join types (join types specified in STILTS script ms_matcher or ms_fof_matcher). Relies on directory structure `/OUTDIR/outputs/BALROG_RUN/MATCH_TYPE/{tile}/{realization}/region_files/`
+	"""Generate names for region files of different join types (join types specified in ms_matcher or ms_fof_matcher). Relies on directory structure `/OUTDIR/outputs/BALROG_RUN/MATCH_TYPE/{tile}/{realization}/region_files/`
 
-        Args:
-		tile_name (str)
-                realization_number (str)
-        Returns:
-		fn1 (str) -- Complete filename for region file containing regions with join=1and2.
-		fn2 (str) -- Complete filename for region file containing regions with join=1not2.
-		fn3 (str) -- Complete filename for region file containing regions with join=2not1.
+        Parameters
+	----------
+	tile_name (str)
+
+	realization_number (str)
+
+        Returns
+	-------
+	fn1 (str)
+		Complete filename for region file containing regions with join=1and2.
+
+	fn2 (str)
+		Complete filename for region file containing regions with join=1not2.
+
+	fn3 (str)
+		Complete filename for region file containing regions with join=2not1.
         """
 
         # !!!!! User may wish to edit directory structure #
@@ -730,14 +801,17 @@ def get_reg_names(tile_name, realization_number):
                         print 'Making directory ', reg_dir, '...\n'
                         os.makedirs(reg_dir)
 
-
-        fn1 = os.path.join(reg_dir, str(tile_name) + '_' + str(realization_number) + '_' + str(MATCH_TYPE)+'_match1and2.reg')
-        fn2 = os.path.join(reg_dir, str(tile_name) + '_' + str(realization_number) + '_' + str(MATCH_TYPE)+'_match1not2.reg')
-        fn3 = os.path.join(reg_dir, str(tile_name) + '_' + str(realization_number) + '_' + str(MATCH_TYPE)+'_match2not1.reg')
+	# Repeated #
+        fn_rep = '_'.join([tile_name, realization_number, MATCH_TYPE])
+	fn1 = os.path.join(reg_dir, fn_rep+'_match1and2.reg')
+	fn2 = os.path.join(reg_dir, fn_rep+'_match1not2.reg')
+	fn3 = os.path.join(reg_dir, fn_rep+'_match2not1.reg')
 
 
 	if RUN_TYPE is not None:
-		fn1 = fn1[:-15] + '_' + str(RUN_TYPE) + fn1[-15:]; fn2 = fn2[:-15] + '_' + str(RUN_TYPE) + fn2[-15:]; fn3 = fn3[:-15] + '_' + str(RUN_TYPE) + fn3[-15:]
+		fn1 = fn1[:-15] + '_' + str(RUN_TYPE) + fn1[-15:]
+		fn2 = fn2[:-15] + '_' + str(RUN_TYPE) + fn2[-15:]
+		fn3 = fn3[:-15] + '_' + str(RUN_TYPE) + fn3[-15:]
 
 
 	return fn1, fn2, fn3
@@ -753,10 +827,10 @@ def get_reg_names(tile_name, realization_number):
 ### For data analysis ###
 # CLASS1 refers to in1 in ms_matcher. in1 appends _1 to all the headers, hence suf=1. ms_fof_matcher is done such that injected catalogs have no suffix #
 if RUN_TYPE is not None:
-	CLASS1 = get_class(cat_type=MATCH_CAT1, inj=INJ1, inj_20percent=INJ1_20PERCENT, suf='')
+	CLASS1 = get_class(cat_type=MATCH_CAT1, inj_10percent=INJ1_10PERCENT, inj_20percent=INJ1_20PERCENT, suf='')
 if RUN_TYPE is None:
-	CLASS1 = get_class(cat_type=MATCH_CAT1, inj=INJ1, inj_20percent=INJ1_20PERCENT, suf='_1')
-CLASS2 = get_class(cat_type=MATCH_CAT2, inj=INJ2, inj_20percent=INJ2_20PERCENT, suf='_2')
+	CLASS1 = get_class(cat_type=MATCH_CAT1, inj_10percent=INJ1_10PERCENT, inj_20percent=INJ1_20PERCENT, suf='_1')
+CLASS2 = get_class(cat_type=MATCH_CAT2, inj_10percent=INJ2_10PERCENT, inj_20percent=INJ2_20PERCENT, suf='_2')
 
 
 # Get arguments to pass to ms_matcher. Need to transform header of form 'ra_1' to 'ra', hence [:-2] #
@@ -833,11 +907,11 @@ with open(FN_LOG, 'wb') as csvfile:
 def fd_first_write(fn_main_log, fn_mag_bins, fn_flag):
 	"""Write headers to log files.
 
-	Args:
+	Parameters
 		fn_main_log (str) -- Complete filename for log file containing number of objects matched, number of objects flagged, number of objects within 1sigma_mag, etc.
 		fn_mag_bins (str) -- Complete filename for log file containing details of error analysis such as bins used, median of the error in each bin, etc.
 		fn_flag (str) -- Complete filename for log file that examines ALL flags declared above. File is empty if `LOG_FLAGS=False`. 
-	Returns:
+	Returns
 		fd* (file descriptors) -- File descriptor for each fn*.
 	"""
 
@@ -865,12 +939,20 @@ def fd_first_write(fn_main_log, fn_mag_bins, fn_flag):
 def get_floats_from_string(df, filter_name, hdr):
 	"""Transform a list of strings of form '[ (1, 2, 3, 4), (1, 2, 3, 4), ... ]' to a list of floats of form '[1,1,...]' (if filter_name="g"), '[2,2,...]' ("r"), '[3,3,...]' ("i"), or '[4,4,...]' ("z").
 
-	Args:
-            df (pandas DataFrame)
-            filter_name (str) -- Allowed values: 'g' 'r' 'i' 'z'.
-            hdr (str) -- Header refers to a column name in the matched catalog. Must refer to a list of strings where each element is of form '(1,2,3,4)'.
-        Returns:
-            list_a (list of floats) -- Collection of the numbers corresponding to a particular index in a list of form '[ (1, 2, 3, 4), (1, 2, 3, 4), ... ]. 
+	Parameters
+	----------
+        df (pandas DataFrame)
+        
+	filter_name (str)
+		Allowed values: 'g' 'r' 'i' 'z'.
+        
+	hdr (str)
+		Header refers to a column name in the matched catalog. Must refer to a list of strings where each element is of form '(1,2,3,4)'.
+        
+	Returns
+	-------
+        list_a (list of floats)
+		Collection of the numbers corresponding to a particular index in a list of form '[ (1, 2, 3, 4), (1, 2, 3, 4), ... ]. 
 	"""
 
 	strings = df[hdr]; list_a = []
@@ -918,12 +1000,20 @@ def get_floats_from_string(df, filter_name, hdr):
 def get_matrix_diagonal_element(df, filter_name, hdr):
 	"""Transforms a list of 4x4 matrices where each element is a string of form '((11,12,13,14), (21,22,23,24), (31,32,33,34), (41,42,43,44))' into a list of either the 11 (if filter_name is "g"), 22 ("r"), 33 ("i"), or 44 ("z") matrix elements.
 
-	Args:
-            df (pandas DataFrame)
-            filter_name (str) -- Allowed values: 'g' 'r' 'i' 'z'.
-            hdr (str) -- Header refers to a column name in the matched catalog. Must refer to a list of strings where each element is of form '((11,12,13,14), (21,22,23,24), (31,32,33,34), (41,42,43,44))'.
-        Returns:
-            list_aa (list of floats) -- Collection of the numbers corresponding to a particular diagonal element in a list of 4-by-4 matrices.
+	Parameters
+	----------
+	df (pandas DataFrame)
+
+	filter_name (str)
+		Allowed values: 'g' 'r' 'i' 'z'.
+
+	hdr (str)
+		Header refers to a column name in the matched catalog. Must refer to a list of strings where each element is of form '((11,12,13,14), (21,22,23,24), (31,32,33,34), (41,42,43,44))'.
+
+        Returns
+	-------
+	list_aa (list of floats)
+		Collection of the numbers corresponding to a particular diagonal element in a list of 4-by-4 matrices.
 	"""
 
 	matrices = df[hdr]; list_aa = []
@@ -969,15 +1059,24 @@ def get_matrix_diagonal_element(df, filter_name, hdr):
 
 
 def get_good_index_using_primary_flags(df, full_magnitude1, full_magnitude2, cm_flag_hdr1, cm_flag_hdr2, flag_hdr1, flag_hdr2, filter_name):
-	"""Get indices of objects without flags as indicated by the headers 'flags' and 'cm_flags'. Also get indices of objects with  magnitudes not equal to +/- 99, +/- 9999, and 37.5. Store the bad indices as well (if PLOT_FLAGGED_OBJS is True).
+	"""Get indices of objects without flags* where flags* used are indicated in README.md. Store flagged indices if PLOT_FLAGGED_OBJS is True.
 
-	Args:
-		df (pandas DataFrame)
-		filter_name (str) -- Used if analysing Y3 Gold
-		full_magnitude1, full_magnitude2 (list of floats) -- Uncleaned lists containing magnitudes. 
-	Returns:
-		idx_good (list of ints)
-		idx_bad (list of ints) -- Is empty if PLOT_FLAGGED_OBJS is False.
+	Parameters
+	----------
+	df (pandas DataFrame)
+
+	filter_name (str)
+		Used if analysing Y3 Gold catalog. Can be `None`.
+
+	full_magnitude1, full_magnitude2 (list of floats)
+		Uncleaned lists containing magnitudes. 
+
+	Returns
+	-------
+	idx_good (list of ints)
+	
+	idx_bad (list of ints)
+		Is empty if PLOT_FLAGGED_OBJS is False.
 	"""
 
 	if cm_flag_hdr2 is None and cm_flag_hdr1 is None and flag_hdr1 is None and flag_hdr2 is None:
@@ -1049,15 +1148,25 @@ def get_good_index_using_primary_flags(df, full_magnitude1, full_magnitude2, cm_
 
 
 def get_good_index_using_quality_cuts(df, full_magnitude1, full_magnitude2):
-	"""Get indices of objects that satisfy quality cuts introduced by Eric Huff. Also get indices of objects without flags as indicated by the headers 'flags' and 'cm_flags'. Also get indices of objects with  magnitudes not equal to +/- 99, +/- 9999, and 37.5. Store the bad indices as well (if PLOT_FLAGGED_OBJS is True).
+	"""Get indices of objects that satisfy quality cuts introduced by Eric Huff. Also get indices of objects without flags* as described in README.md. Store the flagged indices if PLOT_FLAGGED_OBJS is True.
 
-	Args:
-		df (pandas DataFrame)
-	        *_hdr (str) -- Headers refer to column names in the matched catalog.
-		full_magnitude1, full_magnitude2 (list of floats) -- Values read directly from pandas DataFrame or passed through `get_floats_from_string()`; no flags removed. 		
-        Returns:
-		idx_good (list of ints) -- Indices of objects without flags and objects which met criteria for quality cuts.
-		idx_bad (list of ints) -- Is empty if PLOT_FLAGGED_OBJS is False.
+	Parameters
+	----------
+	df (pandas DataFrame)
+
+	*_hdr (str)
+		Headers refer to column names in the matched catalog.
+
+	full_magnitude1, full_magnitude2 (list of floats)
+		Values read directly from pandas DataFrame or passed through `get_floats_from_string()`; no flags removed. 		
+
+        Returns
+	-------
+	idx_good (list of ints)
+		Indices of objects without flags and objects which met criteria for quality cuts.
+
+	idx_bad (list of ints)
+		Is empty if PLOT_FLAGGED_OBJS is False.
 	"""
 
 	if 'true' in AXLABEL1 and 'true' in AXLABEL2:
@@ -1137,15 +1246,27 @@ def get_good_index_using_quality_cuts(df, full_magnitude1, full_magnitude2):
 def handle_flags(df, flag_hdr1, flag_hdr2, filter_name, full_magnitude1, full_magnitude2, realization_number, tile_name, fd_flag):
 	"""Examine a particular flag and write to log file. Can also be used to check all flags in a list of flags.
 
-	Args:
-		df (pandas DataFrame)
-		filter_name (str) -- Allowed values: 'g' 'r' 'i' 'z'.
-		full_magnitude1, full_magnitude2 (numpy.ndarray if directly from `df[hdr]` OR list of floats if from `get_floats_from_string()`) -- Values read directly from pandas DataFrame via `df[hdr]`; no objects removed using nonzero flag values and no quality cuts performed.
-		realization_number (int) -- Allowed values: 0 1 2 None. Refers to Balrog injection and None refers to a one-realization run.
-		tile_name (str) -- 
-        Returns:
-		idx_good (list of ints) -- Indices of objects with flags values of zero.
-		idx_bad (list of ints) -- Indices of objects with nonzero flag values.
+	Parameters
+	----------
+	df (pandas DataFrame)
+
+	filter_name (str)
+		Allowed values: 'g' 'r' 'i' 'z'.
+
+	full_magnitude1, full_magnitude2 (numpy.ndarray if directly from `df[hdr]` OR list of floats if from `get_floats_from_string()`) -- Values read directly from pandas DataFrame via `df[hdr]`; no objects removed using nonzero flag values and no quality cuts performed.
+
+	realization_number (str)
+		Allowed values: 0 1 2 None. Refers to Balrog injection and None refers to a one-realization run.
+
+	tile_name (str) 
+
+        Returns
+	-------
+	idx_good (list of ints)
+		Indices of objects with flags values of zero.
+
+	idx_bad (list of ints)
+		Indices of objects with nonzero flag values.
 	"""
 
 	idx_good, idx_bad = [], []; counter_idx_bad = 0
@@ -1204,16 +1325,28 @@ def handle_flags(df, flag_hdr1, flag_hdr2, filter_name, full_magnitude1, full_ma
 
 
 def calculate_total_fractional_magnitude_error(cov_hdr, df, filter_name, flux_hdr, idx_good):
-	"""Calculate the magnitude error via 1.08 * (flux_cov[i][i])^0.5 / flux[i] and ignore flagged objects in error calculation.
+	"""Calculate the magnitude error via 1.08 * (flux_cov[i][i])^0.5 / flux[i]. Ignore flagged objects in error calculation.
 
-	Args:
-            cov_hdr (str) -- Header for flux covariance matrix in the matched catalog.
-            df (pandas DataFrame)
-            filter_name (str) -- Allowed values: 'g' 'r' 'i' 'z'.
-            flux_hdr (str) -- Headers refer to column names in the matched catalog.
-            idx_good (list of ints) -- Indices with flag values equal to zero.
-        Returns:
-            error (list of floats) -- The magnitude error corresponding to each object.
+	Parameters
+	----------
+	cov_hdr (str) 
+		Header for flux covariance matrix in the matched catalog.
+
+	df (pandas DataFrame)
+
+	filter_name (str)
+		Allowed values: 'g' 'r' 'i' 'z'.
+
+	flux_hdr (str)
+		Headers refer to column names in the matched catalog.
+
+	idx_good (list of ints)
+		Indices with flag values equal to zero.
+
+	Returns
+	-------
+	error (list of floats)
+		The magnitude error corresponding to each object.
 	"""
 
 	# Uncleaned lists for flux and flux covariance #
@@ -1239,7 +1372,8 @@ def calculate_total_fractional_magnitude_error(cov_hdr, df, filter_name, flux_hd
 			print 'cm_flux_cov is 0'
 
 		if fluxcov[i] > 0:
-			err = 1.08 * fluxcov[i]**0.5 / flux[i] # Pogsons number = 1.08
+			# Pogsons number = 1.08 #
+			err = 1.08 * fluxcov[i]**0.5 / flux[i] 
 			error.append(err)
 
 	if PRINTOUTS:
@@ -1258,16 +1392,29 @@ def calculate_total_fractional_magnitude_error(cov_hdr, df, filter_name, flux_hd
 
 
 def calculate_and_bin_cm_T_signal_to_noise(cm_t_hdr, cm_t_err_hdr, df, idx_good, clean_magnitude1, clean_magnitude2):
-	"""Calculate measured signal-to-noise ratio via cm_T/cm_T_err (cuts performed on truth catalogs).
+	"""Calculate measured signal-to-noise ratio via cm_T/cm_T_err. Cuts on these values are performed on truth catalogs so consider measured catalogs only.
 
-	Args:
-		cm_t_hdr (str) -- Header for the size squared of object. Headers refer to column names in the matched catalog.
-		cm_t_err_hdr (str) -- Header for error on the size squared of object. Headers refer to column names in the matched catalog.
-		df (pandas DataFrame)
-		idx_good (list of ints) -- Indices where no flags exist. 
-		clean_magnitude1, clean_magnitude2 (list of floats) -- Magnitudes with flags removed.
-	Returns:
-		s2n (list of floats) -- cm_T signal-to-noise at each 'safe' index.
+	Parameters
+	----------
+	cm_t_hdr (str)
+		Header for the size squared of object. Headers refer to column names in the matched catalog.
+
+	cm_t_err_hdr (str)
+		Header for error on the size squared of object. Headers refer to column names in the matched catalog.
+
+	df (pandas DataFrame)
+		DataFrame for the matched (via join=1and2) catalog.
+
+	idx_good (list of ints)
+		Indices where no flags exist. 
+
+	clean_magnitude1, clean_magnitude2 (list of floats)
+		Magnitudes with flags removed.
+
+	Returns
+	----------
+	s2n (list of floats) #FIXME cm_t_s2n
+		cm_T signal-to-noise at each index without flags*.
 	"""
 
 	cm_t = get_good_data(df=df, hdr=cm_t_hdr, idx_good=idx_good, magnitude=False, filter_name=None)
@@ -1313,15 +1460,31 @@ def calculate_and_bin_cm_T_signal_to_noise(cm_t_hdr, cm_t_err_hdr, df, idx_good,
 
 
 def get_68percentile_from_normalized_data(norm_dm_bins, bins, hax_mag_bins):
-	"""Calculate the point on the normalized vertical axis corresponding to the 68th percentile of the data for each bin used in the error calculation.
+	"""Calculate the point on the normalized vertical axis corresponding to the 68th percentile of each bin used in the error calculation. This percentile can be calculated in several ways: centered about zero, centered about the median of each bin, calculated using the absolute value of the data, calculated by examining the 34th percentile of the positive and negative portions of the data separately. 
 
-	Args:
-		norm_dm_bins (list of list of floats) -- Normalized delta magnitudes. Bin structure preserved.
-		bins (list of floats) -- Bins used in error calculation.
-		hax_mag_bins (list of list of floats) -- Magnitudes on the horizontal axis. Bin structure preserved.
-	Returns:
-		vax_68percentile (list of floats) -- Point on the vertical axis (vax) corresponding to 68 percentile. Each element in the list corresponds to a different bin.
-		bins (list of floats) -- Bins used in error calculation.
+	Parameters
+	----------
+	norm_dm_bins (list of list of floats)
+		Normalized delta magnitudes. Bin structure preserved.
+
+	bins (list of floats)
+		Bins used in error calculation.
+
+	hax_mag_bins (list of list of floats)
+		Magnitudes on the horizontal axis. Bin structure preserved.
+
+	Returns
+	-------
+	vax_68percentile (list of floats)
+		Point on the vertical axis (vax) corresponding to 68 percentile. Each element in the list corresponds to a different bin.
+
+	bins (list of floats)
+		Bins used in error calculation.
+
+	neg_vax_34percentile (list of floats)
+
+	pos_vax_34percentile (list of floats)
+
 	"""
 
 	vax_68percentile, neg_vax_34percentile, pos_vax_34percentile = [], [], []
@@ -1399,17 +1562,29 @@ def get_68percentile_from_normalized_data(norm_dm_bins, bins, hax_mag_bins):
 
 
 def bin_and_cut_measured_magnitude_error(clean_magnitude1, clean_magnitude2, error1, error2, filter_name, tile_name, realization_number, fd_mag_bins):
-        """Remove error values corresponding to objects where |Delta-M| > 3. Do not consider error corresponding to empty bins nor bins with a small number of objects.
+        """Clean error. Bin error according to horizontal axis of plot. Remove error values corresponding to objects with |DeltaMagnitude|>3. Do not consider error corresponding to empty bins nor bins with a small number of objects.
 
-        Args:
-                clean_magnitude1, clean_magnitude2 (list of floats) -- Objects with flag values of zero and/or quality cuts performed.
-                error1, error2 (list of floats) -- 1 and 2 refer to the matched catalogs. 
-        Returns:
-                binned_hax_mag_median (list of floats) -- List of medians of the horizontal axis magnitude in each bin.
-                binned_vax_mag_median (list of floats) -- List of medians of the vertical axis magnitude in each bin. Vertical axis is computed via clean_magnitude1 - clean_magnitude2.
-                binned_err_median (list of floats) -- Median of the error in each bin.
-                bins (list of floats) -- Bins used. Binned according to horizontal axis.
-		binned_hax_mag_bins, binned_vax_mag_bins, binned_err_bins (list of lists of floats) -- Stores values in each bin (horizontal axis magnitude, vertical axis magnitude, error, respectively).
+        Parameters
+	----------
+	clean_magnitude1, clean_magnitude2 (list of floats)
+		Objects with flag values of zero and/or quality cuts performed.
+                
+	error1, error2 (list of floats)
+		1 and 2 refer to the matched catalogs. 
+        
+	Returns
+	-------
+	binned_hax_mag_median (list of floats)
+		List of medians of the horizontal axis magnitude in each bin.
+              
+	binned_vax_mag_median (list of floats)
+		List of medians of the vertical axis magnitude in each bin. Vertical axis is computed via clean_magnitude1 - clean_magnitude2.
+
+	binned_err_median (list of floats)
+		Median of the error in each bin.
+
+	bins (list of floats)
+		Bins used. Binned according to horizontal axis.
         """
 
 	### !!!!! Comment this block out if errors are to be computed using both catalogs regardless of origin (measured catalog or truth catalog) ###
@@ -1544,14 +1719,20 @@ def bin_and_cut_measured_magnitude_error(clean_magnitude1, clean_magnitude2, err
 
 
 def normalize_plot_maintain_bin_structure(clean_magnitude1, clean_magnitude2, error1, error2, filter_name, tile_name, realization_number, fd_mag_bins):
-	"""Normalize the vertical axis using error and uphold the bin structure. 
+	"""Normalize the vertical axis using 1sigma_mag and preserve the bin structure of the horizontal axis. 
 
-	Args:
-		clean_magnitude1, clean_magnitude2 (list of floats) --
-		error1, error2 (list of floats) --
-	Returns:
-		norm_dm_bins (list of list of floats) --
-		bins (list of floats) -- Bins used in error calculation. 
+	Parameters
+	----------
+	clean_magnitude1, clean_magnitude2 (list of floats)
+
+	error1, error2 (list of floats)
+
+	Returns
+	-------
+	norm_dm_bins (list of list of floats)
+
+	bins (list of floats)
+		Bins used in error calculation. 
 	"""
 
 	# List of lists. Stores all values in each bin #
@@ -1598,15 +1779,26 @@ def normalize_plot_maintain_bin_structure(clean_magnitude1, clean_magnitude2, er
 
 
 def normalize_plot(norm_delta_mag_bins, bins, hax_mag_bins):
-	"""Normalize plot to 1sigma curve using tame magnitude errors only (use bin_and_cut_measured_magnitude_error()).
+	"""Normalize plot to 1sigma_mag curve using tame magnitude errors
 
-	Args:
-		norm_dm_bins (list of list of floats) -- Normalized delta magnitudes in each bin. 
-                bins (list of floats) -- Bins used in error calculation.
-                hax_mag_bins (list of list of floats) -- Magnitudes on the horizontal axis. Bin structure preserved.
-        Returns:
-		norm_dm (list of floats) -- Delta-Magnitude normalized by error. Delta-Magnitude computed via magnitude1 - magnitude2. 
-                hax_mag (list of floats) -- Magnitude to be plotted on the horizontal axis.
+	Parameters
+	----------
+	norm_dm_bins (list of list of floats)
+		Normalized delta magnitudes in each bin. 
+
+	bins (list of floats)
+		Bins used in error calculation.
+
+	hax_mag_bins (list of list of floats)
+		Magnitudes on the horizontal axis. Bin structure preserved.
+
+        Returns
+	-------
+	norm_dm (list of floats)
+		Delta-Magnitude normalized by error. Delta-Magnitude computed via magnitude1 - magnitude2. 
+
+        hax_mag (list of floats)
+		Magnitude to be plotted on the horizontal axis.
 	"""
 
 	### Remove `None` so that lists can be flattened. `None` is a placeholder for missing lists due to empty or small bin. ###
@@ -1645,14 +1837,20 @@ def normalize_plot(norm_delta_mag_bins, bins, hax_mag_bins):
 
 
 def one_sigma_counter(delta_mag, clean_magnitude1, bins, hax_mag, error_bins, vax_bins_median):
-	"""Find the number of objects within 1sigma, where 1sigma is calculated according to the error. 
+	"""Find the number of objects within 1sigma_mag. This function is called if `NORMALIZE` is False.
 
-	Args:
-                delta_mag (list of floats) -- NON-normalized Delta-Magnitude.
-		error (list of floats) -- Is median error IN EACH BIN
+	Parameters
+	----------
+	delta_mag (list of floats)
+		NON-normalized Delta-Magnitude.
 
-	Returns:
-		counter_1sig (int) -- Number of objects within 1sigma curve.
+	error (list of floats)
+		Is median error IN EACH BIN
+
+	Returns
+	-------
+	counter_1sig (int)
+		Number of objects within 1sigma_mag curve.
         """
 
 	if len(bins) != len(error_bins):
@@ -1714,12 +1912,17 @@ def one_sigma_counter(delta_mag, clean_magnitude1, bins, hax_mag, error_bins, va
 
 
 def norm_one_sigma_counter(norm_delta_mag, clean_magnitude1, bins, hax_mag, error_bins, norm_vax_bins):
-	"""Find the number of objects within 1sigma_mag, where 1sigma is calculated according to the magnitude error. This function is only called if NORMALIZE is True.
+	"""Find the number of objects within 1sigma_mag. This function is only called if `NORMALIZE` is True.
 
-	Args:
-		norm_delta_mag (list of floats) -- Normalized Delta-Magnitude. 
-        Returns:
-            counter_1sig (int) -- Number of objects within 1sigma_mag curve.
+	Parameters
+	----------
+	norm_delta_mag (list of floats)
+		Normalized Delta-Magnitude. #FIXME what about colors? 
+
+        Returns
+	-------
+        counter_1sig (int)
+		Number of objects within 1sigma_mag curve.
 	"""
 
 
@@ -1786,11 +1989,17 @@ def norm_one_sigma_counter(norm_delta_mag, clean_magnitude1, bins, hax_mag, erro
 def get_flag_type(df, k):
 	"""Print the flag type() once.
 
-	Args:
-            df (pandas DataFrame)
-            k (int) -- Counter implemented so printout is not repeated.
-        Returns:
-            0
+	Parameters
+	----------
+        df (pandas DataFrame)
+		DataFrame for the matched (join=1and2) catalog.
+
+        k (int)
+		Counter implemented so printout is not repeated.
+
+        Returns
+	-------
+		0
 	"""
 
 	if k == 0:
@@ -1810,11 +2019,18 @@ def get_flag_type(df, k):
 def get_color(filter_name):
 	"""Color code plot such that each griz band is a different color.
 
-	Args:
-		filter_name (str) -- Allowed values: 'g' 'r' 'i' 'z'
-	Returns:
-		color (str)
-		cmap (str) -- Colormap used for Delta-Magnitude colorbars.
+	Parameters
+	----------
+	filter_name (str)
+		Allowed values: 'g' 'r' 'i' 'z'
+
+	Returns
+	-------
+	color (str)
+		Color for plotting data points.
+
+	cmap (str)
+		Colormap for plotting density. 
 	"""
 
 	if filter_name == 'g': color, cmap = 'green', 'Greens'
@@ -1835,18 +2051,26 @@ def get_color(filter_name):
 
 
 
-def logger(delta_mag, tile_name, filter_name, realization_number, clean_magnitude1, full_magnitude1, bins, hax_mag, fd_main_log, error, vax_mag):
-	"""Write to log files to record number of objects plotted and number of objects within 1sigma_mag.
+def logger(delta_mag, tile_name, filter_name, realization_number, clean_magnitude1, full_magnitude1, bins, hax_mag, fd_main_log, error, vax_mag, fraction_recovered):
+	"""Write to various log files. Records the number of objects matched, the number of objects flagged, the number of objects within 1sigma_mag, etc.
 
-	Args:
-            filter_name (str) -- Allowed values: 'g' 'r' 'i' 'z'.
-            clean_magnitude1 (list of floats) -- Objects with nonzero flags and/or quality cuts removed.
-            full_magnitude (list of floats) -- Values read directly from pandas DataFrame via `df[hdr]`; no objects removed using nonzero flag values and no quality cuts performed.
-            realization_number (int) -- Allowed values: 0 1 2 None. Refers to Balrog injection and None refers to a one-realization run.
-        Returns:
-            percent_in_1sig (float) -- Percent of objects within 1sigma_mag
+	Parameters
+	----------
+	clean_magnitude1 (list of floats)
+		Magnitude of catalog1 in matched (join=1and2) catalog with ~flagged~ objects removed.
+
+	full_magnitude1 (list of floats)
+		Magnitude read directly from pandas Dataframe of matched (join=1and2) catalog.
+
+        filter_name (str) 
+
+        realization_number (str) 
+
+        Returns
+	-------
+        percent_in_1sig (float)
+		Percent of objects within 1sigma_mag.
 	"""
-
 
 	if NORMALIZE:
 		num_1sig = norm_one_sigma_counter(norm_delta_mag=delta_mag, clean_magnitude1=clean_magnitude1, bins=bins, hax_mag=hax_mag, error_bins=error, norm_vax_bins=vax_mag)
@@ -1870,7 +2094,7 @@ def logger(delta_mag, tile_name, filter_name, realization_number, clean_magnitud
 		if STACK_TILES: const2 = len(ALL_TILES)
 		if STACK_REALIZATIONS: const2 = len(ALL_REALIZATIONS)
 		if STACK_TILES is False and STACK_REALIZATIONS is False: const2 = 1
-		#FIXME this is duplicate
+		#FIXME this is duplicate for including flags
 		# Including flags #
 		percent_recovered_flags = 100.0*len(full_magnitude1)/(const1*const2)
 		# Not including flags #
@@ -1886,7 +2110,7 @@ def logger(delta_mag, tile_name, filter_name, realization_number, clean_magnitud
 		writer.writerow([str(tile_name), str(realization_number), str(filter_name), str(len(full_magnitude1)), str(num_flags), str(100.0*num_flags/len(full_magnitude1)), str(num_1sig), str(100.0*num_1sig/len(clean_magnitude1)), str(percent_recovered_flags), str(percent_recovered_flags_rm)])
 
 
-        return percent_in_1sig
+        return percent_in_1sig, percent_recovered_flags
 
 
 
@@ -1896,18 +2120,37 @@ def logger(delta_mag, tile_name, filter_name, realization_number, clean_magnitud
 
 
 
-def get_colorbar_properties(df, cm_t_hdr, cm_t_err_hdr, idx_good, clean_magnitude1, clean_magnitude2, axlabel, inj):
+def get_colorbar_properties(df, cm_t_hdr, cm_t_err_hdr, idx_good, clean_magnitude1, clean_magnitude2, axlabel, inj_10percent, inj_20percent):
 	"""Get data that will be used for the colorbar of plot.
 
-	Args:
-		df (pandas DataFrame)
-		*_hdr (str) -- Headers refer to columns in the matched catalog.
-		inj (bool)  
-	Returns:
-		cbar_val -- Values used to make colorbar. Can be `None`.
-		cbar_idx_bins -- Can be `None`.
-		cbar_bins -- Can be `None`.
-		cbar_label (str) -- Label for the colorbar. Includes LaTeX \bf{} formatting. Can be `None`.
+	Parameters
+	----------
+	df (pandas DataFrame)
+		DataFrame for the matched (join=1and2) catalog.
+	
+	cm_t_hdr, cm_t_err_hdr (str)
+		Matched (join=1and2) catalog headers for cm_T (size) and cm_T_err. Can be `None`.
+
+	idx_good (list of ints)
+		Indices of objects without flags.		
+		
+	clean_magnitude1, clean_magnitude2 (list of floats)
+		Magnitudes ..FIXME rep
+
+	axlabel (str)
+		Allowed values: 'true' 'meas'	
+
+	Returns
+	-------
+	cbar_val (list of floats)
+		Data used to produce colorbar. Can be `None` if not colorbar is to be plotted.
+
+	cbar_idx_bins ???
+
+	cbar_idx_bins ???
+
+	cbar_label (str)
+		Label for colorbar. Includes LaTeX \bf{} formatting. Can be `None`.
 	"""
 
 	if 'true' in axlabel:
@@ -1916,9 +2159,9 @@ def get_colorbar_properties(df, cm_t_hdr, cm_t_err_hdr, idx_good, clean_magnitud
 
 	### Colorbar label ###
 	# Prefix to labels #
-        if inj:
+        if inj_10percent or inj_20percent:
                 pref = 'inj_'
-        if inj is False:
+        if inj_10percent is False and inj_20percent is False:
                 if match_cat != 'y3_gold':
                         pref = 'base_'
                 if match_cat == 'y3_gold':
@@ -1957,13 +2200,34 @@ def get_colorbar_properties(df, cm_t_hdr, cm_t_err_hdr, idx_good, clean_magnitud
 
 
 def get_error(mag_err_hdr, flux_hdr, cov_hdr, df, filter_name, idx_good, match_cat):
-	"""Get errors for plot.
+	"""Get errors for plot data.
 
-	Args:
-		*_hdr (str ) -- Headers refer to columns in the matched catalog. Can be None.
-		df (pandas DataFrame)
-	Returns:
-		err1, err2 (list of floats) -- Will be None if PLOT_1SIG is False.
+	Parameters
+	----------
+	mag_err_hdr (str)
+		Matched catalog header for the magnitude error. Can be `None` if error is to be calculated using flux and flux covariance matrix.
+
+	flux_hdr (str)
+		Matched catalog header refering to the flux. FIXME is flux_g, flux_r ?? Can be `None` (??). Used if mag_err_hdr is `None`.
+
+	cov_hdr (str)
+		Matched catalog header refering to the flux covariance matrix. Can be `None` (??). Used if mag_err_hdr is `None`.
+
+	df (pandas DataFrame)
+		DataFrame for the matched (join=1and2) catalog.
+
+	filter_name (str)
+
+	idx_good (list of ints)
+		Indices of objects without flags.
+
+	match_cat (str)
+		Catalog containing the data. set by `MATCH_CAT1` or `MATCH_CAT2`.
+
+	Returns
+	-------
+	error (list of floats)
+		Error in magnitude or color (set by `PLOT_COLOR`). `error` will be `None` if `PLOT_1SIG` is False.
 	"""
 
         if PLOT_1SIG:
@@ -2015,12 +2279,27 @@ def get_error(mag_err_hdr, flux_hdr, cov_hdr, df, filter_name, idx_good, match_c
 def get_good_data(df, hdr, idx_good, magnitude, filter_name):
 	"""Get the data corresponding to good indices (no flags or post quality cuts).
 
-	Args:
-		df (pandas DataFrame)
-		hdr (str) -- Header for the DataFrame.
-		idx_good (list of floats) -- Safe indices
-		magnitude (bool) -- Get data for magnitudes?
-		filter_name (str) -- Only used if magnitude is True.
+	Parameters
+	----------
+	df (pandas DataFrame)
+		DataFrame for the matched catalog.
+	
+	hdr (str)
+		Header refers to the matched catalog.
+
+	idx_good (list of floats)
+		Indices of objects without flags.
+ 
+	magnitude (bool)
+		If True the data is a str of form '(data_g, data_r, data_i, data_z)'.
+
+	filter_name (str) 
+		Can be `None`. Used if `magnitude=True`.
+
+	Returns
+	-------
+	clean_data (list of floats)
+		Data with flagged objects removed.
 	"""
 
 	if magnitude:
@@ -2038,7 +2317,29 @@ def get_good_data(df, hdr, idx_good, magnitude, filter_name):
 
 
 def get_color_from_magnitude(df, hdr, clean_magnitude_a, filter_name, idx_good):
-	"""Get colors '(c1, c2, c3, c4)' from magnitudes"""
+	"""Get color (g-r), (r-z), (i-z) or (z-g) from magnitudes.
+
+	Parameters
+	----------
+	df (pandas DataFrame)
+		DataFrame for the matched catalog.
+
+	hdr (str)
+		Header for magnitude.
+
+	clean_magnitude_a (list of floats)
+		List of magnitudes with flagged objects removed.
+
+	filter_name (str)
+
+	idx_good (list of ints)
+		Indices of objects without flags. #FIXME point to flags used somewhere in README.md.
+
+	Returns
+	-------
+	cleanColor (list of floats)
+		Colors with flagged objects removed.
+	"""
 
 	if filter_name == 'g': filterFollow = 'r'
 	if filter_name == 'r': filterFollow = 'i'
@@ -2059,22 +2360,35 @@ def get_color_from_magnitude(df, hdr, clean_magnitude_a, filter_name, idx_good):
 
 
 
-def get_xlabel(inj, mag_hdr, axlabel, match_cat, filter_name):
-	"""Get labels for the horizontal axis and colorbar.
+def get_xlabel(inj_10percent, mag_hdr, axlabel, match_cat, filter_name, inj_20percent):
+	"""Get labels for the horizontal axis and colorbar (if applicable).
 	
-	Args:
-		inj (bool) --
-		mag_hdr, cm_t_hdr, cm_t_err (str) -- Headers for magnitude, cm_T, cm_T error.
-		match_cat (str) -- 
-		filter_name (str) --
-	Returns:
+	Parameters
+	----------
+	inj_10percent (bool)
+		If `inj_10percent=True` refers to 10% Balrog-injected catalog. Set by `INJ1_10PERCENT` or `INJ2_10PERCENT`.
+		
+	inj_20percent (bool)
+		If `inj_20percent=True` refers to 20% Balrog-injected catalog. Set by `INJ1_20PERCENT` or `INJ2_20PERCENT`.
+	
+	mag_hdr, cm_t_hdr, cm_t_err (str) 
+		Headers in the matched catalog that refer to the magnitude, cm_T (size), and cm_T error.
+	
+	match_cat (str)
+		Catalog containing the data the hax_label describes. Set by `MATCH_CAT1` or `MATCH_CAT2`. 
+
+	filter_name (str)
+
+	Returns
+	-------
 		hax_label (str) -- Label for the horizontal axis. Includes LaTeX \bf{} formatting. 
 	"""
 
+	# FIXME Will we ever match cats of different % realizations? Next block might cause issues if this is the case.
 	### Prefix to labels ###
-	if inj:
+	if inj_10percent or inj_20percent:
 		pref = 'inj_'
-	if inj is False:
+	if inj_10percent is False and inj_20percent is False:
 		if match_cat != 'y3_gold':
 			pref = 'base_'
 		if match_cat == 'y3_gold':
@@ -2089,7 +2403,7 @@ def get_xlabel(inj, mag_hdr, axlabel, match_cat, filter_name):
 	# 'mag_true' --> 'mag_{filter}_true' with {filter} bolded #
 	mag_axlabel = mag_axlabel[:-4] + '$\\bf{' + str(filter_name) + '}$_' + mag_axlabel[-4:]	
 	mag_axlabel = pref + mag_axlabel
-        # Coadd catalogs. Combined to get '(m_g, m_r, m_i, m_z)' then matched.  #
+        # Coadd catalogs. Combined to get '(m_g, m_r, m_i, m_z)' then matched. #
 	if match_cat == 'coadd':
 		mag_axlabel = 'MAG_AUTO_' + '$\\bf{' + str(filter_name) + '}$_' + str(axlabel) 
 
@@ -2118,16 +2432,50 @@ def get_xlabel(inj, mag_hdr, axlabel, match_cat, filter_name):
 def get_plot_variables(filter_name, df, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, realization_number, tile_name, mag_axlabel1, mag_axlabel2, fd_flag):
 	"""Get quantities needed for plotter() and subplotter().
 
-	Args:
-		df (pandas DataFrame)
-		
-		*_hdr (str) -- Can be None.
-	Returns:
+	Parameters
+	----------
+	df (pandas DataFrame) -- DataFrame for the matched catalog.
+
+	mag_hdr1, mag_hdr2 (str) -- FIXME repeated
+
+	mag_err_hdr1, mag_err_hdr2 (str) -- FIXME repeated
+
+	mag_axlabel1, mag_axlabel2 (str) -- FIXME repeated
+
+	fd_flag (file descriptor) -- FIXME repeated
+
+	filter_name (str)
+
+	realization_number (str)
+
+	tile_name (str)
+
+	Returns
+	-------
+	cbarVal (list of floats) -- Data to be used to plot colorbar. Can be `None`.
+
+	cbarLabel (str) -- Label for colorbar. Can be `None` if no colorbar is to be plotted.
+
+	cbarBins -- ??
+
+	cbarIdxBins -- ??
+
+	err1, err2 -- FIXME repeated
+
+	cleanData1, cleanData2 (list of floats) -- Data with flagged objects removed. Refers to magnitude or color depending on `PLOT_COLOR`.
+
+	idxGood (list of ints) -- Stores indices of objects without flags. Flags used .... FIXME
+
+	fullMag1 (list of floats) -- Magnitude of one magnitude column in matched catalog with not flags removed.
+
+	haxLabel1, haxLabel2 (str) -- Labels for the horizontal axis.
+
+	vaxLabel (str) -- Label for the vertical axis.	
 	"""
 
 	### Axes labels ###
-	haxLabel1 = get_xlabel(inj=INJ1, mag_hdr=mag_hdr1, axlabel=AXLABEL1, match_cat=MATCH_CAT1, filter_name=filter_name)
-	haxLabel2 = get_xlabel(inj=INJ2, mag_hdr=mag_hdr2, axlabel=AXLABEL2, match_cat=MATCH_CAT2, filter_name=filter_name)
+	haxLabel1 = get_xlabel(inj_20percent=INJ1_20PERCENT, inj_10percent=INJ1_10PERCENT, mag_hdr=mag_hdr1, axlabel=AXLABEL1, match_cat=MATCH_CAT1, filter_name=filter_name)
+	haxLabel2 = get_xlabel(inj_20percent=INJ2_20PERCENT, inj_10percent=INJ2_10PERCENT, mag_hdr=mag_hdr2, axlabel=AXLABEL2, match_cat=MATCH_CAT2, filter_name=filter_name)
 	vaxLabel = get_ylabel(label1=haxLabel1, label2=haxLabel2, filter_name=filter_name)
 
 
@@ -2164,7 +2512,7 @@ def get_plot_variables(filter_name, df, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_er
 
 	### Colorbar properties ###
         # Some variables set to None because must pass to plotter(). WARNING be sure that correct catalog (1 or 2) is passed to this function #
-        cbarVal, cbarIdxBins, cbarBins, cbarLabel = get_colorbar_properties(df=df, cm_t_hdr=CM_T_HDR2, cm_t_err_hdr=CM_T_ERR_HDR2, idx_good=idxGood, clean_magnitude1=cleanMag1, clean_magnitude2=cleanMag2, axlabel=AXLABEL2, inj=INJ2)
+        cbarVal, cbarIdxBins, cbarBins, cbarLabel = get_colorbar_properties(df=df, cm_t_hdr=CM_T_HDR2, cm_t_err_hdr=CM_T_ERR_HDR2, idx_good=idxGood, clean_magnitude1=cleanMag1, clean_magnitude2=cleanMag2, axlabel=AXLABEL2, inj_10percent=INJ2_10PERCENT, inj_20percent=INJ2_20PERCENT)
 
 
 
@@ -2195,28 +2543,39 @@ def get_plot_variables(filter_name, df, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_er
 
 
 def get_ylabel(label1, label2, filter_name):
-	"""Shorten vertical axis label for ease of readibility"""
+	"""Shorten vertical axis label for ease of readability. Ex: 'inj_cm_mag_g_true - inj_cm_mag_g_meas' --> 'inj_cm_mag_g true-meas'
 
-	shared_label = ''
+	Parameters
+	----------
+	label1, label2 (str) -- Labels from the horizontal axis. Contain LaTeX \bf{} formatting.
+
+	filter_name (str)
+
+	Returns
+	-------
+	short_label (str) -- Shortened label for vertical axis. Contains LaTeX \bf{} formatting.
+	"""
+
+	short_label = ''
 
 	### Look for similarities in vertical axis labels and build a shared label ###
-        # Phrases that may be shared: inj, meas, true, cm_mag_{filter} or psf_mag #
-        if 'inj' in label1 and 'inj' in label2: shared_label += 'inj_'
-	if 'base' in label1 and 'base' in label2: shared_label += 'base_'
+        # Phrases that may be shared: inj_10percent, meas, true, cm_mag_{filter} or psf_mag #
+        if 'inj' in label1 and 'inj' in label2: short_label += 'inj_'
+	if 'base' in label1 and 'base' in label2: short_label += 'base_'
 
 	# Bold filter #
 	if PLOT_COLOR:
 		# FIXME add 'cm_' to label? 
                 idx1, idx2 = label1.find('_$')+1, label1.find('$_')
                 # Note: label1 should match label2 #
-                shared_label += label1[idx1:idx2] + '$_'
-        if 'cm_mag' in label1 and 'cm_mag' in label2: shared_label += 'cm_mag_$\\bf{' + filter_name + '}$_'
+                short_label += label1[idx1:idx2] + '$_'
+        if 'cm_mag' in label1 and 'cm_mag' in label2: short_label += 'cm_mag_$\\bf{' + filter_name + '}$_'
 
-        if 'true' in label1 and 'true' in label2: shared_label += 'true'
-        if 'meas' in label1 and 'meas' in label2: shared_label += 'meas'
+        if 'true' in label1 and 'true' in label2: short_label += 'true'
+        if 'meas' in label1 and 'meas' in label2: short_label += 'meas'
 
 	### Label prefix ###
-        if 'inj' not in shared_label:
+        if 'inj' not in short_label:
 		if 'inj' in label1: pref1 = 'inj'
 		if 'inj' in label2: pref2 = 'inj'
 		
@@ -2230,28 +2589,61 @@ def get_ylabel(label1, label2, filter_name):
 	if 'pref1' in locals(): pref = pref1 + ' - ' + pref2
 
 	### Label suffix ###
-        if 'meas' not in shared_label and 'true' not in shared_label: suf = label1[-4:] + ' - ' + label2[-4:]
-        if 'meas' in shared_label or 'true' in shared_label: suf = None
+        if 'meas' not in short_label and 'true' not in short_label: suf = label1[-4:] + ' - ' + label2[-4:]
+        if 'meas' in short_label or 'true' in short_label: suf = None
 
-        if pref is not None: shared_label = pref + '  ' + shared_label
-        if suf is not None: shared_label = shared_label[:-1] + '  ' + suf
+        if pref is not None: short_label = pref + '  ' + short_label
+        if suf is not None: short_label = short_label[:-1] + '  ' + suf
 
-	return shared_label
-
-
+	return short_label
 
 
 
 
 
 
-def plotter(mag_hdr1, mag_hdr2, cbar_val, error1, error2, filter_name, clean_magnitude1, full_magnitude1, mag_axlabel1, clean_magnitude2, mag_axlabel2, plot_title, realization_number, tile_name, idx_bins, bins, cbar_axlabel, plot_name, fd_main_log, fd_mag_bins, vax_label):
-	"""Plot a single magnitude versus delta-magnitude plot.
 
-	Args:
-            full_magnitude1, full_magnitude2 (numpy.ndarray if directly from `df` OR list of floats if from `get_floats_from_string()`) -- Values read directly from pandas DataFrame via `df[hdr]`; no objects removed using nonzero flag values and no quality cuts performed.
-            realization_number (str) -- Allowed values: 0 1 2 None. Refers to Balrog injection and None refers to a one-realization run.
-        Returns:
+
+def plotter(mag_hdr1, mag_hdr2, cbar_val, error1, error2, filter_name, clean_magnitude1, full_magnitude1, mag_axlabel1, clean_magnitude2, mag_axlabel2, plot_title, realization_number, tile_name, idx_bins, bins, cbar_axlabel, plot_name, fd_main_log, fd_mag_bins, vax_label, fraction_recovered):
+	"""Produce a single plot of 'x_1' versus 'x_2'-'x_1' where 'x' can be magnitude or color.
+
+	Parameters
+	----------
+	mag_hdr1, mag_hdr2 (str) -- Repeated
+
+
+	cbar_val (list of floats) -- Data used to create a colorbar. Can be `None` in which case no colorbar is added.
+
+	cbar_axlabel (str) -- Label for the colorbar.
+
+	vax_label (str) -- Label for the vertical axis. Contains LaTeX \bf{} formatting.
+
+	mag_axlabel1, mag_axlabel2 (str) -- Axes label for magnitude; will be used to label horizontal axis depending on `SWAP_HAX`. Contains LaTeX \bf{} formatting.
+
+	error1, error2 (list of floats) -- Error in `MATCH_CAT1`, `MATCH_CAT2`. Error refers to the error in magnitude or color depending on the `PLOT_COLOR`.
+
+	clean_magnitude1, clean_magnitude2 (list of floats) -- Magnitudes in matched catalog of `MATCH_CAT1`, `MATCH_CAT2` with flagged objects removed.
+
+	full_magnitude1 (list of floats) -- Refers to the matched (join=1and2) catalog. No flagged objects removed.
+
+	plot_title (str) -- Title for main plot (as opposed to individual subplots). 
+
+	plot_name (str) -- Complete filename for plot save name.
+
+	idx_bins -- ??
+
+	bins (list of floats) -- Bins used to calculate error.
+
+	fd* FIXME repeat
+
+	filter_name (str)
+
+	realization_number (str) 
+
+	tile_name (str)
+
+        Returns
+	-------
 		0
 	"""
 
@@ -2413,7 +2805,9 @@ def plotter(mag_hdr1, mag_hdr2, cbar_val, error1, error2, filter_name, clean_mag
 
 
 	### Write to log files ### 
-	percent_1sig = logger(delta_mag=outlierCleanedDeltaMag, filter_name=filter_name, clean_magnitude1=clean_magnitude1, full_magnitude1=full_magnitude1, realization_number=realization_number, tile_name=tile_name, bins=initialBins, hax_mag=outlierCleanedHaxMag, fd_main_log=fd_main_log, error=errorBinMedian, vax_mag=vaxBinMedian)
+	percent_1sig, fractionRecoveredFlagsIncluded = logger(delta_mag=outlierCleanedDeltaMag, filter_name=filter_name, clean_magnitude1=clean_magnitude1, full_magnitude1=full_magnitude1, realization_number=realization_number, tile_name=tile_name, bins=initialBins, hax_mag=outlierCleanedHaxMag, fd_main_log=fd_main_log, error=errorBinMedian, vax_mag=vaxBinMedian, fraction_recovered=fraction_recovered)
+
+	#percent_1sig = logger(delta_mag=outlierCleanedDeltaMag, filter_name=filter_name, clean_magnitude1=clean_magnitude1, full_magnitude1=full_magnitude1, realization_number=realization_number, tile_name=tile_name, bins=initialBins, hax_mag=outlierCleanedHaxMag, fd_main_log=fd_main_log, error=errorBinMedian, vax_mag=vaxBinMedian, fraction_recovered=fraction_recovered)
 
 
 
@@ -2547,15 +2941,37 @@ def plotter(mag_hdr1, mag_hdr2, cbar_val, error1, error2, filter_name, clean_mag
 
 
 def subplotter(df, flag_idx, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, plot_name, plot_title, realization_number, tile_name, fd_flag, fd_main_log, fd_mag_bins, fraction_recovered):
-	"""Combine four subplots into a single plot with four panels (2-by-2). Declare variables needed for plotting.
+	"""Combine four subplots into a single plot with four panels (2-by-2). 
 
-	Args:
-            *_hdr (str) -- Headers refer to columns in the matched catalog.
-            df (pandas DataFrame)
-            plot_name (str) -- Path and name for the plot. Used when save_plot is True and normalize is False.
-            realization_number (int) -- Allowed values: 0 1 2 None. Refers to Balrog injection and None refers to a one-realization run.
-        Returns:
-            flag_idx (list of ints) -- If log_flags is True, will check for all nonzero flag values in `FLAG_HDR_LIST` and `flag_idx` will contain indices that have nonzero flag values. Will be empty if LOG_FLAGS is False.
+	Parameters
+	----------
+	df (pandas DataFrame) -- DataFrame for the matched catalog. 
+
+	mag_hdr1, mag_hdr2 (str) -- Headers for the magnitude of `MATCH_CAT1` and `MATCH_CAT2` respectively after the catalogs have been matched.
+
+	mag_err_hdr1, mag_err_hdr2 (str) -- Headers for the magnitude error of `MATCH_CAT1` and `MATCH_CAT2` respectively after matching. Can be `None`.
+
+	plot_name (str) -- Complete name for plot.
+
+	plot_title (str) -- Title for 2-by-2 plot. 
+
+	fraction_recovered (float) -- Only applied to truth catalogs.
+
+	realization_number (str) -- Allowed values: 0 1 2 None. Refers to Balrog injection and None refers to a one-realization run.
+
+	tile_name (str)
+
+	fd_flag (file descriptor) -- Log file that collects flags.
+
+	fd_main_log (file descriptor) -- Log file for the number of matched objects, number of flagged objects, number of objects recovered (if using truth catalog), etc.
+
+	fd_mag_bins (file descriptor) -- Log file for error calculation including bins used, median error in each bin, etc.
+
+	flag_idx (list of ints) -- Stores indices with nonzero flag values if `LOG_FLAGS` is True.
+
+        Returns
+	-------
+	flag_idx (list of ints) -- If `LOG_FLAGS` is True, will check for all nonzero flag values in `FLAG_HDR_LIST` and `flag_idx` will contain indices that have nonzero flag values. Will be empty if `LOG_FLAGS` is False.
 	"""
 
 
@@ -2582,7 +2998,7 @@ def subplotter(df, flag_idx, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, plo
 		if SUBPLOT:
 			plt.subplot(2, 2, counter_subplot)
 
-		plotter(mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, cbar_val=cbar_val, plot_title=plot_title, error1=err1, error2=err2, filter_name=f, full_magnitude1=fullMag1, clean_magnitude1=cleanMag1, clean_magnitude2=cleanMag2, mag_axlabel1=mag_axlabel1, mag_axlabel2=mag_axlabel2, realization_number=realization_number, tile_name=tile_name, idx_bins=cbar_idx_bins, bins=cbar_bins, cbar_axlabel=cbar_axlabel, plot_name=plot_name, fd_main_log=fd_main_log, fd_mag_bins=fd_mag_bins, vax_label=vaxLabel)
+		plotter(mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, cbar_val=cbar_val, plot_title=plot_title, error1=err1, error2=err2, filter_name=f, full_magnitude1=fullMag1, clean_magnitude1=cleanMag1, clean_magnitude2=cleanMag2, mag_axlabel1=mag_axlabel1, mag_axlabel2=mag_axlabel2, realization_number=realization_number, tile_name=tile_name, idx_bins=cbar_idx_bins, bins=cbar_bins, cbar_axlabel=cbar_axlabel, plot_name=plot_name, fd_main_log=fd_main_log, fd_mag_bins=fd_mag_bins, vax_label=vaxLabel, fraction_recovered=fraction_recovered)
 
 		counter_subplot += 1
 
@@ -2597,7 +3013,7 @@ def subplotter(df, flag_idx, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, plo
 
 		### Title ###
 		if fraction_recovered is not None:
-			plot_title = plot_title + ' Recovered: ' + str(round(fraction_recovered, 4)*100) + '%'
+			plot_title = ' '.join([plot_title, 'Recovered (flags incl):', str(round(fraction_recovered, 4)*100)+'%'])
 		plt.suptitle(plot_title, fontweight='bold')
 
 		### Save plot ###
@@ -2623,12 +3039,20 @@ def subplotter(df, flag_idx, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, plo
 def get_plot_suptitle(realization_number, tile_name, num_stack_real, num_stack_tile):
 	"""Generate plot title.
 
-	Args:
-		match_type (str) -- Ex: inj_mof_vs_truth_cat 
-		realization_number (str) -- Allowed values: '0' '1' '2' ... 'stack'.
-		tile_name (str)
-	Returns:
-		title (str) -- Ex: 'Inj MOF Cat & Truth Cat' 
+	Parameters
+	----------
+	realization_number (str)
+
+
+	tile_name (str)
+
+	num_stack_real (int) -- Number of catalogs in stacked realization catalog. Can be `None`.
+
+	num_stack_tile (int) -- Number of catalogs in stacked tile catalog. Can be `None`.
+
+	Returns
+	-------
+	title (str) -- Ex: '10% Inj MOF Cat & 10% Inj Truth Cat' 
 	"""
 
 	if STACK_REALIZATIONS:
@@ -2661,29 +3085,28 @@ def get_plot_suptitle(realization_number, tile_name, num_stack_real, num_stack_t
 
 def get_plot_save_name(realization_number, tile_name):
         """Generate name of the plot that will be used in plt.savefig().
-	Relies on directory structure: outdir/plots/`BALROG_RUN`/`MATCH_TYPE`/{tile}/{plot_type}/{realization}/ where allowed values for plot_type are: 'normalized' 'scatter'. 
+	Relies on directory structure: /`OUTDIR`/plots/`BALROG_RUN`/`MATCH_TYPE`/{tile}/realization}/plots/{plot_type}/ where allowed values for plot_type are: 'normalized' 'scatter' 'fof_analysis/normalized' 'fof_analysis/scatter'. 
 
-        Args:
-                outdir (str) -- Output directory
-                realization_number (str) -- Allowed values: '0' '1' '2' 'stack'
-                tile_name (str)
-        Returns:
-                fn (str) -- The complete filename which includes path.
+        Parameters
+	----------
+	realization_number (str) 
+
+	tile_name (str)
+
+        Returns
+	-------
+	fn (str) -- Complete filename for plot. 
         """
-
-	if STACK_REALIZATIONS:
-		realization_number = 'stack'
-	if STACK_TILES:
-		tile_name = 'stack'
 
 	### Get filename ###
 	if YLOW is None and YHIGH is None:
-		# Default scale for the vertical axis (vax) is used #
+		# Default scale for the vertical axis (vax) #
 		ylim = 'defaultvax'
 	if YLOW is not None and YHIGH is not None:
 		ylim = str(YLOW)+'y'+str(YHIGH)
 
 	if RUN_TYPE is None:	
+		#FIXME use join? endname = '_'.join([tile_name, realization_number, 'griz', MATCH_TYPE, ylim+'.png'])
 		endname = str(tile_name) + '_' + str(realization_number) + '_griz_' + str(MATCH_TYPE) + '_' + str(ylim) + '.png'
 	if RUN_TYPE is not None:
 		endname = str(tile_name) + '_' + str(realization_number) + '_griz_' + str(MATCH_TYPE) + '_' + str(RUN_TYPE) + '_' + str(ylim) + '.png'
@@ -2703,6 +3126,7 @@ def get_plot_save_name(realization_number, tile_name):
 
 	# !!!!! User may wish to edit directory structure #
 	plot_dir_pref = os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, tile_name, realization_number, 'plots')
+
 	if RUN_TYPE is not None:
 		plot_dir_pref = os.path.join(plot_dir_pref, 'fof_analysis')
 
@@ -2710,6 +3134,7 @@ def get_plot_save_name(realization_number, tile_name):
 		plot_dir = os.path.join(plot_dir_pref, 'normalized')
 	if NORMALIZE is False:
 		plot_dir = os.path.join(plot_dir_pref, 'scatter')
+
 	
 	### Check for directory existence ###
 	if os.path.isdir(plot_dir) is False:
@@ -2737,15 +3162,23 @@ def get_plot_save_name(realization_number, tile_name):
 
 
 
-def get_coadd_mag_and_mag_err(fn_g, fn_r, fn_i, fn_z, mag_hdr, err_hdr):
-	"""Solely for use with coadd catalogs. Creates a list of magnitudes of form '(mag_g, mag_r, mag_i, mag_z)' from four catalogs.
+def get_coadd_mag_and_mag_err(fn_g, fn_r, fn_i, fn_z, mag_hdr, mag_err_hdr):
+	"""Creates a list of magnitudes and magnitude errors of form '(mag_g, mag_r, mag_i, mag_z)' from four catalogs. Solely for use with coadd catalogs.
 
-	Args:
-		fn -- Filenames. Must be FITS files.
-		hdr (str) -- Header for the magnitude. Headers refer to columns in the matched catalog.
-	Returns:
-		m_griz (list of str) -- Stores magnitude of each filter in form '(mag_g, mag_r, mag_i, mag_z)'
-		m_err_griz (list of str) -- Stores error in magnitude of each filter in form '(mag_g, mag_r, mag_i, mag_z)'
+	Parameters
+	----------
+	fn_g, fn_r, fn_i, fn_z -- Catalog filenames for each filter. Must be FITS files.
+
+
+	mag_hdr (str) -- Header for magnitude. Headers refer to columns in the matched catalog.
+
+	err_hdr (str) -- Header for magnitude error.
+
+	Returns
+	-------
+	m_griz (list of str) -- Stores magnitude of each filter in form '(mag_g, mag_r, mag_i, mag_z)'
+
+	m_err_griz (list of str) -- Stores error in magnitude of each filter in form '(mag_g, mag_r, mag_i, mag_z)'
 	"""
 
 	# Files have not yet been matched, and do not have hdr_1 #
@@ -2781,12 +3214,17 @@ def get_coadd_mag_and_mag_err(fn_g, fn_r, fn_i, fn_z, mag_hdr, err_hdr):
 
 
 def get_star_mag(df, suf):
-	"""Solely for use with star truth catalogs. Computes and creates a list of magnitudes of form '(mag_g, mag_r, mag_i, mag_z)'.
+	"""Computes and creates a list of magnitudes of form '(mag_g, mag_r, mag_i, mag_z)'. Solely for use with star truth catalogs.
 
-	Args:
-		df (pandas DataFram)
-	Returns:
-		m_griz (list of str) -- Stores magnitudes of each filter in form '(mag_g, mag_r, mag_i, mag_z)'.
+	Parameters
+	----------
+	df (pandas DataFrame)
+
+	suf (str) -- Allowed values: '_1' '_2'
+
+	Returns
+	-------
+	m_griz (list of str) -- Stores magnitude of each filter in form '(mag_g, mag_r, mag_i, mag_z)'.
 	"""
 
 	m_g = df['g_Corr'+suf]
@@ -2813,16 +3251,24 @@ def get_star_mag(df, suf):
 
 
 def get_y3_gold_mag(df, mag_hdr):
-	"""Solely for use with Y3 Gold catalogs. Creates a list of magnitudes of form '(mag_g, mag_r, mag_i, mag_z)'.
+	"""Creates a list of magnitudes of form '(mag_g, mag_r, mag_i, mag_z)'. Solely for use with Y3 Gold catalogs.
 
-	Args:
-                df (pandas DataFrame)
-        Returns:
-                m_griz (list of str) -- Stores magnitudes of each filter in form '(mag_g, mag_r, mag_i, mag_z)'.
+	Parameters
+	----------
+	df (pandas DataFrame)
+
+
+	mag_hdr (str) -- General header for magnitude.
+
+        Returns
+	-------
+	m_griz (list of str) -- Stores magnitude of each filter in form '(mag_g, mag_r, mag_i, mag_z)'.
         """
 
 	# Get headers, which are dependent on filter #
-	hdr_g = mag_hdr[:-2] + '_G' + mag_hdr[-2:]; hdr_r = mag_hdr[:-2] + '_R' + mag_hdr[-2:]; hdr_i = mag_hdr[:-2] + '_I' + mag_hdr[-2:]; hdr_z = mag_hdr[:-2] + '_Z' + mag_hdr[-2:]
+	hdr_g = mag_hdr[:-2] + '_G' + mag_hdr[-2:]; hdr_r = mag_hdr[:-2] + '_R' + mag_hdr[-2:]
+	hdr_i = mag_hdr[:-2] + '_I' + mag_hdr[-2:]; hdr_z = mag_hdr[:-2] + '_Z' + mag_hdr[-2:]
+	
 	# Read magnitudes from DataFrame #
 	m_g = df[hdr_g]; m_r = df[hdr_r]; m_i = df[hdr_i]; m_z = df[hdr_z]
 
@@ -2841,46 +3287,57 @@ def get_y3_gold_mag(df, mag_hdr):
 
 
 
-def get_catalog(cat_type, inj, inj_20percent, realization_number, tile_name, filter_name):
+def get_catalog(cat_type, inj_10percent, inj_20percent, realization_number, tile_name, filter_name):
         """Get catalog to analyze.
 	
-        Args:
-                cat_type -- Catalog type. Allowed values: 'gal_truth', 'mof', 'star_truth', 'sof', 'coadd'.
-                inj (bool)
-                realization_number (str) -- Allowed values: '0' '1' '2' ...
-                tile_name -- Different allowed values depending on catalog.
-		filter_name (str) -- Only used with coadd catalogs.
-        Returns:
-                fn -- Filename
+        Parameters
+	----------
+	cat_type -- Catalog type. Allowed values: 'gal_truth', 'mof', 'star_truth', 'sof', 'coadd', 'y3_gold'. Set by `MATCH_CAT1` or `MATCH_CAT2`.
+
+	inj_10percent (bool)
+
+	inj_20percent (bool)
+
+	realization_number (str) -- 
+
+	tile_name -- 
+
+	filter_name (str) -- Only used with coadd catalogs. Ignored if `cat_type` is not 'coadd'. 
+
+        Returns
+	-------
+	fn (str) -- Complete catalog filename.
         """
 
-	if (cat_type == 'gal_truth' and inj is False) or (cat_type == 'star_truth' and inj is False):
+	if (cat_type == 'gal_truth' and inj_10percent is False) or (cat_type == 'star_truth' and inj_10percent is False):
 		sys.exit('No non-injected truth catalog exists.')
 
+	# TODO As of May 2018 only TAMU_Balrog catalogs have 20% injections
 	if BALROG_RUN == 'TAMU_Balrog':
-		fn = get_tamu_catalog(cat_type=cat_type, inj=inj, inj_20percent=inj_20percent, realization_number=realization_number, tile_name=tile_name, filter_name=filter_name)
+		fn = get_tamu_catalog(cat_type=cat_type, inj_10percent=inj_10percent, inj_20percent=inj_20percent, realization_number=realization_number, tile_name=tile_name, filter_name=filter_name)
 
 
 	if BALROG_RUN != 'TAMU_Balrog':
-		if cat_type == 'gal_truth' and inj:
+		if cat_type == 'gal_truth' and inj_10percent:
 			fn = os.path.join(BASEPATH, 'y3v02', 'balrog_images', realization_number, tile_name, tile_name+'_'+realization_number+'_balrog_truth_cat_gals.fits')
+		#if cat_type == 'gal_truth' and inj_20percent
 
-		if cat_type == 'star_truth' and inj:
+		if cat_type == 'star_truth' and inj_10percent:
 			fn = os.path.join(BASEPATH, 'y3v02', 'balrog_images', realization_number, tile_name, tile_name+'_'+realization_number+'_balrog_truth_cat_stars.fits')
 
-		if cat_type == 'sof' and inj:
+		if cat_type == 'sof' and inj_10percent:
 			fn = os.path.join(BASEPATH, 'y3v02', 'balrog_images', realization_number, tile_name, 'sof', tile_name+'_sof.fits')
-		if cat_type == 'sof' and inj is False:
+		if cat_type == 'sof' and inj_10percent is False:
 			fn = os.path.join(BASEPATH, 'y3v02', tile_name, 'sof', tile_name+'_sof.fits')
 
-		if cat_type == 'mof' and inj:
+		if cat_type == 'mof' and inj_10percent:
 			fn = os.path.join(BASEPATH, 'y3v02', 'balrog_images', realization_number, tile_name, 'mof', tile_name+'_mof.fits')
-		if cat_type == 'mof' and inj is False:
+		if cat_type == 'mof' and inj_10percent is False:
 			fn = os.path.join(BASEPATH, 'y3v02', tile_name, 'mof', tile_name+'_mof.fits')
 
-		if cat_type == 'coadd' and inj:
+		if cat_type == 'coadd' and inj_10percent:
 			fn = os.path.join(BASEPATH, 'y3v02', 'balrog_images', realization_number, tile_name, 'coadd', tile_name+'_'+filter_name+'_cat.fits')
-		if cat_type == 'coadd' and inj is False:
+		if cat_type == 'coadd' and inj_10percent is False:
 			fn = os.path.join(BASEPATH, 'y3v02', tile_name, 'coadd', tile_name+'_'+filter_name+'_cat.fits')
 
 
@@ -2899,54 +3356,62 @@ def get_catalog(cat_type, inj, inj_20percent, realization_number, tile_name, fil
 
 
 
-def get_tamu_catalog(cat_type, inj, inj_20percent, realization_number, tile_name, filter_name):
-	"""Get catalog for TAMU tests.
+def get_tamu_catalog(cat_type, inj_10percent, inj_20percent, realization_number, tile_name, filter_name):
+	"""Get catalog for TAMU runs.
 
-	Args:
-		inj (bool) -- Set by `INJ1` or `INJ2`.
-		inj_20percent (bool) -- Set by `INJ1_20PERCENT` or `INJ2_20PERCENT`.
-		cat_type (str) -- Allowed values: mof, sof, gal_truth, star_truth, coadd. Set by `MATCH_CAT1` or `MATCH_CAT2`.
-		realization_number (str) --
-		filter_name (str)
-	Returns:
-		fn (str) -- Complete filename for catalog.
+	Parameters
+	----------
+	inj_10percent (bool) -- Set by `INJ1_10PERCENT` or `INJ2_10PERCENT`.
+
+
+	inj_20percent (bool) -- Set by `INJ1_20PERCENT` or `INJ2_20PERCENT`.
+
+	cat_type (str) -- Allowed values: mof, sof, gal_truth, star_truth, coadd. Set by `MATCH_CAT1` or `MATCH_CAT2`.
+
+	realization_number (str) --
+
+	filter_name (str)
+
+	Returns
+	-------
+	fn (str) -- Complete catalog filename.
 	"""
 
 	# 20% injection #	
 	if inj_20percent:
 
-		if cat_type == 'mof' and inj:
+		if cat_type == 'mof' and inj_10percent:
                         fn = os.path.join(BASEPATH, tile_name + '_20', 'real_' + realization_number + '_' + tile_name + '_mof.fits')
-		if cat_type == 'mof' and inj is False:
+		if cat_type == 'mof' and inj_10percent is False:
 			fn = os.path.join(BASEPATH, tile_name + '_20', 'base_' + tile_name + '_mof.fits')
 
-                if cat_type == 'sof' and inj:
+                if cat_type == 'sof' and inj_10percent:
                         fn = os.path.join(BASEPATH, tile_name + '_20', 'real_' + realization_number + '_' + tile_name + '_sof.fits')
-		if cat_type == 'sof' and inj is False:
+		if cat_type == 'sof' and inj_10percent is False:
 			fn = os.path.join(BASEPATH, tile_name + '_20', 'base_' + tile_name + '_sof.fits')
 
-                if cat_type == 'gal_truth' and inj:
+                if cat_type == 'gal_truth' and inj_10percent:
                         fn = os.path.join(BASEPATH, tile_name + '_20', tile_name + '_' + realization_number + '_balrog_truth_cat_gals.fits')
 
-		if cat_type == 'star_truth' and inj:
+		if cat_type == 'star_truth' and inj_10percent:
                         fn = os.path.join(BASEPATH, tile_name + '_20', tile_name + '_' + realization_number + '_balrog_truth_cat_stars.fits')
 
 	# 10% injection #
 	if inj_20percent is False:
 
-		if cat_type == 'mof' and inj:
+		if cat_type == 'mof' and inj_10percent:
 			fn = os.path.join(BASEPATH, tile_name, 'real_' + realization_number + '_' + tile_name + '_mof.fits')
-		if cat_type == 'mof' and inj is False:
+		if cat_type == 'mof' and inj_10percent is False:
 			fn = os.path.join(BASEPATH, tile_name, 'base_' + tile_name + '_mof.fits')
 
-		if cat_type == 'sof' and inj:
+		if cat_type == 'sof' and inj_10percent:
 			fn = os.path.join(BASEPATH, tile_name, 'real_' + realization_number + '_' + tile_name + '_sof.fits') 
-		if cat_type == 'sof' and inj is False:
+		if cat_type == 'sof' and inj_10percent is False:
 			fn = os.path.join(BASEPATH, tile_name, 'base_' + tile_name + '_sof.fits')
 
-		if cat_type == 'gal_truth' and inj:
+		if cat_type == 'gal_truth' and inj_10percent:
 			fn = os.path.join(BASEPATH, tile_name, tile_name + '_' + realization_number + '_balrog_truth_cat_gals.fits')
-		if cat_type == 'star_truth' and inj:
+		if cat_type == 'star_truth' and inj_10percent:
 			fn = os.path.join(BASEPATH, tile_name, tile_name + '_' + realization_number + '_balrog_truth_cat_stars.fits')
 
 	return fn
@@ -2962,31 +3427,42 @@ def get_tamu_catalog(cat_type, inj, inj_20percent, realization_number, tile_name
 def matcher(realization_number, tile_name, filter_name):
         """Match two catalogs on RA and DEC with a tolerance of 1 arcsecond via STILTS.
 
-        Args:
-                outdir (str) -- Path to where matched catalogs are saved.
-                realization_number (str or int) -- Currently allowed values: 0 1 2 3 4 5 6 7 8 9 depending on the basepath.
-                tile_name (str) -- Currently allowed values: DES0347-5540  DES2329-5622  DES2357-6456 DES2247-4414 depending on the basepath.
-        Returns:
-                outname (str) -- Name of matched catalog. Headers will have _1 appended for truth catalog and _2 appended for mof catalog.
+        Parameters
+	----------
+	realization_number (str or int) -- Currently allowed values: 0 1 2 3 4 5 6 7 8 9 depending on the basepath.
+
+
+	tile_name (str) -- Currently allowed values: DES0347-5540  DES2329-5622  DES2357-6456 DES2247-4414 depending on the basepath.
+
+	filter_name (str)
+
+        Returns
+	-------
+
+	outname_match (str) -- Name of catalog matched via join=1and2. Note that headers of matched catalogs will have '_1' appended or '_2' appended.
+
+	outname_1not2 (str) -- Name of catalog matched via join=1not2.
+
+	outname_2not1 (str) -- Name of catalof matched via join=2not1.
         """
 
         ### Get arguments to pass to ms_matcher ###
 
         # Input catalogs for STILTS #
 	if MATCH_CAT1 is not 'coadd':
-		in1 = get_catalog(cat_type=MATCH_CAT1, inj=INJ1, inj_20percent=INJ1_20PERCENT, realization_number=realization_number, tile_name=tile_name, filter_name=filter_name)
+		in1 = get_catalog(cat_type=MATCH_CAT1, inj_10percent=INJ1_10PERCENT, inj_20percent=INJ1_20PERCENT, realization_number=realization_number, tile_name=tile_name, filter_name=filter_name)
 	if MATCH_CAT1 == 'coadd':
-		in1 =  get_coadd_matcher_catalog(cat_type=MATCH_CAT1, inj=INJ1, inj_20percent=INJ1_20PERCENT, realization_number=realization_number, tile_name=tile_name, mag_hdr=M_HDR1, err_hdr=M_ERR_HDR1)
+		in1 =  get_coadd_matcher_catalog(cat_type=MATCH_CAT1, inj_10percent=INJ1_10PERCENT, inj_20percent=INJ1_20PERCENT, realization_number=realization_number, tile_name=tile_name, mag_hdr=M_HDR1, err_hdr=M_ERR_HDR1)
 
 	if MATCH_CAT2 is not 'coadd':
-		in2 = get_catalog(cat_type=MATCH_CAT2, inj=INJ2, inj_20percent=INJ2_20PERCENT, realization_number=realization_number, tile_name=tile_name, filter_name=filter_name)
+		in2 = get_catalog(cat_type=MATCH_CAT2, inj_10percent=INJ2_10PERCENT, inj_20percent=INJ2_20PERCENT, realization_number=realization_number, tile_name=tile_name, filter_name=filter_name)
 	if MATCH_CAT2 == 'coadd':
-		in2 =  get_coadd_matcher_catalog(cat_type=MATCH_CAT2, inj=INJ2, inj_20percent=INJ2_20PERCENT, realization_number=realization_number, tile_name=tile_name, mag_hdr=M_HDR2, err_hdr=M_ERR_HDR2)
+		in2 =  get_coadd_matcher_catalog(cat_type=MATCH_CAT2, inj_10percent=INJ2_10PERCENT, inj_20percent=INJ2_20PERCENT, realization_number=realization_number, tile_name=tile_name, mag_hdr=M_HDR2, err_hdr=M_ERR_HDR2)
 
         # !!!!! User may wish to edit directory structure. Output catalog name for STILTS #
 	match_dir = os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, tile_name, realization_number, 'catalog_compare')	
 
-	### Check for directory existence ###
+	# Check for directory existence #
 	if os.path.isdir(match_dir) is False:
 		if NO_DIR_MAKE is False:
 			sys.exit('Directory ' + str(match_dir) + ' does not exist. \n Change directory structure in ms_plotter.matcher() or set `NO_DIR_MAKE=True`')
@@ -2994,7 +3470,7 @@ def matcher(realization_number, tile_name, filter_name):
 			print 'Making directory ', match_dir, '...\n'
 			os.makedirs(match_dir)
 
-
+	# Filenames #
         outname_match = os.path.join(match_dir, tile_name+'_'+realization_number+'_'+str(MATCH_TYPE)+'_match1and2.csv')
 	outname_1not2 = os.path.join(match_dir, tile_name+'_'+realization_number+'_'+str(MATCH_TYPE)+'_match1not2.csv')
 	outname_2not1 = os.path.join(match_dir, tile_name+'_'+realization_number+'_'+str(MATCH_TYPE)+'_match2not1.csv')
@@ -3006,7 +3482,7 @@ def matcher(realization_number, tile_name, filter_name):
 	if os.path.isfile(outname_2not1) is False or (os.path.isfile(outname_2not1) and overwrite):
 
 
-		### Matching done in ms_matcher. Args: in1, in2, out, RA_HDR1, DEC_HDR1, RA_HDR2, DEC_HDR2, overwrite ###
+		### Matching done in ms_matcher. Parameters in1, in2, out, RA_HDR1, DEC_HDR1, RA_HDR2, DEC_HDR2, overwrite ###
 		# !!!!! Ensure that path to ms_matcher is correct #
 		subprocess.call(['/data/des71.a/data/mspletts/balrog_validation_tests/scripts/BalVal/ms_matcher', in1, in2, outname_match, outname_1not2, outname_2not1, RA_HDR1, DEC_HDR1, RA_HDR2, DEC_HDR2])
 
@@ -3023,16 +3499,22 @@ def matcher(realization_number, tile_name, filter_name):
 def fof_matcher(realization_number, tile_name):
         """Get catalogs to analyze. Return FOF-analysed catalogs.
 
-        Args:
-		outdir (str) 
-                realization_number (str) -- Allowed values: '0' '1' '2' ...
-                tile_name -- Different allowed values depending on catalog.
-        Returns:
-                fn_* -- Filenames
+        Parameters
+	----------
+	realization_number (str) 
+
+	tile_name (str) 
+
+        Returns
+	-------
+	ok_match OR rerun_match (str) -- Complete filename for catalogs of type join=1and2. `RUN_TYPE` determines if 'ok' or 'rerun' catalog filename is returned. 
+
+	ok_1not2 OR rerun_1not2 (str) -- Complete filename for catalogs of type join=1not2. `RUN_TYPE` determines if 'ok' or 'rerun' catalog filename is returned.
+
+	ok_2not1 OR rerun_2not1 (str) -- Complete filename for catalogs of type join=2not1. `RUN_TYPE` determines if 'ok' or 'rerun' catalog filename is returned.
         """
 
-
-        ### Filenames for input catalogs used in fof_matcher ###
+        ### Filenames for input catalogs used in ms_fof_matcher ###
         # MOF or SOF #
         if MOF:
                 mof = os.path.join(BASEPATH, 'y3v02', tile_name, 'mof', tile_name+'_mof.fits')
@@ -3063,6 +3545,7 @@ def fof_matcher(realization_number, tile_name):
                 os.makedirs(os.path.join(outdir, tile_name))
 
 
+	### Create filenames for output catalogs created by ms_fof_matcher ###
         fofcoadd = os.path.join(outdir, tile_name, tile_name+ '_num-match_fof_coadd.csv')
         fofgroups = os.path.join(outdir, tile_name, tile_name+ 'fofgroups.csv')
 	inj_fofcoadd = os.path.join(inj_outdir, inj_outname + '_num-match_inj_fof_inj_coadd.csv')
@@ -3087,7 +3570,7 @@ def fof_matcher(realization_number, tile_name):
         parpy_outdir = os.path.join(inj_outdir, inj_outname)
 
 
-        # May need to overwrite if matching was interupted #
+        # WARNING: May need to overwrite if matching was interupted #
         overwrite = False 
 
         ### Check file existence of last file made in fof_matcher ###
@@ -3112,11 +3595,27 @@ def fof_matcher(realization_number, tile_name):
 
 
 def stack_tiles(realization_number):
-	"""Concat catalogs for multiple tiles."""
+	"""Concatenate catalogs with multiple tiles and fixed realization.
+	
+	Parameters
+	----------
+	realization_number (str)
 
+	Returns
+	-------
+	fn_stack_match (str) -- Complete filename for stacked catalog of type join=1and2.
+
+	fn_stack_1not2 (str) -- Complete filename for stacked catalog of type join=1not2.
+
+	fn_stack_2not1 (str) -- Complete filename for stacked catalog of type join=2not1.
+
+	len(ALL_TILES) (int) -- Number of catalogs stacked.	
+	"""
+
+	# Directory for stacked catalog #
 	stack_dir = os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, 'stack', realization_number)
 
-	# Check dir existence and handle nonexistence #
+	# Check directory existence and handle nonexistence #
 	if os.path.isdir(stack_dir) is False:
 		if NO_DIR_MAKE is False:
 			sys.exit('Directory ' + str(stack_dir) + ' does not exist. \n Change directory structure in ms_plotter. or set `NO_DIR_MAKE=True`')
@@ -3125,11 +3624,16 @@ def stack_tiles(realization_number):
 			os.makedirs(stack_dir)
 
 	# Filename for stacked catalogs #
-	fn_stack_match = os.path.join(stack_dir, 'stacked_'+str(realization_number)+'_'+str(MATCH_TYPE)+'_match1and2.csv')
-	fn_stack_1not2 = os.path.join(stack_dir, 'stacked_'+str(realization_number)+'_'+str(MATCH_TYPE)+'_match1not2.csv')
-	fn_stack_2not1 = os.path.join(stack_dir, 'stacked_'+str(realization_number)+'_'+str(MATCH_TYPE)+'_match2not1.csv')
+	fn_end_1and2 = '_'.join(['stacked', realization_number, MATCH_TYPE, 'match1and2.csv'])
+	fn_stack_match = os.path.join(stack_dir, fn_end_1and2)
 
-	# Check if stacked realization file already exists #
+	fn_end_1not2 = '_'.join(['stacked', realization_number, MATCH_TYPE, 'match1not2.csv'])
+	fn_stack_1not2 = os.path.join(stack_dir, fn_end_1not2)
+
+	fn_end_2not1 = '_'.join(['stacked', realization_number, MATCH_TYPE, 'match2not1.csv'])
+	fn_stack_2not1 = os.path.join(stack_dir, fn_end_2not1)
+
+	# Check if stacked tile catalog already exists #
 	overwrite = False
 
 	if os.path.isfile(fn_stack_2not1) and overwrite is False:
@@ -3154,14 +3658,13 @@ def stack_tiles(realization_number):
 			all_fn_match.append(fn_match); all_fn_1not2.append(fn_1not2); all_fn_2not1.append(fn_2not1)
 
 		print 'Stacking tiles. ', len(all_fn_match), 'files ...'	
-
 		df1and2 = pd.concat((pd.read_csv(fn) for fn in all_fn_match))
 		df1not2 = pd.concat((pd.read_csv(fn) for fn in all_fn_1not2))
 		df2not1 = pd.concat((pd.read_csv(fn) for fn in all_fn_2not1))
 		print 'Stacking complete ... \n'
 
 
-		# Save stacked catalog as DataFrame #
+		# Save stacked catalogs as DataFrame #
 		df1and2.to_csv(fn_stack_match, sep=','); df1not2.to_csv(fn_stack_1not2, sep=','); df2not1.to_csv(fn_stack_2not1, sep=',')
 		print '-----> Saving stacked tile catalogs as ', fn_stack_match
 		print '----->', fn_stack_1not2
@@ -3179,13 +3682,28 @@ def stack_tiles(realization_number):
 
 
 
-def stack_realizations(realization_number):
-	"""Concat realizations"""
+def stack_realizations(tile_name):
+	"""Concatenate catalogs with multiple realizations and fixed tile.
 
-	# Dir for stacked catalog #
-	stack_dir = os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, t, 'stack')
+	Parameters
+	----------
+	tile_name (str) -- One stacked realization catalog created per tile.
 
-	# Check dir existence and handle nonexistence #
+	Returns
+	-------
+	fn_stack_match (str) -- Complete filename for stacked catalog of join=1and2.
+
+	fn_stack_1not2 (str) -- Complete filename for stacked catalog of type join=1not2.
+
+	fn_stack_2not1 (str) -- Complete filename for stacked catalog of type join=2not1. 
+
+	len(ALL_REALIZATIONS) (int) -- Number of catalogs stacked.
+	"""
+
+	# Directory for stacked catalog #
+	stack_dir = os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, tile_name, 'stack')
+
+	# Check directory existence and handle nonexistence #
 	if os.path.isdir(stack_dir) is False:
 		if NO_DIR_MAKE is False:
 			sys.exit('Directory ' + str(stack_dir) + ' does not exist. \n Change directory structure in ms_plotter. or set `NO_DIR_MAKE=True`')
@@ -3194,11 +3712,11 @@ def stack_realizations(realization_number):
 			os.makedirs(stack_dir)
 
 	# Filename for stacked catalogs #
-	fn_stack_match = os.path.join(stack_dir, t+'_stacked_'+str(MATCH_TYPE)+'_match1and2.csv')
-	fn_stack_1not2 = os.path.join(stack_dir, t+'_stacked_'+str(MATCH_TYPE)+'_match1not2.csv')
-	fn_stack_2not1 = os.path.join(stack_dir, t+'_stacked_'+str(MATCH_TYPE)+'_match2not1.csv')
+	fn_stack_match = os.path.join(stack_dir, tile_name+'_stacked_'+str(MATCH_TYPE)+'_match1and2.csv')
+	fn_stack_1not2 = os.path.join(stack_dir, tile_name+'_stacked_'+str(MATCH_TYPE)+'_match1not2.csv')
+	fn_stack_2not1 = os.path.join(stack_dir, tile_name+'_stacked_'+str(MATCH_TYPE)+'_match2not1.csv')
 
-	# Check if stacked realization file already exists #
+	# Check if stacked realization catalog already exists #
 	overwrite = False
 
 	if os.path.isfile(fn_stack_2not1) and overwrite is False:
@@ -3216,10 +3734,10 @@ def stack_realizations(realization_number):
 		for r in ALL_REALIZATIONS:
 
 			if RUN_TYPE is None:
-				fn_match, fn_1not2, fn_2not1 = matcher(realization_number=r, tile_name=t, filter_name=None)
+				fn_match, fn_1not2, fn_2not1 = matcher(realization_number=r, tile_name=tile_name, filter_name=None)
 
 			if RUN_TYPE is not None:
-				fn_match, fn_1not2, fn_2not1 = fof_matcher(realization_number=r, tile_name=t)
+				fn_match, fn_1not2, fn_2not1 = fof_matcher(realization_number=r, tile_name=tile_name)
 
 			all_fn_match.append(fn_match); all_fn_1not2.append(fn_1not2); all_fn_2not1.append(fn_2not1)
 
@@ -3246,21 +3764,27 @@ def stack_realizations(realization_number):
 
 
 
-def get_fraction_recovered(inj, inj_20percent, constant, df):
+def get_fraction_recovered_include_flags(inj_10percent, inj_20percent, constant, df):
 	"""Get fraction of injected objects recovered after matching.
 
-	Args:
-		inj (bool) -- If `inj=True` refers to 10% Balrog-injected catalog.
-		inj_20percent (bool) -- If `inj_20percent=True` refers to 20% Balrog-injected catalog.
-		constant (int) -- Refers to the number of catalogs. `constant=1` unless catalogs are stacked (by tile or by realization).
-	Returns:
-		fracRecovered (float) -- Fraction of Balrog-injections recovered from the truth catalog present in the full injected image.	
+	Parameters
+	----------
+	inj_10percent (bool) -- If `inj_10percent=True` refers to 10% Balrog-injected catalog.
+
+
+	inj_20percent (bool) -- If `inj_20percent=True` refers to 20% Balrog-injected catalog.
+
+	constant (int) -- Refers to the number of catalogs. `constant=1` unless catalogs are stacked (by tile or by realization).
+
+	Returns
+	-------
+	fracRecovered (float) -- Fraction of Balrog-injections recovered from the truth catalog present in the full injected image.	
 	"""
 
 	notRecovered = df.shape[0]
 
 	# Number of injections in a single truth catalog #
-	if inj:
+	if inj_10percent:
 		# 10% injection #
 		injSingleCat = 5000.0
 	if inj_20percent:
@@ -3271,8 +3795,8 @@ def get_fraction_recovered(inj, inj_20percent, constant, df):
 
 	'''
 	### Alternative method to calculate `injTotal` ###
-	# Requires: get_fraction_recovered(cat_type, inj, inj_20percent, realization_number, tile_name, df, constant)
-	fn = get_catalog(cat_type=cat_type, inj=inj, inj_20percent=inj_20percent, realization_number=realization_number, tile_name=tile_name, filter_name=None)
+	# Requires: get_fraction_recovered(cat_type, inj_10percent, inj_20percent, realization_number, tile_name, df, constant)
+	fn = get_catalog(cat_type=cat_type, inj_10percent=inj_10percent, inj_20percent=inj_20percent, realization_number=realization_number, tile_name=tile_name, filter_name=None)
 	# Number injected is the same for all 20% realization catalogs (hdul). df2not1 is stacked. #
 	hdul = fits.open(fn)
 	data = hdul[1].data
@@ -3295,17 +3819,15 @@ def get_fraction_recovered(inj, inj_20percent, constant, df):
 def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 	"""Makes plots.
 
-	Args:
-		mag_hdr1, mag_hdr2 (str) -- Headers for magnitude. May be altered, hence passed as parameters.
-		mag_err_hdr1, mag_err_hdr2 (str) -- Headers for magnitude error. May be altered, hence passed as parameters.
-	Returns:
+	Parameters
+	----------
+	mag_hdr1, mag_hdr2 (str) -- Headers for magnitude. May be altered, hence passed as parameters.
+
+	mag_err_hdr1, mag_err_hdr2 (str) -- Headers for magnitude error. May be altered, hence passed as parameters.
+	Returns
+	-------
 		0
 	"""
-
-	# Will be altered if catalogs are stacked #
-	global ALL_REALIZATIONS
-	global ALL_TILES
-
 
 	if STACK_TILES is False: list_of_tiles_for_loop = ALL_TILES
 	if STACK_REALIZATIONS is False: list_of_realizations_for_loop = ALL_REALIZATIONS
@@ -3313,14 +3835,10 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 
 	### Stack tiles ###
 	for r in ALL_REALIZATIONS:
-			
 		if STACK_TILES and STACK_REALIZATIONS is False:
-
 			fn_stack_match, fn_stack_1not2, fn_stack_2not1, num_stack_tile = stack_tiles(realization_number=r)
-			
 			# Rewrite #
 			list_of_tiles_for_loop = ['stack']
-			ALL_TILES = ['stack']
 
 
 
@@ -3329,11 +3847,10 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 
 		if STACK_REALIZATIONS and STACK_TILES is False:
 
-			fn_stack_match, fn_stack_1not2, fn_stack_2not1, num_stack_real = stack_realizations(realization_number=r)
+			fn_stack_match, fn_stack_1not2, fn_stack_2not1, num_stack_real = stack_realizations(tile_name=t)
 
 			# Rewrite #
 			list_of_realizations_for_loop = ['stack']
-			ALL_REALIZATIONS = ['stack']
 
 
 
@@ -3351,27 +3868,10 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 		if STACK_REALIZATIONS: const = num_stack_real
 
 
-		if 'truth' in MATCH_CAT1 or 'truth' in MATCH_CAT2:
 
-			#FIXME can i bring this out of the if STACK_* ? NO bc ea realization may have a different 
-			if 'truth' in MATCH_CAT1:
-				get_fraction_recovered(inj, inj_20percent, constant)
-				fractionRecovered = get_fraction_recovered(inj=True, inj_20percent=INJ1_20PERCENT, constant=const, df=df1not2)
+	for t in list_of_tiles_for_loop:
 
-			if 'truth' in MATCH_CAT2:
-				fractionRecovered = get_fraction_recovered(inj=True, inj_20percent=INJ2_20PERCENT, consant=constant, df=df2not1)
-
-
-		if 'truth' not in MATCH_CAT1 and 'truth' not in MATCH_CAT2:
-			# This will not be used, is a placeholder #
-			frac_recovered = None
-
-
-
-
-	for t in ALL_TILES: #list_of_tiles_for_loop
-
-		for r in ALL_REALIZATIONS: #list_of_realizations_for_loop
+		for r in list_of_realizations_for_loop:
 
 			# Filenames for log files #
 			fn_flag, fn_mag_bins, fn_main_log = get_log_file_names(tile_name=t, realization_number=r)
@@ -3381,6 +3881,7 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 
 
 			if STACK_REALIZATIONS is False and STACK_TILES is False:
+				const = 1
 				print 'Not stacking realizations and not stacking tiles ...\n'
 
 				# Filenames for catalogs #
@@ -3397,23 +3898,20 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 
 
 
-
 			### Objects recovered from truth catalog (truth catalogs ONLY) ###
 			if 'truth' in MATCH_CAT1 or 'truth' in MATCH_CAT2:
 
+				if 'truth' in MATCH_CAT1:
+					 fractionRecovered = get_fraction_recovered_include_flags(inj_10percent=True, inj_20percent=INJ1_20PERCENT, df=df1not2, constant=const)
+				if 'truth' in MATCH_CAT2:
+					fractionRecovered = get_fraction_recovered_include_flags(inj_10percent=True, inj_20percent=INJ2_20PERCENT, df=df2not1, constant=const)
 
-				if STACK_TILES is False and STACK_REALIZATIONS is False: #const = 1
-					if 'truth' in MATCH_CAT1:
-						 fractionRecovered = get_fraction_recovered(inj=True, inj_20percent=INJ1_20PERCENT, df=df1not2, constant=1)
-					if 'truth' in MATCH_CAT2:
-						fractionRecovered = get_fraction_recovered(inj=True, inj_20percent=INJ2_20PERCENT, df=df2not1, constant=1)
-
-					# TILE \t REALIZATION \t FILTER \t PERCENT_RECOVERED #
-					fd_full_recovered_log.write(str(t) + '\t' + str(r) + '\t' + 'griz\t' + str(fractionRecovered*100) + '\n')
+				# TILE \t REALIZATION \t FILTER \t PERCENT_RECOVERED #
+				fd_full_recovered_log.write(str(t) + '\t' + str(r) + '\t' + 'griz\t' + str(fractionRecovered*100) + '\n')
 
 			if 'truth' not in MATCH_CAT1 and 'truth' not in MATCH_CAT2:
 				# This will not be used, is a placeholder #
-				frac_recovered = None
+				fractionRecovered = None
 
 			
 			### Region files ####
@@ -3450,7 +3948,7 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 
 
 			### Handle Y3 Gold catalogs ###
-			 # Y3 catalogs are matched then combined #
+			# Y3 catalogs are matched then combined #
                         if MATCH_CAT1 == 'y3_gold' or MATCH_CAT2 == 'y3_gold':
                                 print 'Adding new column to matched csv ...\n'
 
@@ -3497,19 +3995,29 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 
 
 
-def get_coadd_matcher_catalog(cat_type, inj, inj_20percent, realization_number, mag_hdr, err_hdr, tile_name):
+def get_coadd_matcher_catalog(cat_type, inj_10percent, inj_20percent, realization_number, mag_hdr, err_hdr, tile_name):
 	"""Make FITS file that includes a column of form '(m_g, m_r, m_i, m_z)' where m is magnitude. Column will be added to '..._i_cat.fits'. This will be used in matcher(). Relies on directory structure /`OUTDIR`/outputs/`BALROG_RUN`/`MATCH_TYPE`/{tile}/{realization}/catalog_compare/
 
-	Args:
-		cat_type (str) -- Catalog type. Allowed values: mof, sof, coadd, gal_truth, star_truth, y3_gold.
-		inj (bool) -- If `inj=True` refers to 10% Balrog-injected catalog.
-		inj_20percent (bool) -- If `inj_20percent=True` refers to 20% Balrog-injected catalog.
-		realization_number (str)
-		mag_hdr (str) -- Header for magnitude. Headers refer to columns in the matched catalog.
-		err_hdr (str) -- Header for error. Headers refer to columns in the matched catalog.
-		tile_name (str)
-	Returns:
-		fn_new (str) -- Filename for catalog with added column. Is a FITS file.
+	Parameters
+	----------
+	cat_type (str) -- Catalog type. Allowed values: mof, sof, coadd, gal_truth, star_truth, y3_gold.
+
+
+	inj_10percent (bool) -- If `inj_10percent=True` refers to 10% Balrog-injected catalog.
+
+	inj_20percent (bool) -- If `inj_20percent=True` refers to 20% Balrog-injected catalog.
+
+	realization_number (str)
+
+	mag_hdr (str) -- Header for magnitude. Headers refer to columns in the matched catalog.
+
+	err_hdr (str) -- Header for error. Headers refer to columns in the matched catalog.
+
+	tile_name (str)
+
+	Returns
+	-------
+	fn_new (str) -- Filename for catalog with added column. Is a FITS file.
 	"""
 
 	dir_new = os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, tile_name, realization_number, 'catalog_compare')
@@ -3532,11 +4040,11 @@ def get_coadd_matcher_catalog(cat_type, inj, inj_20percent, realization_number, 
 		# Get list of filenames #
 		fn_griz = []
 		for f in ALL_FILTERS:
-			fn_griz.append(get_catalog(cat_type=cat_type, inj=inj, inj_20percent=inj_20percent, realization_number=realization_number, tile_name=tile_name, filter_name=f))
+			fn_griz.append(get_catalog(cat_type=cat_type, inj_10percent=inj_10percent, inj_20percent=inj_20percent, realization_number=realization_number, tile_name=tile_name, filter_name=f))
 		fn_g, fn_r, fn_i, fn_z = fn_griz
 
 		# Get coadd magnitude (mag_c) and magnitude error to be of form '(m_g, m_r, m_i, m_z)'. Recall that this is a string #
-		mag_c, mag_err_c = get_coadd_mag_and_mag_err(fn_g=fn_g, fn_r=fn_r, fn_i=fn_i, fn_z=fn_z, mag_hdr=mag_hdr, err_hdr=err_hdr)
+		mag_c, mag_err_c = get_coadd_mag_and_mag_err(fn_g=fn_g, fn_r=fn_r, fn_i=fn_i, fn_z=fn_z, mag_hdr=mag_hdr, mag_err_hdr=err_hdr)
  
 	       # Create new table #
 		mag_c = Column(mag_c, name='mag_c')
@@ -3564,12 +4072,18 @@ def get_coadd_matcher_catalog(cat_type, inj, inj_20percent, realization_number, 
 def make_region_files(df_match, df_1not2, df_2not1, realization_number, tile_name):
 	"""Make DS9 region files for catalogs matched via join=1and2, join=1not2, and join=2not1 (join type set in STILTS script ms_matcher or ms_fof_matcher).
 
-	Args:
-		df* (pandas DataFrame)
-		realization_number (str)
-		tile_name (str)
-	Returns:
-		fn* -- Filenames for each of the join types.
+	Parameters
+	----------
+	df* (pandas DataFrame)
+
+
+	realization_number (str)
+
+	tile_name (str)
+
+	Returns
+	-------
+	fn* -- Filenames for each of the join types.
 	"""
 
 	### Get filenames and open files ###
