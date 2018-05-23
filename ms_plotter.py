@@ -71,9 +71,6 @@ if '.dat' in tiles[0]:
 		ALL_TILES.append(line[:-1])
 
 
-### Only used if calculating the percent of objects recovered in stacked catalogs ###
-SAMPLE_R = ALL_REALIZATIONS[0]
-SAMPLE_T = ALL_TILES[0]
 
 
 
@@ -91,8 +88,8 @@ SAVE_PLOT = False
 SHOW_PLOT = True
 
 ### Plot type ###
-HIST_2D = False
-CORNER_HIST_2D = True
+HIST_2D = True
+CORNER_HIST_2D = False 
 HEXBIN = False
 SCATTER = False
 # `_COLORBAR` cannot be True if NORMALIZE is True #
@@ -112,9 +109,9 @@ PLOT_COLOR = False
 
 
 # !!!!! Limits for the vertical axis. 'None' is an allowed value and will result in default scaling #
-YLOW, YHIGH = None, None
+YLOW, YHIGH = -1, 1
 
-CENTER_ERR_ABT_ZERO = True 
+CENTER_ERR_ABT_ZERO = False 
 
 # Swap horizontal axis? Default is magnitude1. Matching script ms_matcher determines which catalog is 1 and which is 2. Generally SWAP_HAX does not need to be changed unless the truth catalog values are not on the horizontal axis. #
 SWAP_HAX = False
@@ -1606,7 +1603,7 @@ def bin_and_cut_measured_magnitude_error(clean_magnitude1, clean_magnitude2, err
 		sys.exit('Errors are to be computed using the measured catalog(s), not the truth catalog(s).')
 
 	### Define bins ###
-        step = 0.5
+        __step = 0.5
         # Find the absolute min and max of the magnitudes in the matched catalog #
         limlow1, limlow2 = min(clean_magnitude1), min(clean_magnitude2)
         limhigh1, limhigh2 = max(clean_magnitude1), max(clean_magnitude2)
@@ -1624,7 +1621,8 @@ def bin_and_cut_measured_magnitude_error(clean_magnitude1, clean_magnitude2, err
                 print ' Forcing magnitudes to be binned with max ', limhigh, '...'
 
 	# Include endpoint #
-        bins = np.arange(limlow, limhigh+(step*0.1), step)
+	#TODO __bins, __hax_bin_median, __vax_bin_median, __err_bin_median = [], [], [], []
+        bins = np.arange(limlow, limhigh+(__step*0.1), __step)
 
 	# Stores median of values in each bin #
         binned_hax_mag_median, binned_vax_mag_median, binned_err_median = [], [], []
@@ -1636,6 +1634,7 @@ def bin_and_cut_measured_magnitude_error(clean_magnitude1, clean_magnitude2, err
         # Bin magnitude errors according to the magnitude on the horizontal axis #
         if SWAP_HAX:
                 hax_mag = clean_magnitude2
+		# __hax_mag
         if SWAP_HAX is False:
                 hax_mag = clean_magnitude1
 
@@ -1652,7 +1651,7 @@ def bin_and_cut_measured_magnitude_error(clean_magnitude1, clean_magnitude2, err
                 for i in np.arange(0, len(clean_magnitude1)):
 
                         # Do not calculate errors using outlier magnitudes (chosen to be |Delta-M| > 3). Bin magnitude errors according to the magnitude on the horizontal axis of the plot #
-                        if hax_mag[i] >= b and hax_mag[i] < b+step and abs(vax_mag[i]) < 3: 
+                        if hax_mag[i] >= b and hax_mag[i] < b+__step and abs(vax_mag[i]) < 3: 
                                 binned_err_temp.append((error1[i]**2 + error2[i]**2)**0.5)
                                 binned_hax_mag_temp.append(hax_mag[i])
                                 binned_vax_mag_temp.append(vax_mag[i])
@@ -1662,14 +1661,15 @@ def bin_and_cut_measured_magnitude_error(clean_magnitude1, clean_magnitude2, err
 
 		# Written in log file, hence 'minor' #
                 if PRINTOUTS_MINOR:
-                        print ' For magnitude, number of objects in bin ', round(j, 2), '-', round(j+step, 2), ': ', counter_err, '...'
+                        print ' For magnitude, number of objects in bin ', round(j, 2), '-', round(j+__step, 2), ': ', counter_err, '...'
 
 
 		### Write to log file ###
 		if counter_err == 0: write_median, write_err = None, None
+		#FIXME make sure median doesn't contain None
 		if counter_err > 0: write_median, write_err = np.median(binned_hax_mag_temp), np.median(binned_err_temp)
 		# TILE, REALIZATION, FILTER, NUM_OBJS_IN_BIN, BIN_LHS, BIN_RHS, MEDIAN_HAXIS_MAG, MEDIAN_ERROR #
-		fd_mag_bins.write( str(tile_name) + ' \t ' + str(realization_number) + ' \t ' + str(filter_name) + ' \t ' + str(counter_err) + ' \t ' + str(round(b, 2)) + ' \t ' + str(round(b+step, 2)) + ' \t ' + str(write_median)+ ' \t ' + str(write_err) + '\n')
+		fd_mag_bins.write( str(tile_name) + ' \t ' + str(realization_number) + ' \t ' + str(filter_name) + ' \t ' + str(counter_err) + ' \t ' + str(round(b, 2)) + ' \t ' + str(round(b+__step, 2)) + ' \t ' + str(write_median)+ ' \t ' + str(write_err) + '\n')
 
 
                 ### Tame error calculation and normalization by adding zeros to empty bins and bins with a small number of points ###
@@ -1689,6 +1689,8 @@ def bin_and_cut_measured_magnitude_error(clean_magnitude1, clean_magnitude2, err
                         binned_vax_mag_bins.append(None)		
 
                 if counter_err > CONST:
+			#FIXME test for None
+			print np.mean(binned_err_temp), np.mean(binned_hax_mag_temp), np.mean(binned_vax_mag_temp)
                         binned_err_median.append(np.median(binned_err_temp))
                         binned_hax_mag_median.append(np.median(binned_hax_mag_temp))
                         binned_vax_mag_median.append(np.median(binned_vax_mag_temp))
@@ -1702,9 +1704,9 @@ def bin_and_cut_measured_magnitude_error(clean_magnitude1, clean_magnitude2, err
 
 	if PRINTOUTS:
                 if SWAP_HAX:
-                        print ' Binned clean_magnitude2 with step size: ', step, ', and minimum: ', limlow, ', and maximum: ', limhigh, '...'
+                        print ' Binned clean_magnitude2 with step size: ', __step, ', and minimum: ', limlow, ', and maximum: ', limhigh, '...'
 		if SWAP_HAX is False:
-                        print ' Binned clean_magnitude1 with step size: ', step, ', and minimum: ', limlow, ', and maximum: ', limhigh, '...'
+                        print ' Binned clean_magnitude1 with step size: ', __step, ', and minimum: ', limlow, ', and maximum: ', limhigh, '...'
 		print ' Calculated errors using objects where |DeltaM| < 3 ... '
 		print ' Excluded ', counter_empty_bin, ' bins with less than ', CONST, ' objects ... \n'
 
@@ -1736,39 +1738,39 @@ def normalize_plot_maintain_bin_structure(clean_magnitude1, clean_magnitude2, er
 	"""
 
 	# List of lists. Stores all values in each bin #
+	#TODO __norm_vax_bins, __hax_bins = [], []
 	norm_dm_bins, hax_mag_bins = [], []
 
-	# binned_err_median: stores median of vales in bin. *_bins: stores all values in each bin #
-	vax_bin_median, binned_err_median, bins, binned_hax_mag_bins, binned_vax_mag_bins = bin_and_cut_measured_magnitude_error(clean_magnitude1=clean_magnitude1, clean_magnitude2=clean_magnitude2, error1=error1, error2=error2, filter_name=filter_name, tile_name=tile_name, realization_number=realization_number, fd_mag_bins=fd_mag_bins)[1:-3]
-
+	haxBinMedian, vaxBinMedian, errorBinMedian, bins, haxBins, vaxBins, errorBins, hax, vax = bin_and_cut_measured_magnitude_error(clean_magnitude1=clean_magnitude1, clean_magnitude2=clean_magnitude2, error1=error1, error2=error2, filter_name=filter_name, tile_name=tile_name, realization_number=realization_number, fd_mag_bins=fd_mag_bins)
+ 
 
 	# Loop through bins (b) #
-	for b in np.arange(0, len(binned_vax_mag_bins)):
+	for b in np.arange(0, len(vaxBins)):
 
 		# Normalized Delta-Magnitudes (dm) in current bin (icb) #
 		norm_dm_icb, hax_mag_icb = [], []	
 
 
 		# 0 is a placeholder for empty bins and bins with few objects #
-		if binned_err_median[b] is None:
+		if errorBinMedian[b] is None:
 			norm_dm_bins.append(None)	
 			hax_mag_bins.append(None)
 
 
 		#if vax_mag_icb != 0:
-		if binned_err_median[b] is not None:
+		if errorBinMedian[b] is not None:
 			
-			vax_mag_icb = binned_vax_mag_bins[b]
+			vax_mag_icb = vaxBins[b]
 
 			for i in np.arange(0, len(vax_mag_icb)):
-				norm_dm_icb.append(vax_mag_icb[i]/binned_err_median[b])
-				hax_mag_icb.append(binned_hax_mag_bins[b][i])
+				norm_dm_icb.append(vax_mag_icb[i]/errorBinMedian[b])
+				hax_mag_icb.append(haxBins[b][i])
 
 			# List of lists to keep bin structure #
 			hax_mag_bins.append(hax_mag_icb)
 			norm_dm_bins.append(norm_dm_icb)
 
-	return norm_dm_bins, bins, hax_mag_bins, binned_err_median, vax_bin_median
+	return norm_dm_bins, bins, hax_mag_bins, errorBinMedian, vaxBinMedian
 
 
 
@@ -1881,8 +1883,14 @@ def one_sigma_counter(delta_mag, clean_magnitude1, bins, hax_mag, error_bins, va
 						counter_objs_considered += 1
 						if abs(delta_mag[i]) < error_bins[b]:
 							counter_1sig += 1
+	'''
+	#FIXME test
+	print 'NOT normalized'
+	for b in np.arange(0, len(bins)-1):
+		print vax_bins_median[b]/error_bins[b]
+	sys.exit()
+	'''
 
-	
 	# Center normalization about the median (of vertical axis) of each bin #
 	if CENTER_ERR_ABT_ZERO is False:
 		print 'Centering error about medians ... \n'
@@ -1892,7 +1900,7 @@ def one_sigma_counter(delta_mag, clean_magnitude1, bins, hax_mag, error_bins, va
                                 for i in np.arange(0, len(hax_mag)):
                                         if hax_mag[i] >= bins[b] and hax_mag[i] < bins[b+1]:
 						counter_objs_considered += 1
-                                                if delta_mag[i] < error_bins[b] + vax_bins_median[b] and delta_mag[i] >= -1*error_bins[b] - vax_bins_median[b]: 
+						if delta_mag[i] < error_bins[b] + vax_bins_median[b] and delta_mag[i] >= -1.0*error_bins[b] + vax_bins_median[b]: 
 							counter_1sig += 1
 
 	print ' NOT Normalized '
@@ -1925,31 +1933,37 @@ def norm_one_sigma_counter(norm_delta_mag, clean_magnitude1, bins, hax_mag, erro
 		Number of objects within 1sigma_mag curve.
 	"""
 
-
 	tot = len(norm_delta_mag)
 	counter_1sig, counter_objs_considered = 0, 0
 
 
-        norm_vax_median = []
-        for l in norm_vax_bins:
-                if l is not None:
-                        norm_vax_median.append(np.median(l))
-
         # Cutoffs were introduced in error calculation. Consider only points not cutoff #
         # Get rid of `None` placeholders #
+	'''
+	norm_vax_median = []
+        for l in norm_vax_bins:
+                if l is not None:
+			print l
+                        norm_vax_median.append(np.median(l))
+	'''
         idx_good = []
         for i in np.arange(0, len(error_bins)):
                 if error_bins[i] is not None:
                         idx_good.append(i)
         # Binned values #
         error_bins, bins = np.array(error_bins)[idx_good], np.array(bins)[idx_good]
-
+	norm_vax_median = np.array(norm_vax_bins)[idx_good]
 
         # Examine objects within the relevant bin bounds #
         idx_relevant = np.where((hax_mag >= min(bins)) & (hax_mag < max(bins)))[0]
         hax_mag, norm_delta_mag = np.array(hax_mag)[idx_relevant], np.array(norm_delta_mag)[idx_relevant]
 
-
+	'''
+	print 'Normalized'
+	for b in np.arange(0, len(bins)-1):
+		print norm_vax_median[b]
+	sys.exit()
+	'''
 
 	if CENTER_ERR_ABT_ZERO:
                 for k in norm_delta_mag:
@@ -1960,15 +1974,15 @@ def norm_one_sigma_counter(norm_delta_mag, clean_magnitude1, bins, hax_mag, erro
 
 
 	if CENTER_ERR_ABT_ZERO is False:
-		print 'Centering error about medians ... \n'
+		print 'Centering 1sigma_mag % about medians ... \n' #FIXME
 		for b in np.arange(0, len(bins)-1):
 			if error_bins[b] is not None:
 				print ' Considering objects with magnitudes (on the horizontal axis) in [', bins[b], ',', bins[b+1], ')'
                                 for i in np.arange(0, len(hax_mag)):
                                         if hax_mag[i] >= bins[b] and hax_mag[i] < bins[b+1]:
                                                 counter_objs_considered += 1
-                                                if norm_delta_mag[i] < 1 + norm_vax_median[b] and norm_delta_mag[i] >= -1.0 - norm_vax_median[b]: 
-                                                        counter_1sig += 1
+                                                if norm_delta_mag[i] < 1 + norm_vax_median[b] and norm_delta_mag[i] >= -1.0 + norm_vax_median[b]: 
+							counter_1sig += 1
 
 	print ' Normalized '
 	print ' Total objects: ', tot
@@ -2051,20 +2065,38 @@ def get_color(filter_name):
 
 
 
-def logger(delta_mag, tile_name, filter_name, realization_number, clean_magnitude1, full_magnitude1, bins, hax_mag, fd_main_log, error, vax_mag, fraction_recovered):
+def logger(vax_mag_bin_median, tile_name, filter_name, realization_number, clean_magnitude1, full_magnitude1, bins, hax_mag, fd_main_log, error, vax_mag, fraction_recovered):
 	"""Write to various log files. Records the number of objects matched, the number of objects flagged, the number of objects within 1sigma_mag, etc.
 
 	Parameters
 	----------
+	vax_mag (list of floats)
+		Is normalized to 1sigma_mag if `NORMALIZE` is True.
+
+	vax_mag_bin_median
+		Is normalized to 1sigma_mag if `NORMALIZE` is True.
+
+	fd_main_log (file descriptor)
+
 	clean_magnitude1 (list of floats)
 		Magnitude of catalog1 in matched (join=1and2) catalog with ~flagged~ objects removed.
 
 	full_magnitude1 (list of floats)
 		Magnitude read directly from pandas Dataframe of matched (join=1and2) catalog.
 
+	bins
+
+	hax_mag
+
+	error
+
+	fraction_recovered
+	
         filter_name (str) 
 
         realization_number (str) 
+
+	tile_name
 
         Returns
 	-------
@@ -2073,9 +2105,9 @@ def logger(delta_mag, tile_name, filter_name, realization_number, clean_magnitud
 	"""
 
 	if NORMALIZE:
-		num_1sig = norm_one_sigma_counter(norm_delta_mag=delta_mag, clean_magnitude1=clean_magnitude1, bins=bins, hax_mag=hax_mag, error_bins=error, norm_vax_bins=vax_mag)
+		num_1sig = norm_one_sigma_counter(norm_delta_mag=vax_mag, clean_magnitude1=clean_magnitude1, bins=bins, hax_mag=hax_mag, error_bins=error, norm_vax_bins=vax_mag_bin_median)
 	if NORMALIZE is False:
-		num_1sig = one_sigma_counter(delta_mag=delta_mag, clean_magnitude1=clean_magnitude1, bins=bins, hax_mag=hax_mag, error_bins=error, vax_bins_median=vax_mag) #was median 
+		num_1sig = one_sigma_counter(delta_mag=vax_mag, clean_magnitude1=clean_magnitude1, bins=bins, hax_mag=hax_mag, error_bins=error, vax_bins_median=vax_mag_bin_median) #was median 
 
 	num_flags = len(full_magnitude1)-len(clean_magnitude1)
 
@@ -2766,8 +2798,8 @@ def plotter(mag_hdr1, mag_hdr2, cbar_val, error1, error2, filter_name, clean_mag
 			
 
 		### Values to log ###
-		outlierCleanedDeltaMag, outlierCleanedHaxMag, cleanBins = normalize_plot(norm_delta_mag_bins=normVaxBins, bins=initialBins, hax_mag_bins=haxBins)
-
+		outlierCleanedVaxMag, outlierCleanedHaxMag, cleanBins = normalize_plot(norm_delta_mag_bins=normVaxBins, bins=initialBins, hax_mag_bins=haxBins)
+		print 'Normalized!'
 
 
 	if NORMALIZE is False:
@@ -2782,11 +2814,13 @@ def plotter(mag_hdr1, mag_hdr2, cbar_val, error1, error2, filter_name, clean_mag
 
 		### 1sigma_mag curve ###
 		if PLOT_1SIG:
-			haxBinMedian, vaxBinMedian, errorBinMedian, initialBins = bin_and_cut_measured_magnitude_error(error1=error1, error2=error2, clean_magnitude1=clean_magnitude1, clean_magnitude2=clean_magnitude2, filter_name=filter_name, tile_name=tile_name, realization_number=realization_number, fd_mag_bins=fd_mag_bins)[:4]
+			#FIXME check this
+			# binned_hax_mag_median, binned_vax_mag_median, binned_err_median, bins, binned_hax_mag_bins, binned_vax_mag_bins, binned_err_bins, cleanHaxMag, cleanVaxMag
+			
+			haxBinMedian, vaxBinMedian, errorBinMedian, initialBins, haxBins, vaxBins, errorBins, outlierCleanedHaxMag, outlierCleanedVaxMag  = bin_and_cut_measured_magnitude_error(error1=error1, error2=error2, clean_magnitude1=clean_magnitude1, clean_magnitude2=clean_magnitude2, filter_name=filter_name, tile_name=tile_name, realization_number=realization_number, fd_mag_bins=fd_mag_bins)
+			print 'Not normalized!'
 
-			# Necessary to compute percent of objects within 1sigma_mag #
-			outlierCleanedHaxMag, outlierCleanedDeltaMag = bin_and_cut_measured_magnitude_error(error1=error1, error2=error2, clean_magnitude1=clean_magnitude1, clean_magnitude2=clean_magnitude2, filter_name=filter_name, tile_name=tile_name, realization_number=realization_number, fd_mag_bins=fd_mag_bins)[-2:]
-
+			#print np.mean(outlierCleanedVaxMag); sys.exit('chk for norm w/in norm is false')
 
 			### Remove zeros from x, y, and err (zeros were placeholders for instances in which there were no objects in a particular magnitude bin) ###
 			err = [temp for temp in errorBinMedian if temp is not None]
@@ -2805,9 +2839,21 @@ def plotter(mag_hdr1, mag_hdr2, cbar_val, error1, error2, filter_name, clean_mag
 
 
 	### Write to log files ### 
-	percent_1sig, fractionRecoveredFlagsIncluded = logger(delta_mag=outlierCleanedDeltaMag, filter_name=filter_name, clean_magnitude1=clean_magnitude1, full_magnitude1=full_magnitude1, realization_number=realization_number, tile_name=tile_name, bins=initialBins, hax_mag=outlierCleanedHaxMag, fd_main_log=fd_main_log, error=errorBinMedian, vax_mag=vaxBinMedian, fraction_recovered=fraction_recovered)
+	#FIXME FIXME FIXME vaxBinMedian is always normalized???
+	print 'mean', np.mean(outlierCleanedVaxMag)
+	print len(errorBinMedian), len(vaxBinMedian)
+	for b in np.arange(0, len(initialBins)):
+		if vaxBinMedian[b] is not None:
+			if NORMALIZE is False:
+				print 'vax', vaxBinMedian[b]
+				#print 'norm via vax/err', vaxBinMedian[b]/errorBinMedian[b]
+				#print 'err', errorBinMedian[b]
+			if NORMALIZE:
+				print 'norm vax', vaxBinMedian[b]
+				#print 'err', errorBinMedian[b]
+	sys.exit('chk pre logger. normalize: '+str(NORMALIZE))
 
-	#percent_1sig = logger(delta_mag=outlierCleanedDeltaMag, filter_name=filter_name, clean_magnitude1=clean_magnitude1, full_magnitude1=full_magnitude1, realization_number=realization_number, tile_name=tile_name, bins=initialBins, hax_mag=outlierCleanedHaxMag, fd_main_log=fd_main_log, error=errorBinMedian, vax_mag=vaxBinMedian, fraction_recovered=fraction_recovered)
+	percent_1sig, fractionRecoveredFlagsIncluded = logger(vax_mag=outlierCleanedVaxMag, filter_name=filter_name, clean_magnitude1=clean_magnitude1, full_magnitude1=full_magnitude1, realization_number=realization_number, tile_name=tile_name, bins=initialBins, hax_mag=outlierCleanedHaxMag, fd_main_log=fd_main_log, error=errorBinMedian, vax_mag_bin_median=vaxBinMedian, fraction_recovered=fraction_recovered)
 
 
 
@@ -2817,7 +2863,7 @@ def plotter(mag_hdr1, mag_hdr2, cbar_val, error1, error2, filter_name, clean_mag
 
 	### Values to plot ###
 	if NORMALIZE: 
-		plotDeltaMag = outlierCleanedDeltaMag
+		plotDeltaMag = outlierCleanedVaxMag
 		plotHaxMag = outlierCleanedHaxMag
 	if NORMALIZE is False:
 		plotDeltaMag = deltaMag
@@ -3013,7 +3059,7 @@ def subplotter(df, flag_idx, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, plo
 
 		### Title ###
 		if fraction_recovered is not None:
-			plot_title = ' '.join([plot_title, 'Recovered (flags incl):', str(round(fraction_recovered, 4)*100)+'%'])
+			plot_title = ' '.join([plot_title, 'Recovered (with flags):', str(round(fraction_recovered, 4)*100)+'%'])
 		plt.suptitle(plot_title, fontweight='bold')
 
 		### Save plot ###
@@ -3112,16 +3158,29 @@ def get_plot_save_name(realization_number, tile_name):
 		endname = str(tile_name) + '_' + str(realization_number) + '_griz_' + str(MATCH_TYPE) + '_' + str(RUN_TYPE) + '_' + str(ylim) + '.png'
 
 	# dm = delta magnitude #	
-        if CM_T_S2N_COLORBAR:
-		outname = 'm_vs_dm_cm_t_s2n_' + endname
-        if CM_T_COLORBAR:
-		outname = 'm_vs_dm_cm_t_' + endname
-	if CM_T_ERR_COLORBAR:
-		outname = 'm_vs_dm_cm_t_err_' + endname
-	if HEXBIN:
-		outname = 'm_vs_dm_hexbin_' + endname
-	if CM_T_S2N_COLORBAR is False and CM_T_COLORBAR is False and CM_T_ERR_COLORBAR is False and HEXBIN is False:
-		outname = 'm_vs_dm_' + endname
+	if PLOT_COLOR is False:
+		if CM_T_S2N_COLORBAR:
+			outname = 'm_vs_dm_cm_t_s2n_' + endname
+		if CM_T_COLORBAR:
+			outname = 'm_vs_dm_cm_t_' + endname
+		if CM_T_ERR_COLORBAR:
+			outname = 'm_vs_dm_cm_t_err_' + endname
+		if HEXBIN:
+			outname = 'm_vs_dm_hexbin_' + endname
+		if CM_T_S2N_COLORBAR is False and CM_T_COLORBAR is False and CM_T_ERR_COLORBAR is False and HEXBIN is False:
+			outname = 'm_vs_dm_' + endname
+
+	if PLOT_COLOR:
+		if CM_T_S2N_COLORBAR:
+                        outname = 'color_cm_t_s2n_' + endname
+                if CM_T_COLORBAR:
+                        outname = 'color_cm_t_' + endname
+                if CM_T_ERR_COLORBAR:
+                        outname = 'color_cm_t_err_' + endname
+                if HEXBIN:
+                        outname = 'color_hexbin_' + endname
+                if CM_T_S2N_COLORBAR is False and CM_T_COLORBAR is False and CM_T_ERR_COLORBAR is False and HEXBIN is False:
+                        outname = 'color_' + endname
 
 
 	# !!!!! User may wish to edit directory structure #
@@ -4070,12 +4129,11 @@ def get_coadd_matcher_catalog(cat_type, inj_10percent, inj_20percent, realizatio
 
 #TODO accept idx_good as input param? Will only be used for df_match. 
 def make_region_files(df_match, df_1not2, df_2not1, realization_number, tile_name):
-	"""Make DS9 region files for catalogs matched via join=1and2, join=1not2, and join=2not1 (join type set in STILTS script ms_matcher or ms_fof_matcher).
+	"""Make DS9 region files for catalogs matched via join=1and2, join=1not2, and join=2not1 (join type is STILTS parameter set in ms_matcher or ms_fof_matcher).
 
 	Parameters
 	----------
 	df* (pandas DataFrame)
-
 
 	realization_number (str)
 
@@ -4187,7 +4245,7 @@ if YLOOP:
 		if y is not None:
 			YLOW, YHIGH = -1*y, y
 
-		# Must pass constants as parameters here because used for plot name #
+		# Must pass constants as parameters here because used for plot name and manipulated. #
 		print make_plots(mag_hdr1=M_HDR1, mag_hdr2=M_HDR2, mag_err_hdr1=M_ERR_HDR1, mag_err_hdr2=M_ERR_HDR2)
 
 
