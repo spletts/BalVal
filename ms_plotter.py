@@ -88,8 +88,8 @@ SAVE_PLOT = False
 SHOW_PLOT = True
 
 ### Plot type ###
-HIST_2D = True
-CORNER_HIST_2D = False 
+HIST_2D = False
+CORNER_HIST_2D = True 
 HEXBIN = False
 SCATTER = False
 # `_COLORBAR` cannot be True if NORMALIZE is True #
@@ -98,18 +98,20 @@ CM_T_ERR_COLORBAR = False
 CM_T_COLORBAR = False
 BIN_CM_T_S2N = False
 # If True, normalizes plot to 1sigma_mag. If True, PLOT_1SIG must be True else errors will not be computed and normalization cannot be performed #
-NORMALIZE = True 
+NORMALIZE = False 
 
 
 # !!!!! Plot 1sigma_mag curve? Must be True if NORMALIZE is True. If NORMALIZE is True will also plot the 68th percentile of the data in each error bin. #
 PLOT_1SIG = True
 
 # Plot colors not magnitudes?
-PLOT_COLOR = False 
+PLOT_COLOR = True 
+
+PLOT_DELTA_VAX = False
 
 
 # !!!!! Limits for the vertical axis. 'None' is an allowed value and will result in default scaling #
-YLOW, YHIGH = -1, 1
+YLOW, YHIGH = None, None
 
 CENTER_ERR_ABT_ZERO = True 
 
@@ -1603,6 +1605,8 @@ def bin_and_cut_measured_magnitude_error(clean_magnitude1, clean_magnitude2, err
 		sys.exit('Errors are to be computed using the measured catalog(s), not the truth catalog(s).')
 
 
+	print len(clean_magnitude1[0])
+	print len(clean_magnitude1[1])
 	### Define bins ###
         __step = 0.5
         # Find the absolute min and max of the magnitudes in the matched catalog #
@@ -2374,9 +2378,53 @@ def get_color_from_magnitude(df, hdr, clean_magnitude_a, filter_name, idx_good):
 
 
 
+def get_color_array_from_magnitude(df, hdr1, hdr2, clean_magnitude_1a, clean_magnitude_2a, filter_name, idx_good):
+	"""Get color with magnitudes binned of form '(color_[21-22), color_[22-23), color_[23-24), color_[24-25) where [low-high) refer to magnitudes)'
 
+	Parameters
+	----------
+	filter_name
+	Returns
+	-------
+	"""
 
+	if filter_name == 'g': __filter_follow = 'r'
+        if filter_name == 'r': __filter_follow = 'i'
+        if filter_name == 'i': __filter_follow = 'z'
+	if filter_name == 'z': __filter_follow = 'g'
+	# `From MATCH_CAT1` #
+	__clean_magnitude_1b = np.array(get_floats_from_string(df=df, hdr=hdr1, filter_name=__filter_follow))[idx_good]	
+	# `From MATCH_CAT2` #
+	__clean_magnitude_2b = np.array(get_floats_from_string(df=df, hdr=hdr2, filter_name=__filter_follow))[idx_good] 
 
+	__color1 = np.array(clean_magnitude_1a) - np.array(__clean_magnitude_1b)
+	__color2 = np.array(clean_magnitude_2a) - np.array(__clean_magnitude_2b)
+
+	# Indices in each bin #
+	__idx1, __idx2, __idx3, __idx4 = [], [], [], []
+
+	# Bin magnitude #
+	for i in np.arange(0, len(clean_magnitude_1a)):
+		if clean_magnitude_1a[i] >= 20 and clean_magnitude_1a[i] < 21:
+			__idx1.append(i) 
+		if clean_magnitude_1a[i] >= 21 and clean_magnitude_1a[i] < 22:
+			__idx2.append(i)
+		if clean_magnitude_1a[i] >= 22 and clean_magnitude_1a[i] < 23:
+			__idx3.append(i)
+		if clean_magnitude_1a[i] >= 23 and clean_magnitude_1a[i] < 24:
+			__idx4.append(i)
+
+	#__color_bin1 = np.array(clean_magnitude_a)[__idx1] - np.array(clean_magnitude_b)[__idx1]
+	__color1_bin1, __color1_bin2, __color1_bin3, __color1_bin4 = __color1[__idx1], __color1[__idx2], __color1[__idx3], __color1[__idx4]
+	__color2_bin1, __color2_bin2, __color2_bin3, __color2_bin4 = __color2[__idx1], __color2[__idx2], __color2[__idx3], __color2[__idx4]
+
+	__color1_bins, __color2_bins = [], []
+	__color1_bins.append([__color1[__idx1], __color1[__idx2], __color1[__idx3], __color1[__idx4]]);
+	__color2_bins.append([__color2[__idx1], __color2[__idx2], __color2[__idx3], __color2[__idx4]]) 
+
+	# Convert to string pseudo-array #
+
+	return __color1_bins, __color2_bins
 
 
 
@@ -2449,7 +2497,7 @@ def get_xlabel(inj_10percent, mag_hdr, axlabel, match_cat, filter_name, inj_20pe
 
 
 
-def get_plot_variables(filter_name, df, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, realization_number, tile_name, mag_axlabel1, mag_axlabel2, fd_flag):
+def get_plot_variables(filter_name, df, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, realization_number, tile_name, mag_axlabel1, mag_axlabel2, fd_flag, plot_title, plot_name):
 	"""Get quantities needed for plotter() and subplotter().
 
 	Parameters
@@ -2520,10 +2568,14 @@ def get_plot_variables(filter_name, df, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_er
 	err2 = get_error(mag_err_hdr=mag_err_hdr2, flux_hdr=CM_FLUX_HDR2, cov_hdr=CM_FLUX_COV_HDR2, df=df, filter_name=filter_name, idx_good=idxGood, match_cat=MATCH_CAT2)
 
 
-	### Calculate colors (g-r), (r-z) ... ###
-	if PLOT_COLOR:
-		cleanColor1 = get_color_from_magnitude(df=df, hdr=mag_hdr1, filter_name=filter_name, idx_good=idxGood, clean_magnitude_a=cleanMag1)
-		cleanColor2 = get_color_from_magnitude(df=df, hdr=mag_hdr2, filter_name=filter_name, idx_good=idxGood, clean_magnitude_a=cleanMag2)
+	### Calculate colors (g-r), (r-z), (i-z) ###
+	if PLOT_COLOR and filter_name != 'z':
+		cleanColor1, cleanColor2 = get_color_array_from_magnitude(df=df, hdr1=mag_hdr1, hdr2=mag_hdr2, filter_name=filter_name, idx_good=idxGood, clean_magnitude_1a=cleanMag1, clean_magnitude_2a=cleanMag2)
+
+		#FIXME move this to plotter()?
+		color_subplotter(color1=cleanColor1, color2=cleanColor2, hax_label1=haxLabel1, hax_label2=haxLabel2, vax_label=vaxLabel, filter_name=filter_name, plot_title=plot_title, plot_name=plot_name)
+		#TODO pass to function and do not rwrite cleanColor1
+
 		cleanData1 = cleanColor1; cleanData2 = cleanColor2
 
 	if PLOT_COLOR is False:
@@ -3012,20 +3064,21 @@ def subplotter(df, flag_idx, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, plo
 	for f in ALL_FILTERS:
 
 		### Define variables ###
-		cbar_val, cbar_idx_bins, cbar_bins, err1, err2, cleanMag1, cleanMag2, index_good, cbar_axlabel, fullMag1, mag_axlabel1, mag_axlabel2, vaxLabel = get_plot_variables(filter_name=f, df=df, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization_number=realization_number, tile_name=tile_name, mag_axlabel1=M_AXLABEL1, mag_axlabel2=M_AXLABEL2, fd_flag=fd_flag)
+		cbar_val, cbar_idx_bins, cbar_bins, err1, err2, cleanMag1, cleanMag2, index_good, cbar_axlabel, fullMag1, mag_axlabel1, mag_axlabel2, vaxLabel = get_plot_variables(filter_name=f, df=df, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization_number=realization_number, tile_name=tile_name, mag_axlabel1=M_AXLABEL1, mag_axlabel2=M_AXLABEL2, fd_flag=fd_flag, plot_title=plot_title, plot_name=plot_name)
 
 
 
 		### Subplot ###
-		if SUBPLOT:
+		if SUBPLOT: 
 			plt.subplot(2, 2, counter_subplot)
 
-		plotter(mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, cbar_val=cbar_val, plot_title=plot_title, error1=err1, error2=err2, filter_name=f, full_magnitude1=fullMag1, clean_magnitude1=cleanMag1, clean_magnitude2=cleanMag2, mag_axlabel1=mag_axlabel1, mag_axlabel2=mag_axlabel2, realization_number=realization_number, tile_name=tile_name, idx_bins=cbar_idx_bins, bins=cbar_bins, cbar_axlabel=cbar_axlabel, plot_name=plot_name, fd_main_log=fd_main_log, fd_mag_bins=fd_mag_bins, vax_label=vaxLabel, fraction_recovered=fraction_recovered)
+		if PLOT_COLOR is False:
+			plotter(mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, cbar_val=cbar_val, plot_title=plot_title, error1=err1, error2=err2, filter_name=f, full_magnitude1=fullMag1, clean_magnitude1=cleanMag1, clean_magnitude2=cleanMag2, mag_axlabel1=mag_axlabel1, mag_axlabel2=mag_axlabel2, realization_number=realization_number, tile_name=tile_name, idx_bins=cbar_idx_bins, bins=cbar_bins, cbar_axlabel=cbar_axlabel, plot_name=plot_name, fd_main_log=fd_main_log, fd_mag_bins=fd_mag_bins, vax_label=vaxLabel, fraction_recovered=fraction_recovered)
 
 		counter_subplot += 1
 
 
-	if SUBPLOT:
+	if SUBPLOT and PLOT_COLOR is False:
 
 		### Show or save the plot once all four subplots have been filled ###
 		plt.subplots_adjust(hspace=0.4)
@@ -3052,6 +3105,45 @@ def subplotter(df, flag_idx, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, plo
 
 
 
+
+
+def color_subplotter(color1, color2, filter_name, hax_label1, hax_label2, vax_label, plot_title, plot_name):
+	"""Combine four subplots of color into a single plot with four panels (2-by-2).
+
+	"""
+
+	__title = ['Magnitude bins [20, 21)', 'Magnitude bins [21, 22)', 'Magnitude bins [22, 23)', 'Magnitude bins [23, 24)']
+
+	if SWAP_HAX is False:
+		__hax_label = hax_label1
+	if SWAP_HAX:
+		__hax_label = hax_label2
+
+
+	### Create 4-by-4 subplot ###
+        counter_subplot = 1
+        # Figure size units: inches #
+        plt.figure(figsize=(12, 10))
+
+	#TODO edit return of get_color_array
+	for i in np.arange(0, len(color1[0])):
+		plt.subplot(2, 2, i+1) 
+		corner.hist2d(color1[0][i], color2[0][i], no_fill_contours=True, color=get_color(filter_name=filter_name)[0], contour_kwargs={'colors':'red', 'cmap':None, 'linewidths':0.7})
+		plt.ylabel(vax_label)
+		plt.xlabel(__hax_label)
+		plt.title(__title[i])
+
+	plt.subplots_adjust(hspace=0.4)
+	plt.suptitle(plot_title, fontweight='bold')
+
+	if SAVE_PLOT:
+		print '-----> Saving plot as: ', plot_name
+		plt.savefig(plot_name)
+
+	if SHOW_PLOT:
+		plt.show()
+
+	return 0
 
 
 
