@@ -2340,52 +2340,28 @@ def get_good_data(df, hdr, idx_good, magnitude, filter_name):
 
 
 
-def get_color_from_magnitude(df, hdr, clean_magnitude_a, filter_name, idx_good):
-	"""Get color (g-r), (r-z), (i-z) or (z-g) from magnitudes.
-
-	Parameters
-	----------
-	df (pandas DataFrame)
-		DataFrame for the matched catalog.
-
-	hdr (str)
-		Header for magnitude.
-
-	clean_magnitude_a (list of floats)
-		List of magnitudes with flagged objects removed.
-
-	filter_name (str)
-
-	idx_good (list of ints)
-		Indices of objects without flags. #FIXME point to flags used somewhere in README.md.
-
-	Returns
-	-------
-	cleanColor (list of floats)
-		Colors with flagged objects removed.
-	"""
-
-	if filter_name == 'g': filterFollow = 'r'
-	if filter_name == 'r': filterFollow = 'i'
-	if filter_name == 'i': filterFollow = 'z'
-	if filter_name == 'z': filterFollow = 'g' #FIXME must be lambda_short - lambda_long
-
-	clean_magnitude_b = np.array(get_floats_from_string(df=df, hdr=hdr, filter_name=filterFollow))[idx_good]
-	cleanColor = clean_magnitude_a - clean_magnitude_b
-
-
-	return cleanColor
-
 
 
 def get_color_array_from_magnitude(df, hdr1, hdr2, clean_magnitude_1a, clean_magnitude_2a, filter_name, idx_good):
 	"""Get color with magnitudes binned of form '(color_[21-22), color_[22-23), color_[23-24), color_[24-25) where [low-high) refer to magnitudes)'
+        Parameters
+        ----------
+        df (pandas DataFrame)
+                DataFrame for the matched catalog.
 
-	Parameters
-	----------
-	filter_name
-	Returns
-	-------
+        hdr (str)
+                Header for magnitude.
+
+        clean_magnitude_a (list of floats)
+                List of magnitudes with flagged objects removed.
+
+        filter_name (str)
+
+        idx_good (list of ints)
+                Indices of objects without flags. #FIXME point to flags used somewhere in README.md.
+
+        Returns
+        -------
 	"""
 
 	if filter_name == 'g': __filter_follow = 'r'
@@ -2423,7 +2399,7 @@ def get_color_array_from_magnitude(df, hdr1, hdr2, clean_magnitude_1a, clean_mag
 	__color2_bins.append([__color2[__idx1], __color2[__idx2], __color2[__idx3], __color2[__idx4]]) 
 
 	# Convert to string pseudo-array #
-
+	print len(__color1_bins); sys.exit()
 	return __color1_bins, __color2_bins
 
 
