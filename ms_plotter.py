@@ -89,7 +89,7 @@ SHOW_PLOT = True
 
 ### Plot type ###
 HIST_2D = False
-CORNER_HIST_2D = True 
+CORNER_HIST_2D = True
 HEXBIN = False
 SCATTER = False
 # `_COLORBAR` cannot be True if NORMALIZE is True #
@@ -98,7 +98,7 @@ CM_T_ERR_COLORBAR = False
 CM_T_COLORBAR = False
 BIN_CM_T_S2N = False
 # If True, normalizes plot to 1sigma_mag. If True, PLOT_1SIG must be True else errors will not be computed and normalization cannot be performed #
-NORMALIZE = False 
+NORMALIZE = False
 
 
 # !!!!! Plot 1sigma_mag curve? Must be True if NORMALIZE is True. If NORMALIZE is True will also plot the 68th percentile of the data in each error bin. #
@@ -107,7 +107,9 @@ PLOT_1SIG = True
 # Plot colors not magnitudes?
 PLOT_COLOR = True 
 
-PLOT_DELTA_VAX = False
+# !!!!! If `True` plots x1 versus (x1-x2). If `False` plots x1 versus x2. #
+PLOT_DELTA_VAX = True
+
 
 
 # !!!!! Limits for the vertical axis. 'None' is an allowed value and will result in default scaling #
@@ -216,6 +218,7 @@ def catch_error():
 
 	if INJ1_10PERCENT is False and INJ2_10PERCENT is False and realizations[0] != 'None': 'If INJ1_10PERCENT and INJ2_10PERCENT are False realizations must be None at cmd line'
 	if INJ1_20PERCENT is False and INJ2_20PERCENT is False and realizations[0] != 'None': 'If INJ1_20PERCENT and INJ2_20PERCENT are False realizations must be None at cmd line' 	
+	#TODO not normalize and plot_color simult.
 	return msg
 
 if catch_error() is not None:
@@ -745,17 +748,19 @@ def get_log_file_names(tile_name, realization_number):
 	fn1 = os.path.join(log_dir, 'flag_log_'+fn_rep+'.log')
 	fn2 = os.path.join(log_dir, 'err_calc_'+fn_rep+'.log')
 	fn3 = os.path.join(log_dir, 'num_flags_num_1sig_'+fn_rep+'.log')
+	fn4 = os.path.join(log_dir, 'color_plot_'+fn_rep+'.log')
 
         if RUN_TYPE is not None:
 		fn1 = '_'.join([fn1[:-4], RUN_TYPE, fn1[-4:]])
 		fn2 = '_'.join([fn2[:-4], RUN_TYPE, fn2[-4:]])
 		fn3 = '_'.join([fn3[:-4], RUN_TYPE, fn3[-4:]])
+		fn4 = '_'.join([fn4[:-4], RUN_TYPE, fn4[-4:]])
 
         print '-----> Saving log file for flags as: ', fn1, '\n'
         print '-----> Saving log file for magnitude and error bins as: ', fn2, '\n'
         print '-----> Saving log file for number of flags, number of objects within 1sigma_mag as: ', fn3, '\n'
 
-	return fn1, fn2, fn3
+	return fn1, fn2, fn3, fn4
 
 
 
@@ -903,7 +908,7 @@ with open(FN_LOG, 'wb') as csvfile:
 
 
 
-def fd_first_write(fn_main_log, fn_mag_bins, fn_flag):
+def fd_first_write(fn_main_log, fn_mag_bins, fn_flag, fn_color_plot_log):
 	"""Write headers to log files.
 
 	Parameters
@@ -915,7 +920,7 @@ def fd_first_write(fn_main_log, fn_mag_bins, fn_flag):
 	"""
 
 	### Open files ###
-	fd_main_log = open(fn_main_log, 'w'); fd_mag_bins = open(fn_mag_bins, 'w'); fd_flag = open(fn_flag, 'w')
+	fd_main_log = open(fn_main_log, 'w'); fd_mag_bins = open(fn_mag_bins, 'w'); fd_flag = open(fn_flag, 'w'); fd_color_plot_log = open(fn_color_plot_log, 'w')
 
 	### Write headers ###
 	fd_main_log.write('TILE\tREALIZATION\tFILTER\tRUN_TYPE\tTOTAL_MATCHES\tTOTAL_FLAGS\tPERCENT_FLAGS\tTOTAL_1SIGMA_MAG\tPERCENT_1SIGMA_MAG\n')
@@ -927,7 +932,9 @@ def fd_first_write(fn_main_log, fn_mag_bins, fn_flag):
 	if LOG_FLAGS is False:
 		fd_flag.write('Flags not logged because LOG_FLAGS is False.')
 
-	return fd_main_log, fd_mag_bins, fd_flag
+	fd_color_plot_log.write('TILE\tREALIZATION\tCOLOR\tMAG_BIN\tOBJS_IN_MAG_BIN\tTOTAL_OBJECTS_NO_FLAGS\tRUN_TYPE\n')
+
+	return fd_main_log, fd_mag_bins, fd_flag, fd_color_plot_log
 
 
 
@@ -1605,8 +1612,6 @@ def bin_and_cut_measured_magnitude_error(clean_magnitude1, clean_magnitude2, err
 		sys.exit('Errors are to be computed using the measured catalog(s), not the truth catalog(s).')
 
 
-	print len(clean_magnitude1[0])
-	print len(clean_magnitude1[1])
 	### Define bins ###
         __step = 0.5
         # Find the absolute min and max of the magnitudes in the matched catalog #
@@ -1875,17 +1880,11 @@ def one_sigma_counter(delta_mag, clean_magnitude1, bins, hax_mag, error_bins, va
 						counter_objs_considered += 1
 						if abs(delta_mag[i]) < error_bins[b]:
 							counter_1sig += 1
-	'''
-	#FIXME test
-	print 'NOT normalized'
-	for b in np.arange(0, len(bins)-1):
-		print vax_bins_median[b]/error_bins[b]
-	sys.exit()
-	'''
+
 
 	# Center normalization about the median (of vertical axis) of each bin #
 	if CENTER_ERR_ABT_ZERO is False:
-		print 'Centering error about medians ... \n'
+		print 'Centering 1sigma_mag about vax median of each bin... \n'
 		for b in np.arange(0, len(bins)-1):
                         if error_bins[b] is not None:
 				print ' Considering objects with magnitudes (on the horizontal axis) in [', bins[b], ',', bins[b+1], ')'
@@ -1950,12 +1949,6 @@ def norm_one_sigma_counter(norm_delta_mag, clean_magnitude1, bins, hax_mag, erro
         __idx_relevant = np.where((hax_mag >= min(bins)) & (hax_mag < max(bins)))[0]
         hax_mag, norm_delta_mag = np.array(hax_mag)[__idx_relevant], np.array(norm_delta_mag)[__idx_relevant]
 
-	'''
-	print 'Normalized'
-	for b in np.arange(0, len(bins)-1):
-		print norm_vax_median[b]
-	sys.exit()
-	'''
 
 	if CENTER_ERR_ABT_ZERO:
                 for k in norm_delta_mag:
@@ -1966,7 +1959,7 @@ def norm_one_sigma_counter(norm_delta_mag, clean_magnitude1, bins, hax_mag, erro
 
 
 	if CENTER_ERR_ABT_ZERO is False:
-		print 'Centering 1sigma_mag % about medians ... \n' #FIXME
+		print 'Centering 1sigma_mag about vax median of each bin... \n'
 		for b in np.arange(0, len(bins)-1):
 			if error_bins[b] is not None:
 				print ' Considering objects with magnitudes (on the horizontal axis) in [', bins[b], ',', bins[b+1], ')'
@@ -2144,7 +2137,7 @@ def logger(vax_mag_bin_median, tile_name, filter_name, realization_number, clean
 
 
 
-def get_colorbar_properties(df, cm_t_hdr, cm_t_err_hdr, idx_good, clean_magnitude1, clean_magnitude2, axlabel, inj_10percent, inj_20percent):
+def get_colorbar_for_magnitude_plot_properties(df, cm_t_hdr, cm_t_err_hdr, idx_good, clean_magnitude1, clean_magnitude2, axlabel, inj_10percent, inj_20percent):
 	"""Get data that will be used for the colorbar of plot.
 
 	Parameters
@@ -2223,7 +2216,7 @@ def get_colorbar_properties(df, cm_t_hdr, cm_t_err_hdr, idx_good, clean_magnitud
 
 
 
-def get_error(mag_err_hdr, flux_hdr, cov_hdr, df, filter_name, idx_good, match_cat):
+def get_magnitude_error(mag_err_hdr, flux_hdr, cov_hdr, df, filter_name, idx_good, match_cat):
 	"""Get errors for plot data.
 
 	Parameters
@@ -2264,40 +2257,36 @@ def get_error(mag_err_hdr, flux_hdr, cov_hdr, df, filter_name, idx_good, match_c
                                 magError = df[str(mag_err_hdr[:-2]) + '_' + filter_name.upper() + str(mag_err_hdr[-2:])]
 			# Pass good indices #
 			magError = np.array(magError)[idx_good]
-		
-
-		if PLOT_COLOR:
-			if filter_name == 'g': filterFollow = 'r'
-			if filter_name == 'r': filterFollow = 'i'
-			if filter_name == 'i': filterFollow = 'z'
-			if filter_name == 'z': filterFollow = 'g' #FIXME must be lambda_short - lambda_long	
-			
-			if mag_err_hdr is None:
-				magErrorFollow = calculate_total_fractional_magnitude_error(df=df, flux_hdr=flux_hdr, cov_hdr=cov_hdr, filter_name=filterFollow, idx_good=idx_good)
-			if mag_err_hdr is None:
-				if match_cat == 'coadd':
-					magErrorFollow = get_floats_from_string(df=df, hdr=mag_err_hdr, filter_name=filterFollow)
-				if match_cat == 'star_truth' or match_cat== 'y3_gold':
-					magErrorFollow = df[str(mag_err_hdr[:-2]) + '_' + filterFollow.upper() + str(mag_err_hdr[-2:])]	
-
-			colorError = (np.array(magError)**2 + np.array(magErrorFollow)**2)**0.5
-
-			error = colorError
-
-		if PLOT_COLOR is False: error = magError
-
 
         if PLOT_1SIG is False:
-		error = None
+		magError = None
 
-	return error 
-
-
+	return magError 
 
 
 
 
 
+def get_color_plot_error(mag_err_hdr, flux_hdr, cov_hdr, df, filter_name, idx_good, match_cat):
+	""" TODO. See @get_magnitude_plot_error docstring """
+
+	magErr = get_magnitude_error(mag_err_hdr=mag_err_hdr, flux_hdr=flux_hdr, cov_hdr=cov_hdr, df=df, filter_name=filter_name, idx_good=idx_good, match_cat=match_cat)
+
+	if filter_name == 'g': filterFollow = 'r'
+	if filter_name == 'r': filterFollow = 'i'
+	if filter_name == 'i': filterFollow = 'z'
+
+	if mag_err_hdr is None:
+		magErrorFollow = calculate_total_fractional_magnitude_error(df=df, flux_hdr=flux_hdr, cov_hdr=cov_hdr, filter_name=filterFollow, idx_good=idx_good)
+	if mag_err_hdr is None:
+		if match_cat == 'coadd':
+			magErrorFollow = get_floats_from_string(df=df, hdr=mag_err_hdr, filter_name=filterFollow)
+			if match_cat == 'star_truth' or match_cat== 'y3_gold':
+				magErrorFollow = df[str(mag_err_hdr[:-2]) + '_' + filterFollow.upper() + str(mag_err_hdr[-2:])]
+
+                        __color_error = (np.array(magError)**2 + np.array(magErrorFollow)**2)**0.5
+
+	return __color_error
 
 
 def get_good_data(df, hdr, idx_good, magnitude, filter_name):
@@ -2341,8 +2330,7 @@ def get_good_data(df, hdr, idx_good, magnitude, filter_name):
 
 
 
-
-def get_color_array_from_magnitude(df, hdr1, hdr2, clean_magnitude_1a, clean_magnitude_2a, filter_name, idx_good):
+def get_color_from_binned_magnitude(df, hdr1, hdr2, clean_magnitude_1a, clean_magnitude_2a, filter_name, idx_good):
 	"""Get color with magnitudes binned of form '(color_[21-22), color_[22-23), color_[23-24), color_[24-25) where [low-high) refer to magnitudes)'
         Parameters
         ----------
@@ -2379,15 +2367,17 @@ def get_color_array_from_magnitude(df, hdr1, hdr2, clean_magnitude_1a, clean_mag
 	# Indices in each bin #
 	__idx1, __idx2, __idx3, __idx4 = [], [], [], []
 
-	# Bin magnitude #
+	__bins = [20, 21, 22, 23, 24]
+
+	# Bin magnitude according to `clean_magnitude_1a` TODO #
 	for i in np.arange(0, len(clean_magnitude_1a)):
-		if clean_magnitude_1a[i] >= 20 and clean_magnitude_1a[i] < 21:
+		if clean_magnitude_1a[i] >= __bins[0] and clean_magnitude_1a[i] < __bins[1]:
 			__idx1.append(i) 
-		if clean_magnitude_1a[i] >= 21 and clean_magnitude_1a[i] < 22:
+		if clean_magnitude_1a[i] >= __bins[1] and clean_magnitude_1a[i] < __bins[2]:
 			__idx2.append(i)
-		if clean_magnitude_1a[i] >= 22 and clean_magnitude_1a[i] < 23:
+		if clean_magnitude_1a[i] >= __bins[2] and clean_magnitude_1a[i] < __bins[3]:
 			__idx3.append(i)
-		if clean_magnitude_1a[i] >= 23 and clean_magnitude_1a[i] < 24:
+		if clean_magnitude_1a[i] >= __bins[3] and clean_magnitude_1a[i] < __bins[4]:
 			__idx4.append(i)
 
 	#__color_bin1 = np.array(clean_magnitude_a)[__idx1] - np.array(clean_magnitude_b)[__idx1]
@@ -2395,17 +2385,16 @@ def get_color_array_from_magnitude(df, hdr1, hdr2, clean_magnitude_1a, clean_mag
 	__color2_bin1, __color2_bin2, __color2_bin3, __color2_bin4 = __color2[__idx1], __color2[__idx2], __color2[__idx3], __color2[__idx4]
 
 	__color1_bins, __color2_bins = [], []
-	__color1_bins.append([__color1[__idx1], __color1[__idx2], __color1[__idx3], __color1[__idx4]]);
-	__color2_bins.append([__color2[__idx1], __color2[__idx2], __color2[__idx3], __color2[__idx4]]) 
+	# Append. Want list of lists #
+	__color1_bins.append(__color1[__idx1]); __color1_bins.append(__color1[__idx2]); __color1_bins.append(__color1[__idx3]); __color1_bins.append(__color1[__idx4])
+	__color2_bins.append(__color2[__idx1]); __color2_bins.append(__color2[__idx2]); __color2_bins.append(__color2[__idx3]); __color2_bins.append(__color2[__idx4])
 
-	# Convert to string pseudo-array #
-	print len(__color1_bins); sys.exit()
-	return __color1_bins, __color2_bins
-
+	return __color1_bins, __color2_bins, __bins
 
 
-def get_xlabel(inj_10percent, mag_hdr, axlabel, match_cat, filter_name, inj_20percent):
-	"""Get labels for the horizontal axis and colorbar (if applicable).
+
+def get_magnitude_axlabel(inj_10percent, mag_hdr, axlabel, match_cat, filter_name, inj_20percent):
+	"""Get labels for the horizontal axis. 
 	
 	Parameters
 	----------
@@ -2431,166 +2420,288 @@ def get_xlabel(inj_10percent, mag_hdr, axlabel, match_cat, filter_name, inj_20pe
 	# FIXME Will we ever match cats of different % realizations? Next block might cause issues if this is the case.
 	### Prefix to labels ###
 	if inj_10percent or inj_20percent:
-		pref = 'inj_'
+		__pref = 'inj_'
 	if inj_10percent is False and inj_20percent is False:
 		if match_cat != 'y3_gold':
-			pref = 'base_'
+			__pref = 'base_'
 		if match_cat == 'y3_gold':
-			pref = 'Y3_'
-
+			__pref = 'Y3_'
 
 	### Horizontal axis label ###
 
 	### Magnitude label ###
 	# Transform 'mag_2' to 'mag_true' or 'mag_meas' #
-	mag_axlabel = str(mag_hdr[:-2]) + '_' + str(axlabel)
+	__mag_axlabel = str(mag_hdr[:-2]) + '_' + str(axlabel)
 	# 'mag_true' --> 'mag_{filter}_true' with {filter} bolded #
-	mag_axlabel = mag_axlabel[:-4] + '$\\bf{' + str(filter_name) + '}$_' + mag_axlabel[-4:]	
-	mag_axlabel = pref + mag_axlabel
+	__mag_axlabel = __mag_axlabel[:-4] + '$\\bf{' + str(filter_name) + '}$_' + __mag_axlabel[-4:]	
+	__mag_axlabel = __pref + __mag_axlabel 
         # Coadd catalogs. Combined to get '(m_g, m_r, m_i, m_z)' then matched. #
 	if match_cat == 'coadd':
-		mag_axlabel = 'MAG_AUTO_' + '$\\bf{' + str(filter_name) + '}$_' + str(axlabel) 
+		__mag_axlabel = 'MAG_AUTO_' + '$\\bf{' + str(filter_name) + '}$_' + str(axlabel) 
 
-	### Color label ###
-	if filter_name == 'g': color_axlabel = '$\\bf{(g-r)}$_' + str(axlabel) 
-	if filter_name == 'r': color_axlabel = '$\\bf{(r-i)}$_' + str(axlabel)
-	if filter_name == 'i': color_axlabel = '$\\bf{(i-z)}$_' + str(axlabel)
-	if filter_name == 'z': color_axlabel = '$\\bf{(z-g)}$_' + str(axlabel) #FIXME once color for 4th panel is corrected
-	color_axlabel = pref + color_axlabel
-
-	if PLOT_COLOR:
-                hax_label = color_axlabel
-        if PLOT_COLOR is False:
-                hax_label = mag_axlabel
-
-
-	return hax_label
+	return __mag_axlabel
 
 
 
-
-
-
-
-
-def get_plot_variables(filter_name, df, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, realization_number, tile_name, mag_axlabel1, mag_axlabel2, fd_flag, plot_title, plot_name):
-	"""Get quantities needed for plotter() and subplotter().
+ 
+def get_color_axlabel(inj_10percent, axlabel, match_cat, filter_name, inj_20percent):
+	"""Get axes labels for color plots.
 
 	Parameters
 	----------
-	df (pandas DataFrame) -- DataFrame for the matched catalog.
+	axlabel (str)
+		Allowed values: 'meas' 'true'. Set by `AXLABEL1` or `AXLABEL2`.	
+	
+	Returns
+	-------
+	__color_axlabel (str)
+		Contains LaTeX formatting. Ex: 'inj_(g-r)_true'.
+	"""
 
-	mag_hdr1, mag_hdr2 (str) -- FIXME repeated
+	if inj_10percent or inj_20percent:
+                __pref = 'inj_'
+        if inj_10percent is False and inj_20percent is False:
+                if match_cat != 'y3_gold':
+                        __pref = 'base_'
+                if match_cat == 'y3_gold':
+                        __pref = 'Y3_'
 
-	mag_err_hdr1, mag_err_hdr2 (str) -- FIXME repeated
+	if filter_name == 'g': __color_axlabel = '$\\bf{(g-r)}$_' + str(axlabel)
+        if filter_name == 'r': __color_axlabel = '$\\bf{(r-i)}$_' + str(axlabel)
+        if filter_name == 'i': __color_axlabel = '$\\bf{(i-z)}$_' + str(axlabel)
+        __color_axlabel = __pref + __color_axlabel	
 
-	mag_axlabel1, mag_axlabel2 (str) -- FIXME repeated
+	return __color_axlabel
 
-	fd_flag (file descriptor) -- FIXME repeated
 
-	filter_name (str)
 
-	realization_number (str)
+def color_subplotter(filter_name, df, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, realization_number, tile_name, fd_flag, plot_title, plot_name, fd_color_plot_log):
+	"""Plot. Get titles.
 
-	tile_name (str)
+	Parameters
+        ----------
 
 	Returns
 	-------
-	cbarVal (list of floats) -- Data to be used to plot colorbar. Can be `None`.
+	"""	
 
-	cbarLabel (str) -- Label for colorbar. Can be `None` if no colorbar is to be plotted.
+	# For log file #
+	if filter_name == 'g': __write_color = 'g-r'
+	if filter_name == 'r': __write_color = 'r-i'	
+	if filter_name == 'i': __write_color = 'i-z'
 
-	cbarBins -- ??
+	axLabel1 = get_color_axlabel(inj_10percent=INJ1_10PERCENT, axlabel=AXLABEL1, match_cat=MATCH_CAT1, filter_name=filter_name, inj_20percent=INJ1_20PERCENT)
+	axLabel2 = get_color_axlabel(inj_10percent=INJ2_10PERCENT, axlabel=AXLABEL2, match_cat=MATCH_CAT2, filter_name=filter_name, inj_20percent=INJ2_20PERCENT)
 
-	cbarIdxBins -- ??
+	vaxDeltaColorLabel = get_delta_color_axlabel(label1=axLabel1, label2=axLabel2, filter_name=filter_name)
 
-	err1, err2 -- FIXME repeated
+	### Get plot data ###
+	errMag1, errMag2, cleanMag1, cleanMag2, idxGood, fullMag1, haxMagLabel1, haxMagLabel2, vaxMagLabel = get_magnitude_plot_variables(filter_name=filter_name, df=df, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization_number=realization_number, tile_name=tile_name, mag_axlabel1=M_AXLABEL1, mag_axlabel2=M_AXLABEL2, fd_flag=fd_flag, plot_title=plot_title, plot_name=plot_name)
 
-	cleanData1, cleanData2 (list of floats) -- Data with flagged objects removed. Refers to magnitude or color depending on `PLOT_COLOR`.
+	#TODO get_magnitude_error is called twice
+	err1 = get_color_error(mag_err_hdr=mag_err_hdr1, flux_hdr=CM_FLUX_HDR1, cov_hdr=CM_FLUX_COV_HDR1, df=df, filter_name=filter_name, idx_good=idxGood, match_cat=MATCH_CAT1)
+        err2 = get_color_error(mag_err_hdr=mag_err_hdr2, flux_hdr=CM_FLUX_HDR2, cov_hdr=CM_FLUX_COV_HDR2, df=df, filter_name=filter_name, idx_good=idxGood, match_cat=MATCH_CAT2)
 
-	idxGood (list of ints) -- Stores indices of objects without flags. Flags used .... FIXME
 
-	fullMag1 (list of floats) -- Magnitude of one magnitude column in matched catalog with not flags removed.
+	if filter_name != 'z':
+		cleanColor1, cleanColor2, magBins = get_color_from_binned_magnitude(df=df, hdr1=mag_hdr1, hdr2=mag_hdr2, filter_name=filter_name, idx_good=idxGood, clean_magnitude_1a=cleanMag1, clean_magnitude_2a=cleanMag2)
 
-	haxLabel1, haxLabel2 (str) -- Labels for the horizontal axis.
 
-	vaxLabel (str) -- Label for the vertical axis.	
+	if PLOT_DELTA_VAX is False:
+		__vax_color = cleanColor2
+
+	### Plot ###
+        if SWAP_HAX is False:
+                __hax_label = axLabel1 
+		__vax_label = axLabel2
+		__subtitle_pref = haxMagLabel1
+        if SWAP_HAX:
+                __hax_label = axLabel2 
+		__vax_label = axLabel1
+		__subtitle_pref = haxMagLabel2
+
+	if PLOT_DELTA_VAX:
+                __vax_color = np.array(cleanColor1) - np.array(cleanColor2)
+                __vax_label = vaxDeltaColorLabel 
+
+
+	# Percentile levels for contours. Default is 1.0 - np.exp(-0.5 * np.arange(0.5, 2.1, 0.5) ** 2) via https://github.com/dfm/corner.py/blob/master/corner/corner.py #
+	# Correct 1sigma given by http://corner.readthedocs.io/en/latest/pages/sigmas.html #
+	__lvls = 1.0 - np.exp(-0.5 * np.array([0.5, 1.0]) ** 2)
+	__clrs = ['red', 'cyan']
+	__lw = 0.9
+
+        ### Create 4-by-4 subplot. Figure size units: inches ###
+	if PLOT_DELTA_VAX is False:
+		plt.figure(figsize=(8, 12))
+
+	if PLOT_DELTA_VAX:
+		plt.figure(figsize=(12, 10))
+
+
+        for i in np.arange(0, len(cleanColor1)):
+
+		# Write to log file with headers 'TILE REALIZATION COLOR MAG_BIN OBJS_IN_MAG_BIN TOTAL_OBJS_FLAGS_INC RUN_TYPE #
+		__write_bin = '['+str(magBins[i])+','+str(magBins[i+1])+')'
+		fd_color_plot_log.write(str(tile_name) + '\t' + str(realization_number) + '\t' + str(__write_color) + '\t' + str(__write_bin) + '\t' + str(len(cleanColor1[i])) + '\t' + str(len(cleanMag1)) + '\t' + str(RUN_TYPE) + '\n')
+
+		print 'Plotting ', len(cleanColor1[i]), ' objects ... \n'
+                plt.subplot(2, 2, i+1)
+
+		if CORNER_HIST_2D:
+			# Pass `levels` to `corner.hist2d` (interpreted as percentiles) # 
+			corner.hist2d(cleanColor1[i], __vax_color[i], bins=50, no_fill_contours=True, color=get_color(filter_name=filter_name)[0], levels=__lvls, contour_kwargs={'colors':__clrs, 'cmap':None, 'linewidths':__lw})
+
+			if PLOT_DELTA_VAX is False:
+				plt.axis('scaled') #plt.gca().set_aspect('equal')
+				# Plot x=y line to guide eye #
+				lims = [np.min([plt.xlim(), plt.ylim()]), np.max([plt.xlim(), plt.ylim()])] 
+				plt.plot(lims, lims, color='k', linestyle=':', linewidth=0.7)
+			if PLOT_DELTA_VAX:
+				plt.axhline(y=0, color='black', linestyle=':', linewidth=0.7)
+				plt.subplots_adjust(hspace=0.6)
+
+			# Work-around for contour label #
+			for j in np.arange(0, len(__lvls)):
+				plt.plot([0.5, 0.5], [0.5, 0.5], color=__clrs[j], label='$P_{'+str(round(__lvls[j], 2))[2:]+'}$', linewidth=__lw)
+			plt.legend().draggable()
+
+                plt.ylabel(__vax_label)
+                plt.xlabel(__hax_label)
+                plt.title(__subtitle_pref+' bins: ' + __write_bin) 
+
+        plt.subplots_adjust(hspace=0.4)
+        plt.suptitle(plot_title, fontweight='bold')
+
+        if SAVE_PLOT:
+                print '-----> Saving plot as: ', plot_name.replace('placehold', __write_color)
+                plt.savefig(plot_name.replace('placehold', __write_color))
+
+        if SHOW_PLOT:
+                plt.show()
+
+
+	return 0 
+
+
+
+
+
+def get_magnitude_plot_variables(filter_name, df, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, realization_number, tile_name, fd_flag, plot_title, plot_name, mag_axlabel1, mag_axlabel2):
+	"""Get variables needed for magnitude plots.
+
+	Parameters
+	----------
+	
+	Returns
+	-------
 	"""
 
 	### Axes labels ###
-	haxLabel1 = get_xlabel(inj_20percent=INJ1_20PERCENT, inj_10percent=INJ1_10PERCENT, mag_hdr=mag_hdr1, axlabel=AXLABEL1, match_cat=MATCH_CAT1, filter_name=filter_name)
-	haxLabel2 = get_xlabel(inj_20percent=INJ2_20PERCENT, inj_10percent=INJ2_10PERCENT, mag_hdr=mag_hdr2, axlabel=AXLABEL2, match_cat=MATCH_CAT2, filter_name=filter_name)
-	vaxLabel = get_ylabel(label1=haxLabel1, label2=haxLabel2, filter_name=filter_name)
+        haxLabel1 = get_magnitude_axlabel(inj_20percent=INJ1_20PERCENT, inj_10percent=INJ1_10PERCENT, mag_hdr=mag_hdr1, axlabel=AXLABEL1, match_cat=MATCH_CAT1, filter_name=filter_name)
+        haxLabel2 = get_magnitude_axlabel(inj_20percent=INJ2_20PERCENT, inj_10percent=INJ2_10PERCENT, mag_hdr=mag_hdr2, axlabel=AXLABEL2, match_cat=MATCH_CAT2, filter_name=filter_name)
+        vaxLabel = get_delta_magnitude_axlabel(label1=haxLabel1, label2=haxLabel2, filter_name=filter_name)
 
 
-	# Magnitudes in full #
-	fullMag1 = get_floats_from_string(df=df, hdr=mag_hdr1, filter_name=filter_name)
-	fullMag2 = get_floats_from_string(df=df, hdr=mag_hdr2, filter_name=filter_name)
+        # Magnitudes in full #
+        fullMag1 = get_floats_from_string(df=df, hdr=mag_hdr1, filter_name=filter_name)
+        fullMag2 = get_floats_from_string(df=df, hdr=mag_hdr2, filter_name=filter_name)
 
-	### Clean the data: removed flags and/or perform quality cuts ###
-	if EH_CUTS:
-		idxGood = get_good_index_using_quality_cuts(df, full_magnitude1=fullMag1, full_magnitude2=fullMag2, cm_flag_hdr1=CM_FLAGS_HDR1, cm_flag_hdr2=CM_FLAGS_HDR2, flag_hdr1=FLAGS_HDR1, flag_hdr2=FLAGS_HDR2)[0]
-	
-	if EH_CUTS is False:
+        ### Clean the data: removed flags and/or perform quality cuts ###
+        if EH_CUTS:
+                idxGood = get_good_index_using_quality_cuts(df, full_magnitude1=fullMag1, full_magnitude2=fullMag2, cm_flag_hdr1=CM_FLAGS_HDR1, cm_flag_hdr2=CM_FLAGS_HDR2, flag_hdr1=FLAGS_HDR1, flag_hdr2=FLAGS_HDR2)[0]
+
+        if EH_CUTS is False:
                 idxGood = get_good_index_using_primary_flags(df=df, full_magnitude1=fullMag1, full_magnitude2=fullMag2, cm_flag_hdr1=CM_FLAGS_HDR1, cm_flag_hdr2=CM_FLAGS_HDR2, flag_hdr1=FLAGS_HDR1, flag_hdr2=FLAGS_HDR2, filter_name=filter_name)[0]
 
-	# Magnitudes cleaned #
-	cleanMag1 = get_good_data(df=df, hdr=mag_hdr1, idx_good=idxGood, magnitude=True, filter_name=filter_name)
-	cleanMag2 = get_good_data(df=df, hdr=mag_hdr2, idx_good=idxGood, magnitude=True, filter_name=filter_name)
+        # Magnitudes cleaned #
+        cleanMag1 = get_good_data(df=df, hdr=mag_hdr1, idx_good=idxGood, magnitude=True, filter_name=filter_name)
+        cleanMag2 = get_good_data(df=df, hdr=mag_hdr2, idx_good=idxGood, magnitude=True, filter_name=filter_name)
 
 
         ### Calculate errors. get_error() handles the case when PLOT_COLOR=True. ###
-	err1 = get_error(mag_err_hdr=mag_err_hdr1, flux_hdr=CM_FLUX_HDR1, cov_hdr=CM_FLUX_COV_HDR1, df=df, filter_name=filter_name, idx_good=idxGood, match_cat=MATCH_CAT1)
-	err2 = get_error(mag_err_hdr=mag_err_hdr2, flux_hdr=CM_FLUX_HDR2, cov_hdr=CM_FLUX_COV_HDR2, df=df, filter_name=filter_name, idx_good=idxGood, match_cat=MATCH_CAT2)
-
-
-	### Calculate colors (g-r), (r-z), (i-z) ###
-	if PLOT_COLOR and filter_name != 'z':
-		cleanColor1, cleanColor2 = get_color_array_from_magnitude(df=df, hdr1=mag_hdr1, hdr2=mag_hdr2, filter_name=filter_name, idx_good=idxGood, clean_magnitude_1a=cleanMag1, clean_magnitude_2a=cleanMag2)
-
-		#FIXME move this to plotter()?
-		color_subplotter(color1=cleanColor1, color2=cleanColor2, hax_label1=haxLabel1, hax_label2=haxLabel2, vax_label=vaxLabel, filter_name=filter_name, plot_title=plot_title, plot_name=plot_name)
-		#TODO pass to function and do not rwrite cleanColor1
-
-		cleanData1 = cleanColor1; cleanData2 = cleanColor2
-
-	if PLOT_COLOR is False:
-                cleanData1 = cleanMag1; cleanData2 = cleanMag2
-
-
-	### Colorbar properties ###
-        # Some variables set to None because must pass to plotter(). WARNING be sure that correct catalog (1 or 2) is passed to this function #
-        cbarVal, cbarIdxBins, cbarBins, cbarLabel = get_colorbar_properties(df=df, cm_t_hdr=CM_T_HDR2, cm_t_err_hdr=CM_T_ERR_HDR2, idx_good=idxGood, clean_magnitude1=cleanMag1, clean_magnitude2=cleanMag2, axlabel=AXLABEL2, inj_10percent=INJ2_10PERCENT, inj_20percent=INJ2_20PERCENT)
+        err1 = get_magnitude_error(mag_err_hdr=mag_err_hdr1, flux_hdr=CM_FLUX_HDR1, cov_hdr=CM_FLUX_COV_HDR1, df=df, filter_name=filter_name, idx_good=idxGood, match_cat=MATCH_CAT1)
+        err2 = get_magnitude_error(mag_err_hdr=mag_err_hdr2, flux_hdr=CM_FLUX_HDR2, cov_hdr=CM_FLUX_COV_HDR2, df=df, filter_name=filter_name, idx_good=idxGood, match_cat=MATCH_CAT2)
 
 
 
-	### Write flags to file ###
-	if LOG_FLAGS:
-		for i in np.arange(0, len(FLAG_HDR_LIST), 2):
-			# Bad index #
-			temp_idx = handle_flags(df=df, filter_name=f, realization_number=realization_number, flag_hdr1=FLAG_HDR_LIST[i], flag_hdr2=FLAG_HDR_LIST[i+1], full_magnitude1=fullMag1, full_magnitude2=fullMag2, tile_name=tile_name, fd_flag=fd_flag)[1]
-		#flag_idx.append(temp_idx)
-		flag_idx.extend(temp_idx)
+        ### Write flags to file ###
+        if LOG_FLAGS:
+                for i in np.arange(0, len(FLAG_HDR_LIST), 2):
+                        # Bad index #
+                        temp_idx = handle_flags(df=df, filter_name=f, realization_number=realization_number, flag_hdr1=FLAG_HDR_LIST[i], flag_hdr2=FLAG_HDR_LIST[i+1], full_magnitude1=fullMag1, full_magnitude2=fullMag2, tile_name=tile_name, fd_flag=fd_flag)[1]
+                #flag_idx.append(temp_idx)
+                flag_idx.extend(temp_idx)
 
 
-	### Print out the type() for each flag ###
-	if SHOW_FLAG_TYPE:
-		get_flag_type(df=df, k=counter_flag_type_printout)
-		counter_flag_type_printout += 1
+        ### Print out the type() for each flag ###
+        if SHOW_FLAG_TYPE:
+                get_flag_type(df=df, k=counter_flag_type_printout)
+                counter_flag_type_printout += 1
 
 
-	return cbarVal, cbarIdxBins, cbarBins, err1, err2, cleanData1, cleanData2, idxGood, cbarLabel, fullMag1, haxLabel1, haxLabel2, vaxLabel
+
+	return err1, err2, cleanMag1, cleanMag2, idxGood, fullMag1, haxLabel1, haxLabel2, vaxLabel
 
 
 
 
 
+def get_delta_color_axlabel(label1, label2, filter_name):
+	"""Shorten vertical axis label for ease of readability.
+
+	Parameters
+        ----------
+        label1, label2 (str) -- Labels from the horizontal axis. Contain LaTeX \bf{} formatting.
+
+        filter_name (str)
+
+        Returns
+        -------
+        short_label (str) -- Shortened label for vertical axis. Contains LaTeX \bf{} formatting.
+        """
+
+	short_label = ''
+
+	if 'inj' in label1 and 'inj' in label2: short_label += 'inj_'
+        if 'base' in label1 and 'base' in label2: short_label += 'base_'
+
+	if filter_name == 'g': short_label += '$\\bf{(g-r)}$_'
+        if filter_name == 'r': short_label += '$\\bf{(r-i)}$_' 
+        if filter_name == 'i': short_label += '$\\bf{(i-z)}$_'
+
+        if 'true' in label1 and 'true' in label2: short_label += 'true'
+        if 'meas' in label1 and 'meas' in label2: short_label += 'meas'
+
+        ### Label prefix ###
+        if 'inj' not in short_label:
+                if 'inj' in label1: pref1 = 'inj'
+                if 'inj' in label2: pref2 = 'inj'
+
+                if 'base' in label1: pref1 = 'base'
+                if 'base' in label2: pref2 = 'base'
+
+                if 'Y3' in label1: pref1 = 'Y3'
+                if 'Y3' in label2: pref2 = 'Y3'
+
+        if 'pref1' not in locals(): pref = None
+        if 'pref1' in locals(): pref = pref1 + ' - ' + pref2
+
+        ### Label suffix ###
+        if 'meas' not in short_label and 'true' not in short_label: suf = label1[-4:] + ' - ' + label2[-4:]
+        if 'meas' in short_label or 'true' in short_label: suf = None
+
+        if pref is not None: short_label = pref + '  ' + short_label
+        if suf is not None: short_label = short_label[:-1] + '  ' + suf
+
+
+	return short_label
 
 
 
 
 
-def get_ylabel(label1, label2, filter_name):
+def get_delta_magnitude_axlabel(label1, label2, filter_name):
 	"""Shorten vertical axis label for ease of readability. Ex: 'inj_cm_mag_g_true - inj_cm_mag_g_meas' --> 'inj_cm_mag_g true-meas'
 
 	Parameters
@@ -2610,13 +2721,6 @@ def get_ylabel(label1, label2, filter_name):
         # Phrases that may be shared: inj_10percent, meas, true, cm_mag_{filter} or psf_mag #
         if 'inj' in label1 and 'inj' in label2: short_label += 'inj_'
 	if 'base' in label1 and 'base' in label2: short_label += 'base_'
-
-	# Bold filter #
-	if PLOT_COLOR:
-		# FIXME add 'cm_' to label? 
-                idx1, idx2 = label1.find('_$')+1, label1.find('$_')
-                # Note: label1 should match label2 #
-                short_label += label1[idx1:idx2] + '$_'
         if 'cm_mag' in label1 and 'cm_mag' in label2: short_label += 'cm_mag_$\\bf{' + filter_name + '}$_'
 
         if 'true' in label1 and 'true' in label2: short_label += 'true'
@@ -2647,13 +2751,240 @@ def get_ylabel(label1, label2, filter_name):
 
 
 
+def normalized_delta_magnitude_plotter(mag_hdr1, mag_hdr2, cbar_val, error1, error2, filter_name, clean_magnitude1, full_magnitude1, mag_axlabel1, clean_magnitude2, mag_axlabel2, plot_title, realization_number, tile_name, idx_bins, bins, cbar_axlabel, plot_name, fd_main_log, fd_mag_bins, vax_label, fraction_recovered):
+	"""Produce a plot normalized to 1sigma_mag.
+
+	Parameters
+        ----------
+
+	Returns
+	-------
+	"""
+
+	#TODO PLOT_1SIG --> 1SIG_MAG
+
+	# Args needed to call normalize_plot() #
+	normVaxBins, initialBins, haxBins, errorBinMedian, vaxBinMedian = normalize_plot_maintain_bin_structure(clean_magnitude1=clean_magnitude1, clean_magnitude2=clean_magnitude2, error1=error1, error2=error2, filter_name=filter_name, tile_name=tile_name, realization_number=realization_number, fd_mag_bins=fd_mag_bins)
+
+
+	# Percentiles #
+	PLOT_68P, PLOT_34P_SPLIT = True, True
+
+	if PLOT_1SIG and CORNER_HIST_2D is False:
+
+		### Plot 1sigma_mag curve ###
+		if CENTER_ERR_ABT_ZERO:
+			plt.axhline(y=1.0, color='red', linestyle='--', linewidth=0.7, label='$1 \sigma_{mag\_meas}$')
+			plt.axhline(y=-1.0, color='red', linestyle='--', linewidth=0.7)
+
+		if CENTER_ERR_ABT_ZERO is False:
+
+			counter_legend0 = 0; color0 = 'red'; lw = 0.7
+
+			for b in np.arange(0, len(initialBins)-1):
+
+				if vaxBinMedian[b] is not None and vaxBinMedian[b+1] is not None:
+					# Horizontal bar bounds #
+					x_hbound = np.array([initialBins[b], initialBins[b+1]])
+					y_hbound = np.array([vaxBinMedian[b], vaxBinMedian[b]]) + 1
+					# Vertical bar bounds #
+					x_vbound1, x_vbound2 = np.array([initialBins[b], initialBins[b]]), np.array([initialBins[b+1], initialBins[b+1]])
+					y_vbound = np.array([-1*vaxBinMedian[b]-1, vaxBinMedian[b]+1])
+
+					# Plot legend once #
+					if counter_legend0 == 0:
+						plt.plot(x_hbound, y_hbound, color=color0, label=r'$1 \sigma_{mag\_meas}$ center: $\tilde{y}$', linewidth=lw)
+						counter_legend0 += 1
+
+					if counter_legend0 == 1:
+						# Horizontal bar #
+						plt.plot(x_hbound, y_hbound, color=color0, linewidth=lw, linestyle='--')
+						plt.plot(x_hbound, -1.0*y_hbound, color=color0, linewidth=lw, linestyle='--')
+						# Vertical bar #
+						plt.plot(x_vbound1, y_vbound, color=color0, linewidth=lw, linestyle=':')
+						plt.plot(x_vbound2, y_vbound, color=color0, linewidth=lw, linestyle=':')
+
+		### Plot +/-34 percentile of each bin ###
+
+		# Line width for top and sides of bins #
+		lwt = 1.1; lws = 0.7
+
+		if PLOT_34P_SPLIT:
+			### Plot the 68th percentile calculated from np.percentile() ###
+			vax_68percentile_bins, percentileBins, neg_vax_34percentile, pos_vax_34percentile = get_68percentile_from_normalized_data(norm_dm_bins=normVaxBins, bins=initialBins, hax_mag_bins=haxBins)
+			counter_legend1 = 0; color1 = 'cyan'
+
+			for b in np.arange(0, len(neg_vax_34percentile)-1):
+				# Horizontal bar bounds #
+				x_hbound = np.array([percentileBins[b], percentileBins[b+1]])
+				x_vbound1 = np.array([percentileBins[b], percentileBins[b]])
+				x_vbound2 = np.array([percentileBins[b+1], percentileBins[b+1]])
+
+				if neg_vax_34percentile[b] is not None:
+					# Horizontal bar bounds #
+					neg_y_hbound = np.array([neg_vax_34percentile[b], neg_vax_34percentile[b]])
+					# Vertical bar bounds #
+					y_vbound = np.array([neg_vax_34percentile[b], 0])
+					# Plot #
+					# Plot legend once #
+					if counter_legend1 == 0:
+						plt.plot(x_hbound, neg_y_hbound, color=color1, linewidth=lwt, label='$\pm P_{34}$')
+						counter_legend1 = 1
+					if counter_legend1 == 1:
+						plt.plot(x_hbound, neg_y_hbound, color=color1)
+						plt.plot(x_vbound1, y_vbound, color=color1, linewidth=lws, linestyle=':')
+						plt.plot(x_vbound2, y_vbound, color=color1, linewidth=lws, linestyle=':')
+
+
+				if pos_vax_34percentile[b] is not None:
+					# Horizontal bar bounds #
+					pos_y_hbound = np.array([pos_vax_34percentile[b], pos_vax_34percentile[b]])
+					# Vertical bar bounds #
+					y_vbound = np.array([0, pos_vax_34percentile[b]])
+					# Plot #
+					plt.plot(x_hbound, pos_y_hbound, color=color1, linewidth=lwt)
+					plt.plot(x_vbound1, y_vbound, color=color1, linewidth=lws, linestyle=':')
+					plt.plot(x_vbound2, y_vbound, color=color1, linewidth=lws, linestyle=':')
+
+
+        ### Plot 68 percentile of each bin ###
+		if PLOT_68P:
+
+			counter_legend2 = 0; color2 = 'fuchsia'
+
+			for b in np.arange(0, len(vax_68percentile_bins)-1):
+
+				if vax_68percentile_bins[b] is not None:
+
+					# Horizontal bar bounds #
+					x_hbound = np.array([percentileBins[b], percentileBins[b+1]])
+					y_hbound = np.array([vax_68percentile_bins[b], vax_68percentile_bins[b]])
+					# Vertical bar bounds #
+					x_vbound1, x_vbound2 = np.array([percentileBins[b], percentileBins[b]]), np.array([percentileBins[b+1], percentileBins[b+1]])
+					y_vbound = np.array([-1*vax_68percentile_bins[b], vax_68percentile_bins[b]])
+
+					# Plot legend once #
+					if counter_legend2 == 0:
+						plt.plot(x_hbound, y_hbound, color=color2, label='$P_{68}$', linewidth=lwt)
+						counter_legend2 += 1
+
+					if counter_legend2 == 1:
+						# Horizontal bar #
+						plt.plot(x_hbound, y_hbound, color=color2, linewidth=lwt)
+						plt.plot(x_hbound, -1.0*y_hbound, color=color2, linewidth=lwt)
+						# Vertical bar #
+						plt.plot(x_vbound1, y_vbound, color=color2, linewidth=lws, linestyle=':')
+						plt.plot(x_vbound2, y_vbound, color=color2, linewidth=lws, linestyle=':')
+
+
+	# Logger #
+	plotDeltaMag, plotHaxMag, cleanBins = normalize_plot(norm_delta_mag_bins=normVaxBins, bins=initialBins, hax_mag_bins=haxBins)
+
+	percent_1sig, fractionRecoveredFlagsIncluded = logger(vax_mag=plotDeltaMag, filter_name=filter_name, clean_magnitude1=clean_magnitude1, full_magnitude1=full_magnitude1, realization_number=realization_number, tile_name=tile_name, bins=initialBins, hax_mag=plotHaxMag, fd_main_log=fd_main_log, error=errorBinMedian, vax_mag_bin_median=vaxBinMedian, fraction_recovered=fraction_recovered)
+
+	# One colorbar at a time. This error is caught at beginning of script #
+        if SCATTER:
+                plt.scatter(plotHaxMag, plotDeltaMag, color=get_color(filter_name=filter_name)[0], alpha=0.25, s=0.25)
+
+
+        if CM_T_S2N_COLORBAR or CM_T_ERR_COLORBAR or CM_T_COLORBAR:
+                plt.scatter(plotHaxMag, plotDeltaMag, c=cbar_val, alpha=0.25, s=0.25, norm=matplotlib.colors.LogNorm(), cmap='gist_rainbow')
+                plt.colorbar(label=cbar_axlabel)
+
+
+        if BIN_CM_T_S2N:
+                colors = ['green', 'purple', 'cyan', 'orange', 'pink', 'yellow', 'black', 'blue']
+                for i in np.arange(0, len(idx_bins)):
+                        plt.scatter(np.array(plotHaxMag)[idx_bins[i]], np.array(plotDeltaMag)[idx_bins[i]], color=colors[i], alpha=0.25, s=0.25, label='%1.f'%bins[i]+'<cm_T_s2n<%1.f'%bins[i+1])
+
+
+        if HEXBIN:
+		grid = (100, 1000)
+		print ' Normalized hexbin has a large number of grid cells. Will take a moment to plot ... \n'
+                plt.hexbin(plotHaxMag, plotDeltaMag, gridsize=grid, cmap=get_color(filter_name=filter_name)[1], bins='log')
+                plt.colorbar(label='log(counts)')
+
+
+
+	if HIST_2D:
+                # 1/10 the bin size of that used in error calculation #
+                bin_x = np.arange(min(plotHaxMag), max(plotHaxMag), 0.5/10)
+                if YLOW is not None and YHIGH is not None:
+                        # Somewhat using reported 1% error in magnitude #
+                        bin_y = np.arange(YLOW, YHIGH, (YHIGH-YLOW)*0.01)
+                if YLOW is None and YHIGH is None:
+                        bin_y = np.arange(min(plotDeltaMag), max(plotDeltaMag), (max(plotDeltaMag)-min(plotDeltaMag))*0.01)
+                plt.hist2d(plotHaxMag, plotDeltaMag, bins=[bin_x, bin_y], cmap=get_color(filter_name=filter_name)[1], norm=matplotlib.colors.LogNorm())
+                plt.colorbar()
+
+
+        if CORNER_HIST_2D:
+                # Only the densest regions of the plot are binned so increase bin size of plt.hist2d() #
+                const = 5
+                bin_x = np.arange(min(plotHaxMag), max(plotHaxMag), const*0.5/10)
+                if YLOW is not None and YHIGH is not None:
+                        bin_y = np.arange(YLOW, YHIGH, (YHIGH-YLOW)*const*0.01)
+                if YLOW is None and YHIGH is None:
+                        bin_y = np.arange(min(plotDeltaMag), max(plotDeltaMag), (max(plotDeltaMag)-min(plotDeltaMag))*0.01)
+
+                # SLACK channel corner.hist2d "draws 1- and 2-sigma contours automatically."Correct 1sigma levels: http://corner.readthedocs.io/en/latest/pages/sigmas.html #
+                corner.hist2d(plotHaxMag, plotDeltaMag, no_fill_contours=True, color=get_color(filter_name=filter_name)[0], contour_kwargs={'colors':'red', 'cmap':None, 'linewidths':0.7})
+
+
+	### Axes labels ###
+        # Horizontal axis labels #
+        if SWAP_HAX: plt.xlabel(str(mag_axlabel2))
+        if SWAP_HAX is False: plt.xlabel(str(mag_axlabel1))
+        # Vertical axis label #
+     	plt.ylabel('('+ vax_label + ') / $\sigma$')
+
+        plt.axhline(y=0.0, color='k', linestyle=':', linewidth=0.5)
+
+        # Adjust vertical axes limits #
+        if YLOW is not None and YHIGH is not None: plt.ylim([YLOW, YHIGH])
+
+
+        ### Plot legend ###
+        if PLOT_1SIG and BIN_CM_T_S2N is False and CORNER_HIST_2D is False: plt.legend(fontsize=10).draggable()
+        if BIN_CM_T_S2N:
+                # Increase marker size and opacity in legend #
+                lgnd = plt.legend(markerscale=4, fontsize=8)
+                for l in lgnd.legendHandles:
+                        l.set_alpha(1)
+
+
+
+        ### Title for subplot ###
+        plt.title('Objects in 1$\sigma_{mag}$: ' + str(round(percent_1sig, 4)*100) + '%')
+
+	if SUBPLOT is False:
+
+                plot_name = plot_name.replace('griz', filter_name)
+
+                ### Title for  ###
+                plt.title(plot_title + '\n% objs in 1$\sigma$: ' + str(percent_1sig))
+
+                ### Save plot ###
+                if SAVE_PLOT:
+                        print '-----> Saving plot as: ', plot_name
+                        plt.savefig(plot_name)
+
+                if SHOW_PLOT:
+                        plt.show()
+
+        #plt.gca().set_aspect('equal')
+
+
+	return 0
 
 
 
 
 
-def plotter(mag_hdr1, mag_hdr2, cbar_val, error1, error2, filter_name, clean_magnitude1, full_magnitude1, mag_axlabel1, clean_magnitude2, mag_axlabel2, plot_title, realization_number, tile_name, idx_bins, bins, cbar_axlabel, plot_name, fd_main_log, fd_mag_bins, vax_label, fraction_recovered):
-	"""Produce a single plot of 'x_1' versus 'x_2'-'x_1' where 'x' can be magnitude or color.
+
+
+def delta_magnitude_plotter(mag_hdr1, mag_hdr2, cbar_val, error1, error2, filter_name, clean_magnitude1, full_magnitude1, mag_axlabel1, clean_magnitude2, mag_axlabel2, plot_title, realization_number, tile_name, idx_bins, bins, cbar_axlabel, plot_name, fd_main_log, fd_mag_bins, vax_label, fraction_recovered):
+	"""Produce a single plot of 'mag1' versus 'mag1'-'mag2'. 
 
 	Parameters
 	----------
@@ -2695,239 +3026,90 @@ def plotter(mag_hdr1, mag_hdr2, cbar_val, error1, error2, filter_name, clean_mag
 		0
 	"""
 
-	if NORMALIZE:
-		
-		# Args needed to call normalize_plot() #
-		#FIXME vaxBinMedian is not meant to be normalized
-		normVaxBins, initialBins, haxBins, errorBinMedian, vaxBinMedian = normalize_plot_maintain_bin_structure(clean_magnitude1=clean_magnitude1, clean_magnitude2=clean_magnitude2, error1=error1, error2=error2, filter_name=filter_name, tile_name=tile_name, realization_number=realization_number, fd_mag_bins=fd_mag_bins)
-		
+	### Values to plot ###
+	__delta_mag = np.array(clean_magnitude1) - np.array(clean_magnitude2) 
 
-		# Percentiles #
-		PLOT_68P, PLOT_34P_SPLIT = True, True 
+	if SWAP_HAX:
+		__hax_mag = clean_magnitude2
+	if SWAP_HAX is False:
+		__hax_mag = clean_magnitude1
 
-		if PLOT_1SIG and CORNER_HIST_2D is False:
 
+	### 1sigma_mag curve ###
+	if PLOT_1SIG:
+		haxBinMedian, vaxBinMedian, errorBinMedian, initialBins, haxBins, vaxBins, errorBins, outlierCleanedHaxMag, outlierCleanedVaxMag = bin_and_cut_measured_magnitude_error(error1=error1, error2=error2, clean_magnitude1=clean_magnitude1, clean_magnitude2=clean_magnitude2, filter_name=filter_name, tile_name=tile_name, realization_number=realization_number, fd_mag_bins=fd_mag_bins)
+
+		### Remove zeros from x, y, and err (zeros were placeholders for instances in which there were no objects in a particular magnitude bin) ###
+		err = [temp for temp in errorBinMedian if temp is not None]
+		hax = [temp for temp in haxBinMedian if temp is not None]
+		vax = [temp for temp in vaxBinMedian if temp is not None]
+
+		if CORNER_HIST_2D is False:
 			### Plot 1sigma_mag curve ###
 			if CENTER_ERR_ABT_ZERO:
-				plt.axhline(y=1.0, color='red', linestyle='--', linewidth=0.7, label='$1 \sigma_{mag\_meas}$')
-				plt.axhline(y=-1.0, color='red', linestyle='--', linewidth=0.7)
-
-
+				plt.plot(hax, np.array(err), color='red', linestyle='-', linewidth=0.7, label='$1 \sigma_{mag\_meas}$')
+				plt.plot(hax, -1*np.array(err), color='red', linestyle='-', linewidth=0.7)
 			if CENTER_ERR_ABT_ZERO is False:
-
-				counter_legend0 = 0; color0 = 'red'; lw = 0.7
-
-				for b in np.arange(0, len(initialBins)-1):
-
-					if vaxBinMedian[b] is not None and vaxBinMedian[b+1] is not None:
-						# Horizontal bar bounds #
-						x_hbound = np.array([initialBins[b], initialBins[b+1]])
-						y_hbound = np.array([vaxBinMedian[b], vaxBinMedian[b]]) + 1
-						# Vertical bar bounds #
-						x_vbound1, x_vbound2 = np.array([initialBins[b], initialBins[b]]), np.array([initialBins[b+1], initialBins[b+1]])
-						y_vbound = np.array([-1*vaxBinMedian[b]-1, vaxBinMedian[b]+1])
-
-						# Plot legend once #
-                                                if counter_legend0 == 0:
-                                                        plt.plot(x_hbound, y_hbound, color=color0, label=r'$1 \sigma_{mag\_meas}$ center: $\tilde{y}$', linewidth=lw)
-                                                        counter_legend0 += 1
-
-                                                if counter_legend0 == 1:
-                                                        # Horizontal bar #
-                                                        plt.plot(x_hbound, y_hbound, color=color0, linewidth=lw, linestyle='--')
-                                                        plt.plot(x_hbound, -1.0*y_hbound, color=color0, linewidth=lw, linestyle='--')
-                                                        # Vertical bar #
-                                                        plt.plot(x_vbound1, y_vbound, color=color0, linewidth=lw, linestyle=':')
-                                                        plt.plot(x_vbound2, y_vbound, color=color0, linewidth=lw, linestyle=':')
-
-
-			### Plot +/-34 percentile of each bin ###
-
-			# Line width for top and sides of bins #
-			lwt = 1.1; lws = 0.7
-			
-			if PLOT_34P_SPLIT:
-				### Plot the 68th percentile calculated from np.percentile() ###
-				vax_68percentile_bins, percentileBins, neg_vax_34percentile, pos_vax_34percentile = get_68percentile_from_normalized_data(norm_dm_bins=normVaxBins, bins=initialBins, hax_mag_bins=haxBins)
-				counter_legend1 = 0; color1 = 'cyan'
-	
-				for b in np.arange(0, len(neg_vax_34percentile)-1):
-					# Horizontal bar bounds #
-					x_hbound = np.array([percentileBins[b], percentileBins[b+1]])
-					x_vbound1 = np.array([percentileBins[b], percentileBins[b]])
-					x_vbound2 = np.array([percentileBins[b+1], percentileBins[b+1]])
-
-					if neg_vax_34percentile[b] is not None:
-						# Horizontal bar bounds #
-						neg_y_hbound = np.array([neg_vax_34percentile[b], neg_vax_34percentile[b]])
-						# Vertical bar bounds #
-						y_vbound = np.array([neg_vax_34percentile[b], 0])
-						# Plot #
-						# Plot legend once #
-						if counter_legend1 == 0:
-							plt.plot(x_hbound, neg_y_hbound, color=color1, linewidth=lwt, label='$\pm P_{34}$')
-							counter_legend1 = 1
-						if counter_legend1 == 1:
-							plt.plot(x_hbound, neg_y_hbound, color=color1)
-							plt.plot(x_vbound1, y_vbound, color=color1, linewidth=lws, linestyle=':')
-							plt.plot(x_vbound2, y_vbound, color=color1, linewidth=lws, linestyle=':')
-
-					if pos_vax_34percentile[b] is not None:
-						# Horizontal bar bounds #
-						pos_y_hbound = np.array([pos_vax_34percentile[b], pos_vax_34percentile[b]])
-						# Vertical bar bounds #
-						y_vbound = np.array([0, pos_vax_34percentile[b]])
-						# Plot #
-						plt.plot(x_hbound, pos_y_hbound, color=color1, linewidth=lwt)
-						plt.plot(x_vbound1, y_vbound, color=color1, linewidth=lws, linestyle=':')
-						plt.plot(x_vbound2, y_vbound, color=color1, linewidth=lws, linestyle=':')
-				
-
-
-			### Plot 68 percentile of each bin ###	
-			if PLOT_68P:
-
-				counter_legend2 = 0; color2 = 'fuchsia'
-
-				for b in np.arange(0, len(vax_68percentile_bins)-1):
-
-					if vax_68percentile_bins[b] is not None:
-
-						# Horizontal bar bounds #
-						x_hbound = np.array([percentileBins[b], percentileBins[b+1]])
-						y_hbound = np.array([vax_68percentile_bins[b], vax_68percentile_bins[b]])
-						# Vertical bar bounds #
-						x_vbound1, x_vbound2 = np.array([percentileBins[b], percentileBins[b]]), np.array([percentileBins[b+1], percentileBins[b+1]])
-						y_vbound = np.array([-1*vax_68percentile_bins[b], vax_68percentile_bins[b]])
-
-						# Plot legend once #
-						if counter_legend2 == 0:
-							plt.plot(x_hbound, y_hbound, color=color2, label='$P_{68}$', linewidth=lwt)	
-							counter_legend2 += 1
-
-						if counter_legend2 == 1:
-							# Horizontal bar #
-							plt.plot(x_hbound, y_hbound, color=color2, linewidth=lwt)
-							plt.plot(x_hbound, -1.0*y_hbound, color=color2, linewidth=lwt)
-							# Vertical bar #
-							plt.plot(x_vbound1, y_vbound, color=color2, linewidth=lws, linestyle=':')
-							plt.plot(x_vbound2, y_vbound, color=color2, linewidth=lws, linestyle=':')
-			
-
-		### Values to log ###
-		outlierCleanedVaxMag, outlierCleanedHaxMag, cleanBins = normalize_plot(norm_delta_mag_bins=normVaxBins, bins=initialBins, hax_mag_bins=haxBins)
-		print 'Normalized!'
-
-
-	if NORMALIZE is False:
-
-		deltaMag = np.array(clean_magnitude1) - np.array(clean_magnitude2) 
-
-		if SWAP_HAX:
-			haxMag = clean_magnitude2
-		if SWAP_HAX is False:
-                        haxMag = clean_magnitude1
-
-
-		### 1sigma_mag curve ###
-		if PLOT_1SIG:
-			#FIXME check this
-			# binned_hax_mag_median, binned_vax_mag_median, binned_err_median, bins, __hax_mag_bins, __vax_mag_bins, __err_mag_bins, cleanHaxMag, cleanVaxMag
-			
-			haxBinMedian, vaxBinMedian, errorBinMedian, initialBins, haxBins, vaxBins, errorBins, outlierCleanedHaxMag, outlierCleanedVaxMag = bin_and_cut_measured_magnitude_error(error1=error1, error2=error2, clean_magnitude1=clean_magnitude1, clean_magnitude2=clean_magnitude2, filter_name=filter_name, tile_name=tile_name, realization_number=realization_number, fd_mag_bins=fd_mag_bins)
-			#print np.median(vaxBinMedian); sys.exit('chk mean')
-			print 'Not normalized!'
-
-			#print np.mean(outlierCleanedVaxMag); sys.exit('chk for norm w/in norm is false')
-
-			### Remove zeros from x, y, and err (zeros were placeholders for instances in which there were no objects in a particular magnitude bin) ###
-			err = [temp for temp in errorBinMedian if temp is not None]
-			hax = [temp for temp in haxBinMedian if temp is not None]
-			vax = [temp for temp in vaxBinMedian if temp is not None]
-
-			if CORNER_HIST_2D is False:
-				### Plot 1sigma_mag curve ###
-				if CENTER_ERR_ABT_ZERO:
-					plt.plot(hax, np.array(err), color='red', linestyle='-', linewidth=0.7, label='$1 \sigma_{mag\_meas}$')
-					plt.plot(hax, -1*np.array(err), color='red', linestyle='-', linewidth=0.7)
-				if CENTER_ERR_ABT_ZERO is False:
-					plt.plot(hax, np.array(vax) + np.array(err), color='red', linestyle='-', linewidth=0.7, label='$1 \sigma_{mag\_meas}$')
-					plt.plot(hax, np.array(vax) - np.array(err), color='red', linestyle='-', linewidth=0.7)
-
+				plt.plot(hax, np.array(vax) + np.array(err), color='red', linestyle='-', linewidth=0.7, label='$1 \sigma_{mag\_meas}$')
+				plt.plot(hax, np.array(vax) - np.array(err), color='red', linestyle='-', linewidth=0.7)
 
 
 	### Write to log files ### 
 	percent_1sig, fractionRecoveredFlagsIncluded = logger(vax_mag=outlierCleanedVaxMag, filter_name=filter_name, clean_magnitude1=clean_magnitude1, full_magnitude1=full_magnitude1, realization_number=realization_number, tile_name=tile_name, bins=initialBins, hax_mag=outlierCleanedHaxMag, fd_main_log=fd_main_log, error=errorBinMedian, vax_mag_bin_median=vaxBinMedian, fraction_recovered=fraction_recovered)
 
 
-
 	if PRINTOUTS:
                 print 'Plotting ', len(clean_magnitude1), ' objects ... \n'
-
-
-	### Values to plot ###
-	if NORMALIZE: 
-		plotDeltaMag = outlierCleanedVaxMag
-		plotHaxMag = outlierCleanedHaxMag
-	if NORMALIZE is False:
-		plotDeltaMag = deltaMag
-		plotHaxMag = haxMag
-
 
 	### Plot ###
 	# One colorbar at a time. This error is caught at beginning of script #
 	if SCATTER:
-		plt.scatter(plotHaxMag, plotDeltaMag, color=get_color(filter_name=filter_name)[0], alpha=0.25, s=0.25)
+		plt.scatter(__hax_mag, __delta_mag, color=get_color(filter_name=filter_name)[0], alpha=0.25, s=0.25)
 
 	
 	if CM_T_S2N_COLORBAR or CM_T_ERR_COLORBAR or CM_T_COLORBAR:
 		'''To plot only the worst (smallest) s2n ratio:
-		plt.scatter(np.array(plotHaxMag)[idx_bins[0]], np.array(deltaMag)[idx_bins[0]], color='purple', alpha=1, s=1, label='%1.f'%bins[0]+'<cm_T_s2n<%1.f'%bins[1])
+		plt.scatter(np.array(__hax_mag)[idx_bins[0]], np.array(__delta_mag)[idx_bins[0]], color='purple', alpha=1, s=1, label='%1.f'%bins[0]+'<cm_T_s2n<%1.f'%bins[1])
 		'''
-		plt.scatter(plotHaxMag, plotDeltaMag, c=cbar_val, alpha=0.25, s=0.25, norm=matplotlib.colors.LogNorm(), cmap='gist_rainbow')
+		plt.scatter(__hax_mag, __delta_mag, c=cbar_val, alpha=0.25, s=0.25, norm=matplotlib.colors.LogNorm(), cmap='gist_rainbow')
 		plt.colorbar(label=cbar_axlabel)
 
 
 	if BIN_CM_T_S2N:
 		colors = ['green', 'purple', 'cyan', 'orange', 'pink', 'yellow', 'black', 'blue']
 		for i in np.arange(0, len(idx_bins)):
-			plt.scatter(np.array(plotHaxMag)[idx_bins[i]], np.array(plotDeltaMag)[idx_bins[i]], color=colors[i], alpha=0.25, s=0.25, label='%1.f'%bins[i]+'<cm_T_s2n<%1.f'%bins[i+1])
+			plt.scatter(np.array(__hax_mag)[idx_bins[i]], np.array(__delta_mag)[idx_bins[i]], color=colors[i], alpha=0.25, s=0.25, label='%1.f'%bins[i]+'<cm_T_s2n<%1.f'%bins[i+1])
 
 
 	if HEXBIN:
-		if NORMALIZE:
-			grid = (100, 1000)
-			if PRINTOUTS:
-				print ' Normalized hexbin has a large number of grid cells. Will take a moment to plot ... \n'
-		if NORMALIZE is False:
-			grid = 500
-		plt.hexbin(plotHaxMag, plotDeltaMag, gridsize=grid, cmap=get_color(filter_name=filter_name)[1], bins='log')
+		grid = 500
+		plt.hexbin(__hax_mag, __delta_mag, gridsize=grid, cmap=get_color(filter_name=filter_name)[1], bins='log')
 		plt.colorbar(label='log(counts)')
 
 
 	if HIST_2D:
 		# 1/10 the bin size of that used in error calculation #
-		bin_x = np.arange(min(plotHaxMag), max(plotHaxMag), 0.5/10)
+		bin_x = np.arange(min(__hax_mag), max(__hax_mag), 0.5/10)
 		if YLOW is not None and YHIGH is not None:
 			# Somewhat using reported 1% error in magnitude #
 			bin_y = np.arange(YLOW, YHIGH, (YHIGH-YLOW)*0.01)
 		if YLOW is None and YHIGH is None:
-			bin_y = np.arange(min(plotDeltaMag), max(plotDeltaMag), (max(plotDeltaMag)-min(plotDeltaMag))*0.01) 
-		plt.hist2d(plotHaxMag, plotDeltaMag, bins=[bin_x, bin_y], cmap=get_color(filter_name=filter_name)[1], norm=matplotlib.colors.LogNorm())
+			bin_y = np.arange(min(__delta_mag), max(__delta_mag), (max(__delta_mag)-min(__delta_mag))*0.01) 
+		plt.hist2d(__hax_mag, __delta_mag, bins=[bin_x, bin_y], cmap=get_color(filter_name=filter_name)[1], norm=matplotlib.colors.LogNorm())
 		plt.colorbar()
 
 
 	if CORNER_HIST_2D:
 		# Only the densest regions of the plot are binned so increase bin size of plt.hist2d() #
 		const = 5
-		bin_x = np.arange(min(plotHaxMag), max(plotHaxMag), const*0.5/10)
+		bin_x = np.arange(min(__hax_mag), max(__hax_mag), const*0.5/10)
                 if YLOW is not None and YHIGH is not None:
                         bin_y = np.arange(YLOW, YHIGH, (YHIGH-YLOW)*const*0.01)
                 if YLOW is None and YHIGH is None:
-                        bin_y = np.arange(min(plotDeltaMag), max(plotDeltaMag), (max(plotDeltaMag)-min(plotDeltaMag))*0.01)
+                        bin_y = np.arange(min(__delta_mag), max(__delta_mag), (max(__delta_mag)-min(__delta_mag))*0.01)
 
 		# SLACK channel corner.hist2d "draws 1- and 2-sigma contours automatically."Correct 1sigma levels: http://corner.readthedocs.io/en/latest/pages/sigmas.html #
-		corner.hist2d(plotHaxMag, plotDeltaMag, no_fill_contours=True, color=get_color(filter_name=filter_name)[0], contour_kwargs={'colors':'red', 'cmap':None, 'linewidths':0.7}) 
+		corner.hist2d(__hax_mag, __delta_mag, no_fill_contours=True, color=get_color(filter_name=filter_name)[0], contour_kwargs={'colors':'red', 'cmap':None, 'linewidths':0.7}) 
 		# WARNING: changing bins changes the contours
 		#bins=[bin_x, bin_y]
 		#'norm':matplotlib.colors.LogNorm()
@@ -2939,8 +3121,7 @@ def plotter(mag_hdr1, mag_hdr2, cbar_val, error1, error2, filter_name, clean_mag
 	if SWAP_HAX: plt.xlabel(str(mag_axlabel2))
 	if SWAP_HAX is False: plt.xlabel(str(mag_axlabel1))
 	# Vertical axis label #
-	if NORMALIZE: plt.ylabel('('+ vax_label + ') / $\sigma$')
-        if NORMALIZE is False: plt.ylabel(vax_label)
+        plt.ylabel(vax_label)
 
 	plt.axhline(y=0.0, color='k', linestyle=':', linewidth=0.5)
 
@@ -2990,7 +3171,7 @@ def plotter(mag_hdr1, mag_hdr2, cbar_val, error1, error2, filter_name, clean_mag
 
 
 
-def subplotter(df, flag_idx, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, plot_name, plot_title, realization_number, tile_name, fd_flag, fd_main_log, fd_mag_bins, fraction_recovered):
+def delta_magnitude_subplotter(df, flag_idx, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, plot_name, plot_title, realization_number, tile_name, fd_flag, fd_main_log, fd_mag_bins, fraction_recovered):
 	"""Combine four subplots into a single plot with four panels (2-by-2). 
 
 	Parameters
@@ -3032,15 +3213,23 @@ def subplotter(df, flag_idx, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, plo
 
         ### Create 4-by-4 subplot ###
 	counter_subplot = 1
+	if PLOT_COLOR is False:
 	# Figure size units: inches #
-	plt.figure(figsize=(12, 10))
+		plt.figure(figsize=(12, 10))
 
 
         ### Create one subplot for each griz filter ###
 	for f in ALL_FILTERS:
 
+
 		### Define variables ###
-		cbar_val, cbar_idx_bins, cbar_bins, err1, err2, cleanMag1, cleanMag2, index_good, cbar_axlabel, fullMag1, mag_axlabel1, mag_axlabel2, vaxLabel = get_plot_variables(filter_name=f, df=df, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization_number=realization_number, tile_name=tile_name, mag_axlabel1=M_AXLABEL1, mag_axlabel2=M_AXLABEL2, fd_flag=fd_flag, plot_title=plot_title, plot_name=plot_name)
+		err1, err2, cleanMag1, cleanMag2, idxGood, fullMag1, haxLabel1, haxLabel2, vaxLabel = get_magnitude_plot_variables(filter_name=f, df=df, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization_number=realization_number, tile_name=tile_name, mag_axlabel1=M_AXLABEL1, mag_axlabel2=M_AXLABEL2, fd_flag=fd_flag, plot_title=plot_title, plot_name=plot_name)
+
+
+		if CM_T_COLORBAR or CM_T_ERR_COLORBAR or CM_T_S2N_COLORBAR:
+			cbarData, cbarIdxBins, cbarBins, cbarLabel = get_colorbar_for_magnitude_plot_properties(df=df, cm_t_hdr=CM_T_HDR2, cm_t_err_hdr=CM_T_ERR_HDR2, idx_good=idxGood, clean_magnitude1=cleanMag1, clean_magnitude2=cleanMag2, axlabel=AXLABEL2, inj_10percent=INJ2_10PERCENT, inj_20percent=INJ2_20PERCENT)
+		else: 
+			cbarData, cbarIdxBins, cbarBins, cbarLabel = None, None, None, None
 
 
 
@@ -3048,13 +3237,16 @@ def subplotter(df, flag_idx, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, plo
 		if SUBPLOT: 
 			plt.subplot(2, 2, counter_subplot)
 
-		if PLOT_COLOR is False:
-			plotter(mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, cbar_val=cbar_val, plot_title=plot_title, error1=err1, error2=err2, filter_name=f, full_magnitude1=fullMag1, clean_magnitude1=cleanMag1, clean_magnitude2=cleanMag2, mag_axlabel1=mag_axlabel1, mag_axlabel2=mag_axlabel2, realization_number=realization_number, tile_name=tile_name, idx_bins=cbar_idx_bins, bins=cbar_bins, cbar_axlabel=cbar_axlabel, plot_name=plot_name, fd_main_log=fd_main_log, fd_mag_bins=fd_mag_bins, vax_label=vaxLabel, fraction_recovered=fraction_recovered)
+		if NORMALIZE is False:
+			delta_magnitude_plotter(mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, cbar_val=cbarData, plot_title=plot_title, error1=err1, error2=err2, filter_name=f, full_magnitude1=fullMag1, clean_magnitude1=cleanMag1, clean_magnitude2=cleanMag2, mag_axlabel1=haxLabel1, mag_axlabel2=haxLabel2, realization_number=realization_number, tile_name=tile_name, idx_bins=cbarIdxBins, bins=cbarBins, cbar_axlabel=cbarLabel, plot_name=plot_name, fd_main_log=fd_main_log, fd_mag_bins=fd_mag_bins, vax_label=vaxLabel, fraction_recovered=fraction_recovered)
+
+		if NORMALIZE:
+			normalized_delta_magnitude_plotter(mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, cbar_val=cbarData, plot_title=plot_title, error1=err1, error2=err2, filter_name=f, full_magnitude1=fullMag1, clean_magnitude1=cleanMag1, clean_magnitude2=cleanMag2, mag_axlabel1=haxLabel1, mag_axlabel2=haxLabel2, realization_number=realization_number, tile_name=tile_name, idx_bins=cbarIdxBins, bins=cbarBins, cbar_axlabel=cbarLabel, plot_name=plot_name, fd_main_log=fd_main_log, fd_mag_bins=fd_mag_bins, vax_label=vaxLabel, fraction_recovered=fraction_recovered)
 
 		counter_subplot += 1
 
-
-	if SUBPLOT and PLOT_COLOR is False:
+	# Plot after all panels have been filled #
+	if SUBPLOT:
 
 		### Show or save the plot once all four subplots have been filled ###
 		plt.subplots_adjust(hspace=0.4)
@@ -3083,43 +3275,6 @@ def subplotter(df, flag_idx, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, plo
 
 
 
-def color_subplotter(color1, color2, filter_name, hax_label1, hax_label2, vax_label, plot_title, plot_name):
-	"""Combine four subplots of color into a single plot with four panels (2-by-2).
-
-	"""
-
-	__title = ['Magnitude bins [20, 21)', 'Magnitude bins [21, 22)', 'Magnitude bins [22, 23)', 'Magnitude bins [23, 24)']
-
-	if SWAP_HAX is False:
-		__hax_label = hax_label1
-	if SWAP_HAX:
-		__hax_label = hax_label2
-
-
-	### Create 4-by-4 subplot ###
-        counter_subplot = 1
-        # Figure size units: inches #
-        plt.figure(figsize=(12, 10))
-
-	#TODO edit return of get_color_array
-	for i in np.arange(0, len(color1[0])):
-		plt.subplot(2, 2, i+1) 
-		corner.hist2d(color1[0][i], color2[0][i], no_fill_contours=True, color=get_color(filter_name=filter_name)[0], contour_kwargs={'colors':'red', 'cmap':None, 'linewidths':0.7})
-		plt.ylabel(vax_label)
-		plt.xlabel(__hax_label)
-		plt.title(__title[i])
-
-	plt.subplots_adjust(hspace=0.4)
-	plt.suptitle(plot_title, fontweight='bold')
-
-	if SAVE_PLOT:
-		print '-----> Saving plot as: ', plot_name
-		plt.savefig(plot_name)
-
-	if SHOW_PLOT:
-		plt.show()
-
-	return 0
 
 
 
@@ -3215,17 +3370,8 @@ def get_plot_save_name(realization_number, tile_name):
 			outname = 'm_vs_dm_' + endname
 
 	if PLOT_COLOR:
-		if CM_T_S2N_COLORBAR:
-                        outname = 'color_cm_t_s2n_' + endname
-                if CM_T_COLORBAR:
-                        outname = 'color_cm_t_' + endname
-                if CM_T_ERR_COLORBAR:
-                        outname = 'color_cm_t_err_' + endname
-                if HEXBIN:
-                        outname = 'color_hexbin_' + endname
-                if CM_T_S2N_COLORBAR is False and CM_T_COLORBAR is False and CM_T_ERR_COLORBAR is False and HEXBIN is False:
-                        outname = 'color_' + endname
-
+		if CORNER_HIST_2D:
+			outname = 'color_placehold_'+endname
 
 	# !!!!! User may wish to edit directory structure #
 	plot_dir_pref = os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, tile_name, realization_number, 'plots')
@@ -3977,9 +4123,9 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 		for r in list_of_realizations_for_loop:
 
 			# Filenames for log files #
-			fn_flag, fn_mag_bins, fn_main_log = get_log_file_names(tile_name=t, realization_number=r)
+			fn_flag, fn_mag_bins, fn_main_log, __fn_color_plot_log = get_log_file_names(tile_name=t, realization_number=r)
 			# Write headers #
-			fd_main_log, fd_mag_bins, fd_flag = fd_first_write(fn_main_log=fn_main_log, fn_mag_bins=fn_mag_bins, fn_flag=fn_flag)
+			fd_main_log, fd_mag_bins, fd_flag, __fd_color_plot_log = fd_first_write(fn_main_log=fn_main_log, fn_mag_bins=fn_mag_bins, fn_flag=fn_flag, fn_color_plot_log=__fn_color_plot_log)
 
 
 
@@ -4083,9 +4229,12 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 				mag_hdr2 = 'mag_c_2'
 				mag_err_hdr2 = 'mag_err_c_2'
 
+			if PLOT_COLOR is False:
+				delta_magnitude_subplotter(df=df1and2, flag_idx=flag_idx, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, plot_name=fn, plot_title=title, realization_number=r, tile_name=t, fd_mag_bins=fd_mag_bins, fd_main_log=fd_main_log, fd_flag=fd_flag, fraction_recovered=fractionRecovered) 
 
-			subplotter(df=df1and2, flag_idx=flag_idx, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, plot_name=fn, plot_title=title, realization_number=r, tile_name=t, fd_mag_bins=fd_mag_bins, fd_main_log=fd_main_log, fd_flag=fd_flag, fraction_recovered=fractionRecovered) 
-
+			if PLOT_COLOR:
+				for f in ['g', 'r', 'i']:
+					color_subplotter(filter_name=f, df=df1and2, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization_number=r, tile_name=t, fd_flag=fd_flag, plot_title=title, plot_name=fn, fd_color_plot_log=__fd_color_plot_log)
 
 			### Close log files after each iteration over a realization ###
 			fd_flag.close(); fd_mag_bins.close(); fd_main_log.close() 
@@ -4270,7 +4419,6 @@ def make_region_files(df_match, df_1not2, df_2not1, realization_number, tile_nam
 
 
 YLOOP = False 
-#FIXME if True, resets num_stack
 ### !!!!! Run once. Log files are closed once 0 is returned. ###
 if YLOOP is False:
 	print make_plots(mag_hdr1=M_HDR1, mag_hdr2=M_HDR2, mag_err_hdr1=M_ERR_HDR1, mag_err_hdr2=M_ERR_HDR2)
