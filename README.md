@@ -32,11 +32,12 @@ Parameter(s) | Type | Allowed values (if Type not bool) | Description
 |`MATCH_CAT1` `MATCH_CAT2` | str | `mof` `sof` `star_truth` `gal_truth` `y3_gold` `coadd`  | Type of catalogs to analyse
 |`INJ1` `INJ2` | bool | | Are `MATCH_CAT1` `MATCH_CAT2` Balrog-injected?  If `realizations=None` then the following is forced: `INJ1, INJ2 = False, False`
 |`INJ1_20PERCENT` `INJ2_20PERCENT` | bool | 
-| `PLOT_COLOR` | bool | | If `True` plots colors (g-r) (r-z) (i-z) .....
+| `PLOT_COLOR` | bool | | If `True` colors g-r, r-i, and i-z are plotted. If `False` magnitudes are plotted. `PLOT_COLOR` creates a 2x2 subplot with subplots corresponding to different magnitude bins (currently \[20,21), \[21,22), \[22,23), and \[23,24)). Magnitudes are binned according to values in `MATCH_CAT1` for the leading filter (g for g-r, etc). 
 | `RUN_TYPE` | str | `None` `'ok'` `'rerun'` | `'ok'`: FOF groups *un*changed after Balrog-injection. `'rerun'`: FOF groups changed after Balrog-injection. `None`: FOF analysis not conducted. If `RUN_TYPE='rerun'` or `RUN_TYPE='ok'` then `MATCH_CAT1` `MATCH_CAT2` `INJ1` and `INJ2` will be overwritten.
 | `NORMALIZE` | bool | | Normalize plot to 1-sigma magnitude error? Error calculation uses measured catalogs only.
 | `HIST_2D` | bool | | Plot a 2D histogram?
 | `CORNER_HIST_2D` | bool | | Make plot using [corner.py](https://github.com/dfm/corner.py)? Plot automatically adds 1-sigma and 2-sigma contours.
+| `PLOT_DELTA_VAX` | bool | | If `True` a difference is plotted on the vertical axis to produce a plot of form `x` versus `x-y`. If `False` a plot of form `x` versus `y` is produced.
 | `SCATTER` | bool | | Scatter plot?
 |`HEXBIN` | bool | | Plot density via `hexbin()`?
 |`CM_T_S2N_COLORBAR` | bool | | Plot a colorbar according to cm_T signal-to-noise?
@@ -46,8 +47,8 @@ Parameter(s) | Type | Allowed values (if Type not bool) | Description
 | `PLOT_1SIG` | bool | | Plot the 1-sigma curve? Errors refer to magnitude errors
 | `YLOW` `YHIGH` | int or float | `None` and any real number | Limits for the vertical axis of plot. `None` results in default scaling
 | `STACK_REALIZATIONS` | bool | | If `True` catalogs are matched, then stacked and plotted on a single plot. Must be used with `realizations=all` at command line
-| `PLOT_68P` | bool | | Only considered if `NORMALIZE=True`. Plot the 68th percentile of the vertical axis centered about zero?
-| `PLOT_34P_SPLIT` | bool | | Only considered if `NORMALIZE=True`. Plot the 34th percentile of the positive and negative vertical axis?
+| `PLOT_68P` | bool | | Only considered if `NORMALIZE=True`. Plot the 68th percentile of the vertical axis centered about zero? Exists in `ms_plotter.normalized_delta_magnitude_plotter()`.
+| `PLOT_34P_SPLIT` | bool | | Only considered if `NORMALIZE=True`. Plot the 34th percentile of the positive and negative vertical axis? Exists in `ms_plotter.normalized_delta_magnitude_plotter()`.
 | `SUBPLOT` | bool | | If `True` four subplots (one for each griz filter) are created in a 2x2 grid. If `False` plots are made individually
 | `MOF` | bool | | Only used if `RUN_TYPE` is not `None`. Does `BASEPATH` entered at command line contain MOF (`MOF=True` or SOF `MOF=False` catalogs?
 | `MAKE_REG`| bool | | If `True`, three DS9 region files created: 1) objects in both catalogs, 2) objects in the first not second catalog, 3) objects in second not first  
@@ -121,3 +122,5 @@ Matching is performed first, then catalogs are stacked.
 ___
 
 
+# `Flags*`
+Docstrings in `ms_plotter.py` frequently make reference to `flags*` which are described here...
