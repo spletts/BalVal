@@ -36,17 +36,17 @@ Parameter(s) | Type | Allowed values (if Type not bool) | Description
 | `RUN_TYPE` | str | `None` `'ok'` `'rerun'` | `'ok'`: FOF groups *un*changed after Balrog-injection. `'rerun'`: FOF groups changed after Balrog-injection. `None`: FOF analysis not conducted. If `RUN_TYPE='rerun'` or `RUN_TYPE='ok'` then `MATCH_CAT1` `MATCH_CAT2` `INJ1` and `INJ2` will be overwritten.
 | `NORMALIZE` | bool | | Normalize plot to 1-sigma magnitude error? Error calculation uses measured catalogs only.
 | `HIST_2D` | bool | | Plot a 2D histogram?
-| `CORNER_HIST_2D` | bool | | Make plot using [corner.py](https://github.com/dfm/corner.py)? Plot automatically adds 1-sigma and 2-sigma contours.
+| `CORNER_HIST_2D` | bool | | If `True` `corner.hist2d` plots are created using [corner.py](https://github.com/dfm/corner.py).
 | `PLOT_DELTA_VAX` | bool | | If `True` a difference is plotted on the vertical axis to produce a plot of form `x` versus `x-y`. If `False` a plot of form `x` versus `y` is produced.
-| `SCATTER` | bool | | Scatter plot?
-|`HEXBIN` | bool | | Plot density via `hexbin()`?
-|`CM_T_S2N_COLORBAR` | bool | | Plot a colorbar according to cm_T signal-to-noise?
+| `SCATTER` | bool | | If `True` a scatter plot is produced.
+|`HEXBIN` | bool | | If `True` a density plot via `hexbin()` is produced.
+|`CM_T_S2N_COLORBAR` | bool | | If `True` a colorbar that displays cm_T signal-to-noise is added to the scatter plot. `SCATTER` must be `True`...
 |`CM_T_COLORBAR` | bool | | Plot a colorbar according to cm_T?
 | `CM_T_ERR_COLORBAR` | bool | | Plot a colorbar according to cm_T error?
 | `BIN_CM_T_S2N` | bool | | Bin cm_T signal-to-noise? Default bins are `[0, 1, 9, 20, max(cm_t_s2n)]`
 | `PLOT_1SIG` | bool | | Plot the 1-sigma curve? Errors refer to magnitude errors
 | `YLOW` `YHIGH` | int or float | `None` and any real number | Limits for the vertical axis of plot. `None` results in default scaling
-| `STACK_REALIZATIONS` | bool | | If `True` catalogs are matched, then stacked and plotted on a single plot. Must be used with `realizations=all` at command line
+| `STACK_REALIZATIONS` | bool | | If `True` catalogs are matched then stacked. Plotting resumes with stacked catalog. Must be used with `realizations=all` at command line...
 | `PLOT_68P` | bool | | Only considered if `NORMALIZE=True`. Plot the 68th percentile of the vertical axis centered about zero? Exists in `ms_plotter.normalized_delta_magnitude_plotter()`.
 | `PLOT_34P_SPLIT` | bool | | Only considered if `NORMALIZE=True`. Plot the 34th percentile of the positive and negative vertical axis? Exists in `ms_plotter.normalized_delta_magnitude_plotter()`.
 | `SUBPLOT` | bool | | If `True` four subplots (one for each griz filter) are created in a 2x2 grid. If `False` plots are made individually
