@@ -117,7 +117,7 @@ Region files for `ok` and `rerun` FOF groups are saved in: `/{OUTDIR}/outputs/{B
 
 ___
 
-**Stacking multiple realizations**
+**Stacking multiple realizations or multiple tiles**
 
 Matching is performed first, then catalogs are stacked.
 
