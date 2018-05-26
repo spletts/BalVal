@@ -28,7 +28,7 @@ User sets plot attributes and catalog attributes within `ms_plotter.py`. A table
 **Plot and catalog attributes**
 
 Parameter(s) | Type | Allowed values (if Type not bool) | Description
---- | --- | --- | ---
+:---: | :---: | --- | ---
 |`MATCH_CAT1` `MATCH_CAT2` | str | `mof` `sof` `star_truth` `gal_truth` `y3_gold` `coadd`  | Type of catalogs to analyse
 |`INJ1` `INJ2` | bool | | Are `MATCH_CAT1` `MATCH_CAT2` Balrog-injected?  If `realizations=None` then the following is forced: `INJ1, INJ2 = False, False`
 |`INJ1_20PERCENT` `INJ2_20PERCENT` | bool | 
