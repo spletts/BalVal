@@ -102,7 +102,9 @@ Plots are saved in: `/{OUTDIR}/outputs/{BALROG_RUN}/{MATCH_TYPE}/{tile}/{realiza
 
 Plots for `ok` and `rerun` FOF groups are saved in: `/{OUTDIR}/outputs/{BALROG_RUN}/{MATCH_TYPE}/{tile}/{realization}/plots/fof_analysis/{plot_type}/`
 
-Allowed values for `{realization}`: `0` `1` ... `stacked`.
+Allowed values for `{realization}`: `0` `1` ... `stack`.
+
+Allowed values for `{tile}`: ... `stack`.
 
 Allowed values for `{plot_type}`: `normalized` `scatter`.
 
