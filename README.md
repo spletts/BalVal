@@ -47,22 +47,23 @@ Parameter(s) | Type | Allowed values (if Type not bool) | Description
 | `PLOT_1SIG` | bool | | Plot the 1-sigma curve? Errors refer to magnitude errors
 | `YLOW` `YHIGH` | int or float | `None` and any real number | Limits for the vertical axis of plot. `None` results in default scaling
 | `STACK_REALIZATIONS` | bool | | If `True` catalogs are matched then stacked. Plotting resumes with stacked catalog. Must be used with `realizations=all` at command line...
-| `PLOT_68P` | bool | | Only considered if `NORMALIZE=True`. Plot the 68th percentile of the vertical axis centered about zero? Exists in `ms_plotter.normalized_delta_magnitude_plotter()`.
-| `PLOT_34P_SPLIT` | bool | | Only considered if `NORMALIZE=True`. Plot the 34th percentile of the positive and negative vertical axis? Exists in `ms_plotter.normalized_delta_magnitude_plotter()`.
-| `SUBPLOT` | bool | | If `True` four subplots (one for each griz filter) are created in a 2x2 grid. If `False` plots are made individually
+| `CENTER_ERR_ABOUT_ZERO`| bool | | 
+| `PLOT_68P` | bool | | Only considered if `NORMALIZE=True`. If `True` the 68th percentile of the vertical axis data in each bin are plotted. Bins refer to the magnitude bins used in the magnitude error calculation. Exists in `ms_plotter.normalized_delta_magnitude_plotter()`.
+| `PLOT_34P_SPLIT` | bool | | Only considered if `NORMALIZE=True`. If `True` the 34th percentile of the positive and negative vertical axis data in each bin are plotted separately. Bins refer to the magnitude bins used in the magnitude error calculation. Exists in `ms_plotter.normalized_delta_magnitude_plotter()`.
+| `SUBPLOT` | bool | | If `True` four subplots are created in a 2x2 grid. If `False` plots are created individually.
 | `MOF` | bool | | Only used if `RUN_TYPE` is not `None`. Does `BASEPATH` entered at command line contain MOF (`MOF=True` or SOF `MOF=False` catalogs?
-| `MAKE_REG`| bool | | If `True`, three DS9 region files created: 1) objects in both catalogs, 2) objects in the first not second catalog, 3) objects in second not first  
-| `NO_DIR_MAKE` | bool| | If `True` nonexistent dirs will be created. If `False`, `sys.exit()` invoked when nonexistent dirs encountered.
+| `MAKE_REG`| bool | | If `True`, three DS9 region files created containing 1) objects in both catalogs, 2) objects in the first not second catalog, 3) objects in second not first.
+| `NO_DIR_MAKE` | bool| | If `True` nonexistent directories will be created. If `False`, `sys.exit()` is invoked when nonexistent directories are encountered.
 | `SWAP_HAX` | bool | | If `False` (default) `MATCH_CAT1` values are plotted on the horizontal axis. If `True` `MATCH_CAT2` values are plotted on the horizontal axis.
-| `SAVE_PLOT` | bool | | Save plot?
-| `SHOW_PLOT` | bool | | Show plot?
-| `EH_CUTS` | bool | | Apply quality cuts introduced by Eric Huff?
-| `overwrite` | bool | | Exists within the following: `ms_plotter.matcher()` `ms_plotter.fof_matcher()` `ms_plotter.make_region_files()`. If `True` existing matched catalogs or region files are overwritten.
+| `SAVE_PLOT` | bool | | If `True` plot is saved using name assigned by `ms_plotter.get_plot_save_name()`.
+| `SHOW_PLOT` | bool | | If `True` plot is displayed after it is created.
+| `EH_CUTS` | bool | | If `True` quality cuts introduced by Eric Huff are applied to clean the data.
+| `overwrite` | bool | | If `True` existing matched catalogs or region files are overwritten. Exists within `ms_plotter.matcher()`, `ms_plotter.fof_matcher()`, and `ms_plotter.make_region_files()`.
 
 
 **Warnings**
 
-User may need to replace `/data/des71.a/data/mspletts/balrog_validation_tests/scripts/BalVal/ms_matcher` (in `ms_plotter.matcher()`) with the correct path to `ms_matcher`. Similarly for `fof_matcher`.
+User may need to replace `/data/des71.a/data/mspletts/balrog_validation_tests/scripts/BalVal/ms_matcher` (in `ms_plotter.matcher()`) with the correct path to `ms_matcher`. Similarly for `ms_fof_matcher`.
 
 ---
 
