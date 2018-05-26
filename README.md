@@ -125,4 +125,12 @@ ___
 
 
 # `Flags*`
-Docstrings in `ms_plotter.py` frequently make reference to `flags*` which are described here...
+Docstrings in `ms_plotter.py` frequently make reference to `flags*` which refers to specific flag cuts that are employed in `ms_plotter.get_good_index_using_primary_flags()` but described below for clarity.
+
+In general, the following catalog headers are considered: 'flags' and 'cm_flags'. Exceptions are listed below. 
+
+Star truth catalogs (`star_truth`) do not contain any flags.
+
+Coadd catalogs (`coadd`) have a 'FLAGS' header but do not have a 'cm_flags' header (or equivalent), so only 'FLAGS' is used.
+
+Y3 catalogs (`y3_gold`) are checked for 'FLAGS_GOLD' (replaced 'flags') and '{sof/mof}_cm_flags' replaces 'cm_flags'. In addition, the additional flags are examined: 'SEXTRACTOR_FLAGS_{GRIZ}', 'IMAFLAGS_ISO_{GRIZ}', and, if a Y3 catalog is compared to a MOF catalog, 'MOF_CM_MOF_FLAGS'.
