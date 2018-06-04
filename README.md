@@ -1,6 +1,6 @@
 # BalVal
 
-Conducts some [Balrog-GalSim](https://github.com/sweverett/Balrog-GalSim) validation tests.
+Conducts various [Balrog-GalSim](https://github.com/sweverett/Balrog-GalSim) validation tests.
 
 ___
 **Contents of the repository**
@@ -9,7 +9,7 @@ ___
 
 `ms_fof_matcher` and `ms_par.py` analyse FOF groups. `ms_fof_matcher` uses STILTS.
 
-`ms_plotter.py` calls `ms_matcher` or `ms_fof_matcher` (which calls `ms_par.py`), analyses the matched catalog, and produces various plots.
+`ms_plotter.py` calls `ms_matcher` or `ms_fof_matcher` (which calls `ms_par.py`), analyses the matched catalog, and produces various comparison plots.
 
 ___
 
@@ -25,7 +25,7 @@ After the above command is issued, a prompt will appear so that the user can con
 
 User sets plot attributes and catalog attributes within `ms_plotter.py`. A table of user-set attributes is below.
 
-**Plot and catalog attributes**
+# Table of Parameters
 
 Parameter(s) | Type | Allowed values (if Type not bool) | Description
 :---: | :---: | --- | ---
@@ -38,6 +38,8 @@ Parameter(s) | Type | Allowed values (if Type not bool) | Description
 | `HIST_2D` | bool | | If `True` a `matplotlib.pyplot` 2D histogram is plotted.
 | `CORNER_HIST_2D` | bool | | If `True` `corner.hist2d` plots are created using [corner.py](https://github.com/dfm/corner.py).
 | `PLOT_DELTA_VAX` | bool | | If `True` a difference is plotted on the vertical axis to produce a plot of form `x` versus `x-y`. If `False` a plot of form `x` versus `y` is produced.
+| `PLOT_COMPLETENESS` | bool | | If `True` a 1x2 plot grid is produced with 10% injection {magnitude/color} completeness plot and 20% {magnitude/color} completeness plot, respectively. `PLOT_COLOR` determines if the completeness plot displays magnitude or color completeness.
+| `PLOT_FLUX_HIST` | bool | | If `True` a 1D histogram of DeltaFlux/SigmaFlux is plotted along with a standard Gaussian (mean=0, standard_deviation=1) and a fit to the 1D histogram. DeltaFlux is computed as truth_flux minus {SOF/MOF/coadd}_flux.
 | `SCATTER` | bool | | If `True` a scatter plot is produced.
 |`HEXBIN` | bool | | If `True` a density plot via `hexbin()` is produced.
 |`CM_T_S2N_COLORBAR` | bool | | If `True` a colorbar that displays the *measured* cm_T signal-to-noise is added to the magnitude versus delta magnitude plot. `NORMALIZE` must be False.
