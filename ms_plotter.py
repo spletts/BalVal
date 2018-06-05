@@ -20,14 +20,14 @@ Megan Splettstoesser mspletts@fnal.gov"""
 from astropy.io import fits
 from astropy.table import Column
 from astropy.table import Table
+from scipy import stats
 # For Python environment with `corner`, run: $source activate des17a or $source activate des18a #
-import corner
+#import corner
 import csv
 import fileinput
 import math
 import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
-import matplotlib
+import matplotlib #FIXME
 import numpy as np
 import os
 import pandas as pd
@@ -78,6 +78,8 @@ if '.dat' in tiles[0]:
 
 ################################################################### Specify plot and catalog attributes ###################################################################
 
+# Please see 'Table of Parameters' in README.md #
+
 ### Catalog attributes ###
 # !!!!! Allowed values: y3_gold_2_0, y3_gold_2_2, sof, mof, star_truth, gal_truth, coadd. Both can be 'sof' and both can be 'mof' if INJ1_10PERCENT and INJ2_10PERCENT are different. Note that truth catalogs always have INJ=True. #
 MATCH_CAT1, MATCH_CAT2 = 'gal_truth', 'sof'
@@ -94,7 +96,7 @@ SHOW_PLOT = True
 
 ### Plot type ###
 HIST_2D = False
-CORNER_HIST_2D = True
+CORNER_HIST_2D = False
 HEXBIN = False
 SCATTER = False
 # `_COLORBAR` cannot be True if NORMALIZE is True #
@@ -110,13 +112,15 @@ NORMALIZE = False
 PLOT_1SIG = True
 
 # Plot colors not magnitudes?
-PLOT_COLOR = False 
+PLOT_COLOR = False
 
 PLOT_COMPLETENESS = False
 
+# 1D histogram #
+PLOT_FLUX_HIST = True
+
 # !!!!! If `True` plots x1 versus (x1-x2). If `False` plots x1 versus x2. #
 PLOT_DELTA_VAX = True
-
 
 
 # !!!!! Limits for the vertical axis. 'None' is an allowed value and will result in default scaling #
@@ -221,6 +225,13 @@ def catch_error():
 	if INJ1_10PERCENT is False and INJ2_10PERCENT is False and INJ1_20PERCENT is False and INJ2_20PERCENT is False and realizations[0] != 'None': msg = 'If INJ1_10PERCENT and INJ2_10PERCENT are False realizations must be None at cmd line'
 
 	if ('truth' in MATCH_CAT1 and INJ1_10PERCENT is False and INJ1_20PERCENT is False) or ('truth' in MATCH_CAT2 and INJ2_10PERCENT is False and INJ2_20PERCENT is False): msg = 'Truth catalogs are injected'
+
+	if PLOT_COMPLETENESS and 'truth' not in MATCH_CAT1 and 'truth' not in MATCH_CAT2: msg = 'Completeness plots must be made with a truth catalog'
+
+	plt_type_counter = 0
+	if PLOT_COMPLETENESS: plt_type_counter += 1
+	if PLOT_FLUX_HIST: plt_type_counter += 1
+	if plt_type_counter > 1: msg = 'Pick one plot type...' #TODO
 
 	#TODO not normalize and plot_color simult.
 	return msg
@@ -760,7 +771,11 @@ def get_log_file_names(tile_name, realization_number):
 	fn3 = os.path.join(log_dir, 'num_flags_num_1sig_'+fn_rep+'.log')
 	fn4 = os.path.join(log_dir, 'color_plot_'+fn_rep+'.log')
 	fn5 = os.path.join(log_dir, 'outlier_delta_magnitudes_'+fn_rep+'.log')
-	fn6 = os.path.join(log_dir, 'completeness_'+fn_rep+'.log')
+	if PLOT_COLOR:
+		fn6 = os.path.join(log_dir, 'color_completeness_'+fn_rep+'.log')
+	if PLOT_COLOR is False:
+		fn6 = os.path.join(log_dir, 'mag_completeness_'+fn_rep+'.log')
+	fn7 = os.path.join(log_dir, 'completeness_mag_outliers_'+fn_rep+'.log')
 
         if RUN_TYPE is not None:
 		fn1 = '_'.join([fn1[:-4], RUN_TYPE, fn1[-4:]])
@@ -773,10 +788,12 @@ def get_log_file_names(tile_name, realization_number):
         print '-----> Saving log file for flags as: ', fn1, '\n'
         print '-----> Saving log file for magnitude and error bins as: ', fn2, '\n'
         print '-----> Saving log file for number of flags, number of objects within 1sigma_mag as: ', fn3, '\n'
-	print '----->', fn4, '\n'
-	print '----->', fn5, '\n'
+	print '-----> Saving color plot log as: ', fn4, '\n'
+	print '-----> Saving outlier DeltaMagnitude log as: ', fn5, '\n'
+	print '-----> Saving completeness plot log as: ', fn6, '\n'
+	print '-----> Saving magnitude outliers of completeness plot log as: ', fn7, '\n'
 	
-	return fn1, fn2, fn3, fn4, fn5, fn6
+	return fn1, fn2, fn3, fn4, fn5, fn6, fn7
 
 
 
@@ -894,6 +911,16 @@ ANGLE1, ANGLE2 = CLASS1.angle, CLASS2.angle
 
 FLAG_HDR_LIST = [ FLAGS_HDR1, FLAGS_HDR2, CM_FLAGS_HDR1, CM_FLAGS_HDR2, CM_MOF_FLAGS_HDR1, CM_MOF_FLAGS_HDR2, OBJ_FLAGS_HDR1, OBJ_FLAGS_HDR2, PSF_FLAGS_HDR1, PSF_FLAGS_HDR2, CM_MAX_FLAGS_HDR1, CM_MAX_FLAGS_HDR2, CM_FLAGS_R_HDR1, CM_FLAGS_R_HDR2 ]
 
+
+### For `corner.hist2d` contours ###
+# Percentile levels for contours. Default is 1.0 - np.exp(-0.5 * np.arange(0.5, 2.1, 0.5) ** 2) via https://github.com/dfm/corner.py/blob/master/corner/corner.py #
+# Correct 1sigma given by http://corner.readthedocs.io/en/latest/pages/sigmas.html #
+LVLS = 1.0 - np.exp(-0.5 * np.array([0.5, 1.0, 1.5, 2.2]) ** 2)
+CLRS = ['purple', 'red', 'blue', 'yellow']
+# FIXME `colors` passed to contour_kwargs are passed/applied in reversed order so reverse order for labels #
+CLRS_LABEL = CLRS[::-1]
+
+
 # Used if LOG_FLAGS is True #
 flag_idx = []
 
@@ -932,7 +959,7 @@ with open(FN_LOG, 'wb') as csvfile:
 
 
 
-def fd_first_write(fn_main_log, fn_mag_bins, fn_flag, fn_color_plot_log, fn_delta_mag_outliers, fn_completeness_log):
+def fd_first_write(fn_main_log, fn_mag_bins, fn_flag, fn_color_plot_log, fn_delta_mag_outliers, fn_completeness_log, fn_mag_completeness_delta_mag):
 	"""Write headers to log files.
 
 	Parameters
@@ -946,6 +973,7 @@ def fd_first_write(fn_main_log, fn_mag_bins, fn_flag, fn_color_plot_log, fn_delt
 	### Open files ###
 	fd_main_log = open(fn_main_log, 'w'); fd_mag_bins = open(fn_mag_bins, 'w'); fd_flag = open(fn_flag, 'w'); fd_color_plot_log = open(fn_color_plot_log, 'w')
 	fd_delta_mag_outliers = open(fn_delta_mag_outliers, 'w'); fd_completeness_log = open(fn_completeness_log, 'w')
+	fd_mag_completeness_delta_mag = open(fn_mag_completeness_delta_mag, 'w')
 
 	### Write headers ###
 	fd_main_log.write('TILE\tREALIZATION\tFILTER\tRUN_TYPE\tTOTAL_MATCHES\tTOTAL_FLAGS\tPERCENT_FLAGS\tTOTAL_1SIGMA_MAG\tPERCENT_1SIGMA_MAG\n')
@@ -961,9 +989,11 @@ def fd_first_write(fn_main_log, fn_mag_bins, fn_flag, fn_color_plot_log, fn_delt
 
 	fd_delta_mag_outliers.write('TILE\tREALIZATION\tFILTER\tMAG1\tMAG2\tDELTA_MAG\n')
 
-	fd_completeness_log.write('TILE\tREALIZATION\tINJ_PERCENT\tFILTER\tMAG_BIN_L\tMAG_BIN_R\tMATCH_CAT_OBJS_IN_BIN\tTRUTH_CAT_OBJS_IN_BIN\n')
+	fd_completeness_log.write('TILE\tREALIZATION\tINJ_PERCENT\tFILTER\tTRUTH_MAG_BIN_L\tTRUTH_MAG_BIN_R\tMATCH_CAT_OBJS_IN_BIN\tTRUTH_CAT_OBJS_IN_BIN\n')
 
-	return fd_main_log, fd_mag_bins, fd_flag, fd_color_plot_log, fd_delta_mag_outliers, fd_completeness_log
+	fd_mag_completeness_delta_mag.write('TILE\tREALIZATION\tINJ_PERCENT\tFILTER\tTRUTH_MAG_BIN_L\tTRUTH_MAG_BIN_R\tDELTA_MAG\n')
+
+	return fd_main_log, fd_mag_bins, fd_flag, fd_color_plot_log, fd_delta_mag_outliers, fd_completeness_log, fd_mag_completeness_delta_mag
 
 
 
@@ -2474,7 +2504,6 @@ def get_magnitude_axlabel(inj_10percent, mag_hdr, axlabel, match_cat, filter_nam
 		if 'y3_gold' in match_cat:
 			__pref = 'Y3_'
 
-	### Horizontal axis label ###
 
 	### Magnitude label ###
 	# Transform 'mag_2' to 'mag_true' or 'mag_meas' #
@@ -2505,13 +2534,10 @@ def get_color_axlabel(inj_10percent, axlabel, match_cat, filter_name, inj_20perc
 		Contains LaTeX formatting. Ex: 'inj_(g-r)_true'.
 	"""
 
-	#TODO add 10%_ or 20%_ pref
 	if inj_10percent:
                 __pref = '10%_inj_'
         if inj_20percent:
                 __pref = '20%_inj_'
-	#if inj_10percent or inj_20percent:
-                #__pref = 'inj_'
         if inj_10percent is False and inj_20percent is False:
 		if 'y3_gold' not in match_cat:
                         __pref = 'base_'
@@ -2527,7 +2553,7 @@ def get_color_axlabel(inj_10percent, axlabel, match_cat, filter_name, inj_20perc
 
 
 
-def completeness_magnitude_subplotter(filter_name, df, flag_idx, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, plot_name, plot_title, realization_number, tile_name, fd_flag, fd_completeness_log):
+def magnitude_completeness_subplotter(filter_name, df, flag_idx, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, plot_name, plot_title, realization_number, tile_name, fd_flag, fd_completeness_log, fd_completeness_delta_mag_log):
 	"""Creates two completeness plots with two panels of completeness for 10% injections (first subplot panel) and 20% injections (second subplot panel).
 	This function is only to be called when comparing Balrog-injected catalogs and truth catalogs.
 
@@ -2544,11 +2570,11 @@ def completeness_magnitude_subplotter(filter_name, df, flag_idx, mag_hdr1, mag_h
 	# Force 10% inj to be plotted in first panel # 
 	INJ1_10PERCENT = True; INJ2_10PERCENT = True; INJ1_20PERCENT = False; INJ2_20PERCENT = False
 
-	if INJ1_10PERCENT: print 'Plotting 10% magnitude completeness ... \n'
+	if INJ1_10PERCENT: print 'Getting 10% magnitude completeness ... \n'
 
 	err1, err2, cleanMag1, cleanMag2, idxGood, fullMag1, fullMag2, haxLabel1, haxLabel2, vaxLabel = get_magnitude_plot_variables(filter_name=filter_name, df=df, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization_number=realization_number, tile_name=tile_name, mag_axlabel1=M_AXLABEL1, mag_axlabel2=M_AXLABEL2, fd_flag=fd_flag, plot_title=plot_title, plot_name=plot_name)
 
-	completenessFraction1, binMedian1 = get_magnitude_completeness(clean_magnitude1=cleanMag1, clean_magnitude2=cleanMag2, full_magnitude1=fullMag1, full_magnitude2=fullMag2, tile_name=tile_name, realization_number=realization_number, filter_name=filter_name, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, error1=err1, error2=err2, fd_completeness_log=fd_completeness_log)#, inj10_percent=INJ, inj_20percent=False)
+	completenessFraction1, binMedian1 = get_magnitude_completeness(idx_good=idxGood, df=df, clean_magnitude1=cleanMag1, clean_magnitude2=cleanMag2, full_magnitude1=fullMag1, full_magnitude2=fullMag2, tile_name=tile_name, realization_number=realization_number, filter_name=filter_name, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, error1=err1, error2=err2, fd_completeness_log=fd_completeness_log, fd_completeness_delta_mag_log=fd_completeness_delta_mag_log)[:2]#, inj10_percent=INJ, inj_20percent=False)
 
 	# Get horizontal axis label #
         if 'truth' in MATCH_CAT1: __hax_label1 = haxLabel1
@@ -2558,23 +2584,25 @@ def completeness_magnitude_subplotter(filter_name, df, flag_idx, mag_hdr1, mag_h
 	# Reverse bool value and recalculate #
 	INJ1_10PERCENT = not INJ1_10PERCENT; INJ2_10PERCENT = not INJ2_10PERCENT; INJ1_20PERCENT = not INJ1_20PERCENT; INJ2_20PERCENT = not INJ2_20PERCENT
 
-	if INJ1_20PERCENT: print 'Plotting 20% magnitude completeness ... \n'
+	if INJ1_20PERCENT: print 'Getting 20% magnitude completeness ... \n'
 
 	err1, err2, cleanMag1, cleanMag2, idxGood, fullMag1, fullMag2, haxLabel1, haxLabel2, vaxLabel = get_magnitude_plot_variables(filter_name=filter_name, df=df, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization_number=realization_number, tile_name=tile_name, mag_axlabel1=M_AXLABEL1, mag_axlabel2=M_AXLABEL2, fd_flag=fd_flag, plot_title=plot_title, plot_name=plot_name)
 
-	completenessFraction2, binMedian2 = get_magnitude_completeness(clean_magnitude1=cleanMag1, clean_magnitude2=cleanMag2, full_magnitude1=fullMag1, full_magnitude2=fullMag2, tile_name=tile_name, realization_number=realization_number, filter_name=filter_name, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, error1=err1, error2=err2, fd_completeness_log=fd_completeness_log)
+	completenessFraction2, binMedian2 = get_magnitude_completeness(df=df, idx_good=idxGood, clean_magnitude1=cleanMag1, clean_magnitude2=cleanMag2, full_magnitude1=fullMag1, full_magnitude2=fullMag2, tile_name=tile_name, realization_number=realization_number, filter_name=filter_name, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, error1=err1, error2=err2, fd_completeness_log=fd_completeness_log, fd_completeness_delta_mag_log=fd_completeness_delta_mag_log)[:2]
 
 
 	if 'truth' in MATCH_CAT1: __hax_label2 = haxLabel1
         if 'truth' in MATCH_CAT2: __hax_label2 = haxLabel2
 
 
+	print 'Plotting magnitude completeness...\n'
+
 	plt.figure(figsize=(12, 10))
 
 	plt.subplot(1, 2, 1)
 	plt.plot(binMedian1, completenessFraction1, color='blue')
-	plt.axhline(y=1, color='black', linestyle=':', linewidth=0.7)
-	plt.axhline(y=0, color='black', linestyle=':', linewidth=0.7)
+	plt.axhline(y=1, color='black', linestyle='-', linewidth=0.7)
+	plt.axhline(y=0, color='black', linestyle='-', linewidth=0.7)
 	plt.axhline(y=0.9, color='orange', linestyle='--', linewidth=0.7)
 	plt.title(__hax_label1[:3]+' Injection')
 	plt.ylabel('Magnitude Completeness')
@@ -2583,8 +2611,8 @@ def completeness_magnitude_subplotter(filter_name, df, flag_idx, mag_hdr1, mag_h
 
 	plt.subplot(1, 2, 2)
 	plt.plot(binMedian2, completenessFraction2, color='green')
-        plt.axhline(y=1, color='black', linestyle=':', linewidth=0.7)
-        plt.axhline(y=0, color='black', linestyle=':', linewidth=0.7)
+        plt.axhline(y=1, color='black', linestyle='-', linewidth=0.7)
+        plt.axhline(y=0, color='black', linestyle='-', linewidth=0.7)
         plt.axhline(y=0.9, color='orange', linestyle='--', linewidth=0.7)
         plt.title(__hax_label2[:3]+' Injection')
         plt.ylabel('Magnitude Completeness')
@@ -2595,56 +2623,178 @@ def completeness_magnitude_subplotter(filter_name, df, flag_idx, mag_hdr1, mag_h
 		plot_title = plot_title.replace('10% ', '')
 	if '20% ' in plot_title:
                 plot_title = plot_title.replace('20% ', '')
-	plt.suptitle(plot_title, fontweight='bold')
+	plt.suptitle('No $\sigma$ cutoff. '+plot_title, fontweight='bold') #FIXME check if there is a sigma cutoff
 	plt.show()
+
 
 	return 0
 
 
 
-def get_magnitude_completeness(clean_magnitude1, clean_magnitude2, full_magnitude1, full_magnitude2, tile_name, realization_number, filter_name, mag_hdr1, mag_hdr2, error1, error2, fd_completeness_log):#, inj_10percent, inj_20percent):
-	"""TODO after function is done"""
+def get_color_completeness(truth_mag, match_mag, filter_name, realization_number, tile_name, mag_hdr1, mag_hdr2):
+	"""TODO
+
+	Parameters
+	----------
+
+	Returns
+	-------
+	"""
+
+	if INJ1_10PERCENT:
+                print 'Calculating color completeness of 10% injected catalogs ... \n'
+                __write_inj_percent = '10%'
+        if INJ2_20PERCENT:
+                print 'Calculating color completeness of 20% injected catalogs ... \n'
+                __write_inj_percent = '20%'
+
+	__completeness_bins, __plot_bins = [], []
+
+	__step = 0.25 #FIXME
+
+	# Get truth_color and truth_match_color #
+	# Truth catalog #
+	if filter_name == 'g': idx1, idx2 = 0, 1
+	if filter_name == 'r': idx1, idx2 = 1, 2
+	if filter_name == 'i': idx1, idx2 = 2, 3
+
+
+	### Read truth catalog which has magnitudes in form (m_g, m_r, m_i, m_z) ###
+        if 'truth' in MATCH_CAT1:
+                fn_truth_cat = get_catalog(cat_type=MATCH_CAT1, inj_10percent=INJ1_10PERCENT, inj_20percent=INJ1_20PERCENT, realization_number=realization_number, tile_name=tile_name, filter_name=filter_name, inj=INJ1)
+                mag_hdr = mag_hdr1
+
+        if 'truth' in MATCH_CAT2:
+                fn_truth_cat = get_catalog(cat_type=MATCH_CAT2, inj_10percent=INJ2_10PERCENT, inj_20percent=INJ2_20PERCENT, realization_number=realization_number, tile_name=tile_name, filter_name=filter_name, inj=INJ2)
+                mag_hdr = mag_hdr2
+
+        hdu = fits.open(fn_truth_cat)
+        data = hdu[1].data
+        truth_mag_griz = data[mag_hdr[:-2]]
+        truth_color = []
+        for mag_griz in truth_mag_griz:
+                truth_color.append(mag_griz[idx1] - mag_griz[idx2])
+        truth_color = np.array(truth_color)
+
+
+	### Get color from `match_mag` and ensure that `match_mag` refers to the truth catalog value #
+	sys.exit('how to bin colors for completeness plot?')
+
+	'''
+	# Match. Note that this introduces a bin cutoff of m=24 that truth_color does not #
+	colorBins1, colorBins2, magBins = get_color_from_binned_magnitude(df, hdr1, hdr2, clean_magnitude_1a, clean_magnitude_2a, filter_name=filter_name, idx_good)
+	# Flatten lists #
+	colorBins1 = [item for sublist in colorBins1 for item in sublist]; colorBins2 = [item for sublist in colorBins2 for item in sublist]
+
+
+
+	__bins = np.arange(int(np.min(truth_color)), int(np.max(truth_color)), __step)
+
+
+        for b in np.arange(0, len(__bins)-1):
+
+                # Count completeness in each bin #
+                __counter_truth, __counter_match = 0, 0
+
+                for i in np.arange(0, len(truth_color)):
+                        if truth_color[i] >= __bins[b] and truth_color[i] < __bins[b+1]:
+                                __counter_truth += 1
+
+                for j in np.arange(0, len(truth_match_mag)):
+                        if truth_match_color[j] >= __bins[b] and truth_match_color[j] < __bins[b+1]:
+                                __counter_match += 1
+
+                if __counter_truth != 0:
+                        __completeness_bins.append((1.0*__counter_match)/__counter_truth)
+                        __plot_bins.append(np.median([__bins[b], __bins[b+1]]))
+	'''
+	return __completeness_bins, __plot_bins
+
+
+
+def color_completeness_subplotter(filter_name, df, flag_idx, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, plot_name, plot_title, realization_number, tile_name, fd_flag, fd_completeness_log):
+	"""TODO"""
+
+
+	### Force order ###
+	INJ1_10PERCENT = True; INJ2_10PERCENT = True; INJ1_20PERCENT = False; INJ2_20PERCENT = False
+
+        if INJ1_10PERCENT: print 'Plotting 10% magnitude completeness ... \n'
+
+        err1, err2, cleanMag1, cleanMag2, idxGood, fullMag1, fullMag2, haxLabel1, haxLabel2, vaxLabel = get_magnitude_plot_variables(filter_name=filter_name, df=df, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization_number=realization_number, tile_name=tile_name, mag_axlabel1=M_AXLABEL1, mag_axlabel2=M_AXLABEL2, fd_flag=fd_flag, plot_title=plot_title, plot_name=plot_name)
+
+	# Photometry cuts applied to `truthMag`, `matchMag` #
+        truthMag1, matchMag1 = get_magnitude_completeness(df=df, clean_magnitude1=cleanMag1, clean_magnitude2=cleanMag2, full_magnitude1=fullMag1, full_magnitude2=fullMag2, tile_name=tile_name, realization_number=realization_number, filter_name=filter_name, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, error1=err1, error2=err2, fd_completeness_log=fd_completeness_log)[2:]
+
+
+	colorCompleteness1, bins1 = get_color_completeness(truth_mag=truthMag1, match_mag=matchMag1, filter_name=filter_name, realization_number=realization_number, tile_name=tile_name, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2)
+
+
+	# Reverse bool value and recalculate #
+        INJ1_10PERCENT = not INJ1_10PERCENT; INJ2_10PERCENT = not INJ2_10PERCENT; INJ1_20PERCENT = not INJ1_20PERCENT; INJ2_20PERCENT = not INJ2_20PERCENT
+
+        if INJ1_20PERCENT: print 'Getting 20% magnitude completeness ... \n'
+
+        err1, err2, cleanMag1, cleanMag2, idxGood, fullMag1, fullMag2, haxLabel1, haxLabel2, vaxLabel = get_magnitude_plot_variables(filter_name=filter_name, df=df, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization_number=realization_number, tile_name=tile_name, mag_axlabel1=M_AXLABEL1, mag_axlabel2=M_AXLABEL2, fd_flag=fd_flag, plot_title=plot_title, plot_name=plot_name)
+
+        truthMag2, matchMag2 = get_magnitude_completeness(df=df, clean_magnitude1=cleanMag1, clean_magnitude2=cleanMag2, full_magnitude1=fullMag1, full_magnitude2=fullMag2, tile_name=tile_name, realization_number=realization_number, filter_name=filter_name, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, error1=err1, error2=err2, fd_completeness_log=fd_completeness_log)[2:]
+
+
+	return 0
+
+
+
+
+
+def get_magnitude_completeness(idx_good, df, clean_magnitude1, clean_magnitude2, full_magnitude1, full_magnitude2, tile_name, realization_number, filter_name, mag_hdr1, mag_hdr2, error1, error2, fd_completeness_log, fd_completeness_delta_mag_log):#, inj_10percent, inj_20percent):
+	"""TODO after function is done
+	Introduce cutoff for bin size.
+	"""
+
+	GRID_PLOT = True
+	mag_bin_l = 21
 
 	if INJ1_10PERCENT: 
-		print 'Calculating completeness of 10% injected catalogs ... \n'
+		print 'Calculating magnitude completeness of 10% injected catalogs ... \n'
 		__write_inj_percent = '10%'
         if INJ2_20PERCENT: 
-		print 'Calculating completeness of 20% injected catalogs ... \n'
+		print 'Calculating magnitude completeness of 20% injected catalogs ... \n'
 		__write_inj_percent = '20%'
 
 	__completeness_bins, __plot_bins = [], []
 
 
-	### Photometry cuts on matched catalog (|DeltaM| < 3sigma) ###
-        match_mag1, match_mag2 = [], []
-        for k in np.arange(0, len(clean_magnitude1)):
-                #print 3.0*(error1[k]**2 + error2[k]**2)**0.5
-                if abs(clean_magnitude1[k] - clean_magnitude2[k]) < 3.0 * (error1[k]**2 + error2[k]**2)**0.5:
-                #if True is True:
-                        match_mag1.append(clean_magnitude1[k])
-                        match_mag2.append(clean_magnitude2[k])
-
-	
 	### Read truth catalog which has magnitudes in form (m_g, m_r, m_i, m_z) ###
 	if 'truth' in MATCH_CAT1:
 		fn_truth_cat = get_catalog(cat_type=MATCH_CAT1, inj_10percent=INJ1_10PERCENT, inj_20percent=INJ1_20PERCENT, realization_number=realization_number, tile_name=tile_name, filter_name=filter_name, inj=INJ1)	
 		mag_hdr = mag_hdr1
 		# Use error in measured catalogs only #
 		error1 = np.zeros(len(error2))
-		match_mag = match_mag1
 		# Note: [:-2] to get rid of the suffix '_1' or '_2' added by STILTS because truth catalogs have not been matched #
 		flag_hdr = FLAGS_HDR1[:-2]
 		cm_flag_hdr = CM_FLAGS_HDR1[:-2] 
+		if GRID_PLOT:
+			ra_hdr, dec_hdr = RA_HDR1, DEC_HDR1
+			match_truth_ra_hdr, match_truth_dec_hdr = RA_HDR1+'_1', DEC_HDR1+'_1'
+			other_truth_ra_hdr, other_truth_dec_hdr = RA_HDR2+'_2', DEC_HDR2+'_2'
+
+	if GRID_PLOT:
+		match_truth_ra, match_truth_dec = df[match_truth_ra_hdr], df[match_truth_dec_hdr]
+		other_truth_ra, other_truth_dec = df[other_truth_ra_hdr], df[other_truth_dec_hdr]
+		match_truth_ra, match_truth_dec = np.array(match_truth_ra)[idx_good], np.array(match_truth_dec)[idx_good]
+		other_truth_ra, other_truth_dec = np.array(other_truth_ra)[idx_good], np.array(other_truth_dec)[idx_good]
 
 	if 'truth' in MATCH_CAT2:
 		fn_truth_cat = get_catalog(cat_type=MATCH_CAT2, inj_10percent=INJ2_10PERCENT, inj_20percent=INJ2_20PERCENT, realization_number=realization_number, tile_name=tile_name, filter_name=filter_name, inj=INJ2)
 		mag_hdr = mag_hdr2
+		ra_hdr, dec_hdr = RA_HDR2, DEC_HDR2
 		# Use error in measured catalogs only #
 		error2 = np.zeros(len(error1))
-		match_mag = match_mag2
 		# Note: [:-2] to get rid of the suffix '_1' or '_2' added by STILTS because truth catalogs have not been matched #
                 flag_hdr = FLAGS_HDR2[:-2]
                 cm_flag_hdr = CM_FLAGS_HDR2[:-2]
+		if GRID_PLOT:
+			ra_hdr, dec_hdr = RA_HDR2, DEC_HDR2
 
 
 	if filter_name == 'g': idx = 0
@@ -2655,6 +2805,11 @@ def get_magnitude_completeness(clean_magnitude1, clean_magnitude2, full_magnitud
 	data = hdu[1].data
 	truth_mag_griz = data[mag_hdr[:-2]]
 	truth_mag = []
+
+	if GRID_PLOT:
+		truth_ra, truth_dec = data[ra_hdr], data[dec_hdr]	
+
+
 	for mag_griz in truth_mag_griz:
 		truth_mag.append(mag_griz[idx])
 	truth_mag = np.array(truth_mag)
@@ -2664,13 +2819,36 @@ def get_magnitude_completeness(clean_magnitude1, clean_magnitude2, full_magnitud
 
 	# Primary flag cuts to truth catalog #
 	__idx_good = np.where( (abs(truth_mag) != 9999.0) & (abs(truth_mag) != 99.0) & (abs(truth_mag) != 37.5) & (flag == 0) & (cm_flag == 0) )[0]
+	
 	truth_mag = truth_mag[__idx_good]
+	if GRID_PLOT:
+		truth_ra = np.array(truth_ra)[__idx_good]; truth_dec = np.array(truth_dec)[__idx_good]
 
+	### Photometry cuts on matched catalog (|DeltaM| < 3sigma) where sigma refers to measured catalog only ###
+        match_mag1, match_mag2 = [], []
+        for k in np.arange(0, len(clean_magnitude1)):
+                #print '3sigma_mag:', 3.0*(error1[k]**2 + error2[k]**2)**0.5
+                #if abs(clean_magnitude1[k] - clean_magnitude2[k]) < 3.0 * (error1[k]**2 + error2[k]**2)**0.5:
+                if True is True:
+                        match_mag1.append(clean_magnitude1[k])
+                        match_mag2.append(clean_magnitude2[k])
+
+	if 'truth' in MATCH_CAT1:
+                truth_match_mag = match_mag1
+		other_match_mag = match_mag2
+	if 'truth' in MATCH_CAT2:
+                truth_match_mag = match_mag2
+		other_match_mag = match_mag1
 
 	### Bin according to unmatched truth catalog (bin sizes used for denominator) ###
         __step = 1
         __bins = np.arange(int(np.min(truth_mag)), int(np.max(truth_mag)), __step)
+	__bin_size_cutoff = 10
 
+	if GRID_PLOT:
+		__bin_truth_ra, __bin_truth_dec = [], []
+		__bin_truth_match_ra, __bin_truth_match_dec = [], []
+		__bin_other_truth_match_ra, __bin_other_truth_match_dec = [], []
 
 	for b in np.arange(0, len(__bins)-1):
 
@@ -2680,20 +2858,231 @@ def get_magnitude_completeness(clean_magnitude1, clean_magnitude2, full_magnitud
 		for i in np.arange(0, len(truth_mag)):
 			if truth_mag[i] >= __bins[b] and truth_mag[i] < __bins[b+1]:
 				__counter_truth += 1
+				if GRID_PLOT and __bins[b] == mag_bin_l:
+					__bin_truth_ra.append(truth_ra[i])
+					__bin_truth_dec.append(truth_dec[i])
 
-		for j in np.arange(0, len(match_mag)):
-			if match_mag[j] >= __bins[b] and match_mag[j] < __bins[b+1]:
-				__counter_match += 1 
+		for j in np.arange(0, len(truth_match_mag)):
+			if truth_match_mag[j] >= __bins[b] and truth_match_mag[j] < __bins[b+1]:
+				__counter_match += 1
+				
+				if __bins[b] == mag_bin_l:
+					# 'TILE\tREALIZATION\t\INJ_PERCENT\tFILTER\tMAG_BIN_L\tMAG_BIN_R\tDELTA_MAG' #
+					fd_completeness_delta_mag_log.write(str(tile_name) + '\t' + str(realization_number) + '\t' + str(__write_inj_percent) + '\t' + str(filter_name) + '\t' + str(__bins[b]) + '\t' + str(__bins[b+1]) + '\t' + str(truth_match_mag[j] - other_match_mag[j]) + '\n') 
+					if GRID_PLOT:
+						__bin_truth_match_ra.append(match_truth_ra[j])
+						__bin_truth_match_dec.append(match_truth_dec[j])
+						__bin_other_truth_match_ra.append(other_truth_ra[j])
+						__bin_other_truth_match_dec.append(other_truth_dec[j])
 
-		if __counter_truth != 0:
+		if __counter_truth > __bin_size_cutoff:
 			__completeness_bins.append((1.0*__counter_match)/__counter_truth)
 			__plot_bins.append(np.median([__bins[b], __bins[b+1]]))
 
 		# Write to log file: 'TILE\tREALIZATION\t\INJ_PERCENT\tFILTER\tMAG_BIN_L\tMAG_BIN_R\tMATCH_CAT_OBJS_IN_BIN\tTRUTH_CAT_OBJS_IN_BIN #
 		fd_completeness_log.write(str(tile_name) + '\t' + str(realization_number) + '\t' + str(__write_inj_percent) + '\t' + str(filter_name) + '\t' + str(__bins[b]) + '\t' + str(__bins[b+1]) + '\t' + str(__counter_match) + '\t' + str(__counter_truth) + '\n')
 
+	'''
+	# Check with alternative method, is consistent #
+	__completeness_bins = []
+	numer = 1.0*np.histogram(truth_match_mag, __bins)[0]
+	denom = np.histogram(truth_mag, __bins)[0]
+	denom = denom[denom != 0]
+	numer = numer[denom != 0]	
+	__plot_bins = np.array(__plot_bins)[denom != 0]
+	__completeness_bins = numer/denom
+	'''
 
-	return __completeness_bins, __plot_bins 
+	print ' Including bins with more than ', __bin_size_cutoff, ' objects ... \n'
+
+
+	if GRID_PLOT:
+		### Grid plot ###
+		# Values for DES0220-0207 only #
+		ra_cent, dec_cent, ramin, ramax, decmin, decmax = 35.015867, -2.125, 34.658677, 35.373057, -2.481944, -1.768056
+
+		# Tile boundaries #
+		plt.figure(figsize=(10, 10))
+		plt.axvline(x=ramin)
+		plt.axvline(x=ramax)
+		plt.axhline(y=decmin)
+		plt.axhline(y=decmax)
+		# Tile center #
+		plt.plot(ra_cent, dec_cent, marker='o')
+		plt.plot(__bin_truth_ra, __bin_truth_dec, marker='.', linestyle=' ', label='truth', color='blue')
+		plt.plot(__bin_other_truth_match_ra, __bin_other_truth_match_dec,  marker='.', linestyle=' ', label='other_match')
+		plt.plot(__bin_truth_match_ra, __bin_truth_match_dec, marker='.', linestyle=' ', label='truth_match')
+		plt.axis('scaled')
+		plt.xlim([ramin-0.5, ramax+0.5])
+		plt.ylim([decmin-0.5, decmax+0.5])
+		plt.xlabel('ra')
+		plt.ylabel('dec')
+		plt.title('Binned via '+str(mag_bin_l) + '<truth_mag<' + str(mag_bin_l+1) +'. Truth Objs: '+str(len(__bin_truth_ra)) + '. Matched: ' + str(len(__bin_truth_match_ra)))
+		plt.legend().draggable()
+		plt.show()
+
+	return __completeness_bins, __plot_bins, truth_mag, truth_match_mag 
+
+
+
+def gaussian(x, mu, sig):
+	"""Normalized Gaussian."""
+	return 1./(np.sqrt(2.*np.pi)*sig)*np.exp(-np.power((x - mu)/sig, 2.)/2.0)
+
+
+
+
+def norm_flux_histogram_subplotter(df, flux_hdr1, flux_hdr2, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, plot_title):
+	"""Create 2x2 plot grid."""
+
+	 ### Create 4-by-4 subplot ###
+        counter_subplot = 1
+        # Figure size units: inches #
+        plt.figure(figsize=(12, 10))
+
+
+        ### Create one subplot for each griz filter ###
+        for f in ALL_FILTERS:
+		plt.subplot(2, 2, counter_subplot)
+		norm_flux_histogram_plotter(filter_name=f, df=df, flux_hdr1=flux_hdr1, flux_hdr2=flux_hdr2, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, plot_title=plot_title) 
+		counter_subplot += 1
+
+	plt.suptitle(plot_title, fontweight='bold')
+	plt.subplots_adjust(hspace=0.3)
+	#plt.tight_layout(pad=1, h_pad=1, w_pad=1)
+
+	if SAVE_PLOT:
+		print 'TODO' #FIXME
+
+	if SHOW_PLOT:
+		plt.show()
+
+	return 0
+
+
+
+def norm_flux_histogram_plotter(filter_name, df, flux_hdr1, flux_hdr2, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, plot_title):
+	"""Create a normalized 1D histogram of DeltaFlux/SigmaFlux.
+
+	Parameters
+	----------
+
+	Returns
+	-------
+	"""
+
+	TRIM = True 
+
+	### Plot DeltaFlux/SigmaFlux as normalized histogram ###
+	TRIM = True
+	plotData = get_flux_plot_variables(filter_name=filter_name, df=df, flux_hdr1=flux_hdr1, flux_hdr2=flux_hdr2, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2)
+	__bins = 10**2
+
+	if TRIM:
+	# Plot 2-98 percentile of data #
+		# Returns value (not index) of 2nd and 98th percentiles #
+		__val_2p, __val_98p = np.percentile(plotData, [2, 98], interpolation='nearest')
+		plotData = np.sort(plotData)
+		idx1, idx2 = plotData.tolist().index(__val_2p), plotData.tolist().index(__val_98p) 
+		# Check for non-unique idx #
+		c1, c2 = 0, 0
+		for p in plotData:
+			if p == __val_2p:	
+				c1 += 1
+			if p == __val_98p:
+				c2 += 1
+		if c1 > 1 or c2 > 1:
+			print 'ERROR: non-unique index.'
+		plotData = plotData[idx1:idx2]
+
+		# Normalize by counts via `density=True` (area under histogram equals 1) #
+		plt.hist(plotData, __bins, density=True, histtype='step', color=get_color(filter_name=filter_name)[0], label='trim data', rwidth=1)
+
+	if TRIM is False:
+		plt.hist(plotData, __bins, density=True, histtype='step', color=get_color(filter_name=filter_name)[0], label='data', rwidth=1)
+
+
+	### Plot standard normalized Gaussian and vertical line through mean to guide eye ###
+        gx = np.linspace(np.min(plotData), np.max(plotData), 1000)
+        gy = gaussian(x=gx, mu=0.0, sig=1.0)
+        plt.plot(gx, gy, linestyle='--', color='maroon', label=r'$\mu=0 \, ; \, \sigma=1$', linewidth=0.9)
+        plt.axvline(x=0, linestyle=':', color='black')
+
+	### Fit Gaussian to DeltaFlux/SigmaFlux http://danielhnyk.cz/fitting-distribution-histogram-using-python/ ###
+	#FIXME is this fit normalized?
+	mean, stddev = stats.norm.fit(plotData) 
+	fit_data = stats.norm.pdf(gx, mean, stddev)
+	plt.plot(gx, fit_data, color='cyan', label=r'fit: $\mu=$'+str(round(mean, 2))+' ; $\sigma=$'+str(round(stddev, 2)))
+	haxLabel = get_flux_histogram_hax_label(mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, filter_name=filter_name)
+	plt.xlabel(haxLabel)
+	plt.ylabel('Normalized Count')
+	plt.legend().draggable()
+
+	return 0
+
+
+
+
+
+def get_flux_histogram_hax_label(mag_hdr1, mag_hdr2, filter_name):
+	"""Get the horizontal axis label for the normalized flux histogram.
+
+	Parameters
+	----------
+
+	Returns
+	-------
+	"""
+
+	if 'cm_mag' in mag_hdr1 and 'cm_mag' in mag_hdr2:
+		label = 'cm_flux_$\\bf{'+str(filter_name)+'}$ true$-$meas) / $\sigma_{flux\_meas}$'
+
+	#TODO will we deal with psf mag ever?
+
+	if INJ1_10PERCENT and INJ2_10PERCENT and (INJ1_20PERCENT and INJ2_20PERCENT) is False:
+		label = '(10%_inj_'+label
+	if INJ1_20PERCENT and INJ2_20PERCENT and (INJ1_10PERCENT and INJ2_10PERCENT) is False:
+                label = '(20%_inj_'+label
+
+	if (INJ1_10PERCENT and INJ2_10PERCENT and INJ1_10PERCENT and INJ2_10PERCENT) is False:
+		label = '(base_'+label
+
+	return label
+
+
+def get_flux_from_magnitude(m):
+	"""Compute the flux from magnitude.
+
+	Parameters
+        ----------
+
+	Returns
+        -------
+	"""
+
+	return 10**((30-m)/2.5)
+
+
+
+def get_flux_error_from_magnitude(m, m_err):
+	"""Compute the error in flux.
+
+	Parameters
+	----------
+	m (list of floats)
+		Magnitude
+
+	m_err (list of floats)
+		Magnitude error
+
+	Returns
+	-------
+		Error in flux
+	"""
+
+	# flux --> magnitude: f = 10**((30-m)/2.5) #
+	# Note: np.log is ln #
+	return m_err * np.log(10.0) * 10**((30.0-m)/2.5) * (-1.0/2.5)
 
 
 
@@ -2748,12 +3137,6 @@ def color_subplotter(filter_name, df, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_
                 __vax_label = vaxDeltaColorLabel 
 
 
-	# Percentile levels for contours. Default is 1.0 - np.exp(-0.5 * np.arange(0.5, 2.1, 0.5) ** 2) via https://github.com/dfm/corner.py/blob/master/corner/corner.py #
-	# Correct 1sigma given by http://corner.readthedocs.io/en/latest/pages/sigmas.html #
-	__lvls = 1.0 - np.exp(-0.5 * np.array([0.5, 1.0, 1.5]) ** 2)
-	__clrs = ['red', 'blue', 'yellow']
-	# FIXME `colors` passed to contour_kwargs are passed/applied in reversed order so reverse order for labels #
-	__clrs_label = __clrs[::-1]
 	__lw = 1.1
 
         ### Create 4-by-4 subplot. Figure size units: inches ###
@@ -2783,10 +3166,10 @@ def color_subplotter(filter_name, df, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_
 			#__ylims = np.min(np.array(__vax_color[i]))
 
 			# Pass `levels` to `corner.hist2d` (interpreted as percentiles). `bins` are centered about zero along the vertical axis. #
-                        corner.hist2d(cleanColor1[i], __vax_color[i], bins=np.array([__bin_x, __bin_y]), no_fill_contours=False, color=get_color(filter_name=filter_name)[0], levels=__lvls, contour_kwargs={'colors':__clrs, 'cmap':None, 'linewidths':__lw})
+                        corner.hist2d(cleanColor1[i], __vax_color[i], bins=np.array([__bin_x, __bin_y]), no_fill_contours=False, color=get_color(filter_name=filter_name)[0], levels=LVLS, contour_kwargs={'colors':CLRS, 'cmap':None, 'linewidths':__lw})
 
 			# Plot points and not density bins #
-			#corner.hist2d(cleanColor1[i], __vax_color[i], plot_density=False, bins=np.array([__bin_x, __bin_y]), no_fill_contours=True, color=get_color(filter_name=filter_name)[0], levels=__lvls, contour_kwargs={'colors':__clrs, 'cmap':None, 'linewidths':__lw}, data_kwargs={'alpha':0.25, 'ms':1.75})
+			#corner.hist2d(cleanColor1[i], __vax_color[i], plot_density=False, bins=np.array([__bin_x, __bin_y]), no_fill_contours=True, color=get_color(filter_name=filter_name)[0], levels=LVLS, contour_kwargs={'colors':CLRS, 'cmap':None, 'linewidths':__lw}, data_kwargs={'alpha':0.25, 'ms':1.75})
 
 			if YLOW is None and YHIGH is None:
 				# Force symmetric vertical axis #
@@ -2804,8 +3187,8 @@ def color_subplotter(filter_name, df, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_
 				plt.subplots_adjust(hspace=0.6)
 
 			# Work-around for contour label #
-			for j in np.arange(0, len(__lvls)):
-				plt.plot([0.5, 0.5], [0.5, 0.5], color=__clrs_label[j], label='$P_{'+str(round(__lvls[j], 2))[2:]+'}$', linewidth=__lw)
+			for j in np.arange(0, len(LVLS)):
+				plt.plot([0.5, 0.5], [0.5, 0.5], color=CLRS_LABEL[j], label='$P_{'+str(round(LVLS[j], 2))[2:]+'}$', linewidth=__lw)
 			plt.legend().draggable()
 
                 plt.ylabel(__vax_label)
@@ -2824,6 +3207,63 @@ def color_subplotter(filter_name, df, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_
 
 
 	return 0 
+
+
+
+def get_flux_plot_variables(filter_name, df, flux_hdr1, flux_hdr2, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2): 
+	"""Get variables needed for flux histogram.
+	
+	Parameters
+        ----------
+
+        Returns
+        -------
+	"""
+
+	# Gives same answer as that from using flux headers directly
+        #cleanFlux1 = get_flux_from_magnitude(m=np.array(fullMag1)[idxGood])
+        #cleanFlux2 = get_flux_from_magnitude(m=np.array(fullMag2)[idxGood])
+
+	fullMag1 = get_floats_from_string(df=df, hdr=mag_hdr1, filter_name=filter_name)
+        fullMag2 = get_floats_from_string(df=df, hdr=mag_hdr2, filter_name=filter_name)
+
+        idxGood = get_good_index_using_primary_flags(df=df, full_magnitude1=fullMag1, full_magnitude2=fullMag2, cm_flag_hdr1=CM_FLAGS_HDR1, cm_flag_hdr2=CM_FLAGS_HDR2, flag_hdr1=FLAGS_HDR1, flag_hdr2=FLAGS_HDR2, filter_name=filter_name)[0]
+
+
+	### Get flux ###
+	fullFlux1 = get_floats_from_string(df=df, hdr=flux_hdr1, filter_name=filter_name)
+        fullFlux2 = get_floats_from_string(df=df, hdr=flux_hdr2, filter_name=filter_name)
+        cleanFlux1 = np.array(fullFlux1)[idxGood]; cleanFlux2 = np.array(fullFlux2)[idxGood]
+
+        ### Flux error from measured catalog only ###
+        if 'truth' in MATCH_CAT1:
+		# Use `MATCH_CAT2` error #
+		__flux_cov_hdr = CM_FLUX_COV_HDR2
+		__flux_s2n_hdr = 'cm_flux_s2n_2'
+		__flux = cleanFlux2
+
+        if 'truth' in MATCH_CAT2:
+		__flux_cov_hdr = CM_FLUX_COV_HDR1
+		__flux_s2n_hdr = 'cm_flux_s2n_1'
+		__flux = cleanFlux1
+
+	# Flux covariance matrix #
+	__flux_cov = np.array(get_matrix_diagonal_element(df=df, filter_name=filter_name, hdr=__flux_cov_hdr))[idxGood]
+
+	# Method 1: flux_error = sqrt(flux_cov_diagonal) #
+	__flux_err = __flux_cov**0.5
+
+	# Method 2: flux_err = flux/flux_s2n #
+	#__flux_s2n = np.array(get_floats_from_string(df=df, hdr=__flux_s2n_hdr, filter_name=filter_name))[idxGood]
+	#__flux_err = __flux/__flux_s2n 
+	
+
+	if 'truth' in MATCH_CAT1:
+                __plot_data = (cleanFlux1-cleanFlux2)/__flux_err
+        if 'truth' in MATCH_CAT2:
+                __plot_data = (cleanFlux2-cleanFlux1)/__flux_err
+
+	return __plot_data
 
 
 
@@ -3184,15 +3624,12 @@ def normalized_delta_magnitude_plotter(mag_hdr1, mag_hdr2, cbar_val, error1, err
                         bin_y = np.arange(min(plotDeltaMag), max(plotDeltaMag), (max(plotDeltaMag)-min(plotDeltaMag))*0.01)
 
 		# Sigmas #
-		__lvls = 1.0 - np.exp(-0.5 * np.array([0.5, 1.0, 1.5]) ** 2)
-		__clrs = ['red', 'cyan', 'yellow']
-		__clrs_label = __clrs[::-1]
 		__lw = 0.9
 
-                corner.hist2d(plotHaxMag, plotDeltaMag, no_fill_contours=True, levels=__lvls, color=get_color(filter_name=filter_name)[0], contour_kwargs={'colors':__clrs, 'cmap':None, 'linewidths':__lvls})
+                corner.hist2d(plotHaxMag, plotDeltaMag, no_fill_contours=True, levels=LVLS, color=get_color(filter_name=filter_name)[0], contour_kwargs={'colors':CLRS, 'cmap':None, 'linewidth':__lw})
 		# Work-around for contour labels #
-		for j in np.arange(0, len(__lvls)):
-			plt.plot([0.5, 0.5], [0.5, 0.5], color=__clrs_label[j], label='$P_{'+str(round(__lvls[j], 2))[2:]+'}$', linewidth=__lw)
+		for j in np.arange(0, len(LVLS)):
+			plt.plot([0.5, 0.5], [0.5, 0.5], color=CLRS_LABEL[j], label='$P_{'+str(round(LVLS[j], 2))[2:]+'}$', linewidth=__lw)
 		plt.legend().draggable()
 
 	### Axes labels ###
@@ -3364,17 +3801,14 @@ def delta_magnitude_plotter(mag_hdr1, mag_hdr2, cbar_val, error1, error2, filter
 
 
 	if CORNER_HIST_2D: 
-		__lvls = 1.0 - np.exp(-0.5 * np.array([0.5, 1.0, 1.5]) ** 2)
-		__clrs = ['red', 'cyan', 'yellow']
-		__clrs_label = __clrs[::-1]
 		__lw = 0.9
 
 		# Only the densest regions of the plot are binned so increase bin size of plt.hist2d() #
 		# SLACK channel corner.hist2d "draws 1- and 2-sigma contours automatically."Correct 1sigma levels: http://corner.readthedocs.io/en/latest/pages/sigmas.html #
-		corner.hist2d(__hax_mag, __delta_mag, no_fill_contours=True, levels=__lvls, color=get_color(filter_name=filter_name)[0], contour_kwargs={'colors':__clrs, 'cmap':None, 'linewidths':__lw}) 
+		corner.hist2d(__hax_mag, __delta_mag, no_fill_contours=True, levels=LVLS, color=get_color(filter_name=filter_name)[0], contour_kwargs={'colors':CLRS, 'cmap':None, 'linewidths':__lw}) 
 		# Work-around for contour labels #
-		for j in np.arange(0, len(__lvls)):
-			plt.plot([0.5, 0.5], [0.5, 0.5], color=__clrs_label[j], label='$P_{'+str(round(__lvls[j], 2))[2:]+'}$', linewidth=__lw)
+		for j in np.arange(0, len(LVLS)):
+			plt.plot([0.5, 0.5], [0.5, 0.5], color=CLRS_LABEL[j], label='$P_{'+str(round(LVLS[j], 2))[2:]+'}$', linewidth=__lw)
 		plt.legend().draggable()
 
 		'''
@@ -3390,8 +3824,7 @@ def delta_magnitude_plotter(mag_hdr1, mag_hdr2, cbar_val, error1, error2, filter
 					__counter_bin += 1
 			if __counter_bin > 0:
 				#FIXME not being stacked. `ax` is NoneType 
-				corner.hist2d(np.array(__hax_mag_bin), np.array(__delta_mag_bin), color=get_color(filter_name=filter_name)[0], contour_kwargs={'colors':'red', 'cmap':None, 'linewidths':0.7})
-		'''
+				corner.hist2d(np.array(__hax_mag_bin), np.array(__delta_mag_bin), color=get_color(filter_name=filter_name)[0], contour_kwargs={'colors':'red', 'cmap':None, 'linewidths':0.7})'''
 	### Axes labels ###
 	# Horizontal axis labels #
 	if SWAP_HAX: plt.xlabel(str(mag_axlabel2))
@@ -3489,9 +3922,8 @@ def delta_magnitude_subplotter(df, flag_idx, mag_hdr1, mag_hdr2, mag_err_hdr1, m
 
         ### Create 4-by-4 subplot ###
 	counter_subplot = 1
-	if PLOT_COLOR is False:
 	# Figure size units: inches #
-		plt.figure(figsize=(12, 10))
+	plt.figure(figsize=(12, 10))
 
 
         ### Create one subplot for each griz filter ###
@@ -3648,7 +4080,14 @@ def get_plot_save_name(realization_number, tile_name):
 	if PLOT_COLOR:
 		if CORNER_HIST_2D:
 			outname = 'color_placehold_'+endname
-
+		if PLOT_COMPLETENESS:
+			outname = 'color_placehold_completeness_'+endname
+		#TODO fill in other plot types
+	
+	if PLOT_FLUX_HIST:
+		#FIXME catch other errs in catch_err()
+		outname = 'flux_hist_'+endname
+	
 	# !!!!! User may wish to edit directory structure #
 	plot_dir_pref = os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, tile_name, realization_number, 'plots')
 
@@ -4403,10 +4842,9 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 
 			# Filenames for log files #
 			#TODO fnFlagLog, fnMagErrLog, fnMainLog, fnColorPlotLog..forwhat, fnDeltaMagOutlierLog, fnCompletenessLog 
-			fn_flag, fn_mag_bins, fn_main_log, __fn_color_plot_log, __fn_mag_outliers, fnCompletenessLog = get_log_file_names(tile_name=t, realization_number=r)
+			fn_flag, fn_mag_bins, fn_main_log, __fn_color_plot_log, __fn_mag_outliers, fnCompletenessLog, fnMagCompletenessDeltaMagLog = get_log_file_names(tile_name=t, realization_number=r)
 			# Write headers #
-			fd_main_log, fd_mag_bins, fd_flag, __fd_color_plot_log, fdDeltaMagOutliers, fdCompletenessLog = fd_first_write(fn_main_log=fn_main_log, fn_mag_bins=fn_mag_bins, fn_flag=fn_flag, fn_color_plot_log=__fn_color_plot_log, fn_delta_mag_outliers=__fn_mag_outliers, fn_completeness_log=fnCompletenessLog)
-
+			fd_main_log, fd_mag_bins, fd_flag, __fd_color_plot_log, fdDeltaMagOutliers, fdCompletenessLog, fdMagCompletenessDeltaMagLog = fd_first_write(fn_main_log=fn_main_log, fn_mag_bins=fn_mag_bins, fn_flag=fn_flag, fn_color_plot_log=__fn_color_plot_log, fn_delta_mag_outliers=__fn_mag_outliers, fn_completeness_log=fnCompletenessLog, fn_mag_completeness_delta_mag=fnMagCompletenessDeltaMagLog)
 
 
 			if STACK_REALIZATIONS is False and STACK_TILES is False:
@@ -4509,7 +4947,7 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 				mag_hdr2 = 'mag_c_2'
 				mag_err_hdr2 = 'mag_err_c_2'
 
-			if PLOT_COLOR is False and PLOT_COMPLETENESS is False:
+			if PLOT_COLOR is False and PLOT_COMPLETENESS is False and PLOT_FLUX_HIST is False:
 				delta_magnitude_subplotter(df=df1and2, flag_idx=flag_idx, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, plot_name=fn, plot_title=title, realization_number=r, tile_name=t, fd_mag_bins=fd_mag_bins, fd_main_log=fd_main_log, fd_flag=fd_flag, fraction_recovered=fractionRecovered, fd_delta_mag_outliers=fdDeltaMagOutliers) 
 			#FIXME call to normalized_delta_magnitude_subplotter()
 
@@ -4518,12 +4956,17 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 					color_subplotter(filter_name=f, df=df1and2, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization_number=r, tile_name=t, fd_flag=fd_flag, plot_title=title, plot_name=fn, fd_color_plot_log=__fd_color_plot_log)
 
 			### Completeness plots (for truth catalogs vs ...) ###
-			if ('truth' in MATCH_CAT1 or 'truth' in MATCH_CAT2) and ((INJ1_10PERCENT and INJ2_10PERCENT) or (INJ1_20PERCENT and INJ2_20PERCENT)) and PLOT_COMPLETENESS and PLOT_COLOR is False:
+			if ('truth' in MATCH_CAT1 or 'truth' in MATCH_CAT2) and ((INJ1_10PERCENT and INJ2_10PERCENT) or (INJ1_20PERCENT and INJ2_20PERCENT)) and PLOT_COMPLETENESS:
 				if PLOT_COLOR is False:
-					for f in ['g']:# ['g', 'r', 'i', 'z']:
-						completeness_magnitude_subplotter(filter_name=f, df=df1and2, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization_number=r, tile_name=t, plot_title=title, plot_name=fn, fd_flag=fd_flag, flag_idx=[], fd_completeness_log=fdCompletenessLog)#TODO change flag_idx?
+					for f in ['g', 'r', 'i', 'z']:
+						magnitude_completeness_subplotter(filter_name=f, df=df1and2, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization_number=r, tile_name=t, plot_title=title, plot_name=fn, fd_flag=fd_flag, flag_idx=[], fd_completeness_log=fdCompletenessLog, fd_completeness_delta_mag_log=fdMagCompletenessDeltaMagLog)#TODO change flag_idx?
 				if PLOT_COLOR:
-					print 'TODO'
+					for f in ['g', 'r', 'i']:
+						color_completeness_subplotter(filter_name=f, df=df1and2, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization_number=r, tile_name=t, plot_title=title, plot_name=fn, fd_flag=fd_flag, flag_idx=[], fd_completeness_log=fdCompletenessLog)
+
+
+			if PLOT_FLUX_HIST:
+				norm_flux_histogram_subplotter(df=df1and2, flux_hdr1=CM_FLUX_HDR1, flux_hdr2=CM_FLUX_HDR2, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, plot_title=title)
 
 			### Close log files after each iteration over a realization ###
 			fd_flag.close(); fd_mag_bins.close(); fd_main_log.close() 
