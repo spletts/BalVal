@@ -86,9 +86,9 @@ Directory stucture depends on `OUTDIR` `BALROG_RUN` `MATCH_TYPE`, which are defi
 
 `BALROG_RUN` `MATCH_TYPE` are defined in `ms_plotter.py` as follows:
 
-If `/data/des71.a/data/kuropat/des2247-4414_sof/y3v02/` is issued at the command line, `BALROG_RUN=des2247-4414_sof`.
+If `/data/des71.a/data/kuropat/des2247-4414_sof/` is issued at the command line, `BALROG_RUN=des2247-4414_sof`.
 
-If `MATCH_CAT1, MATCH_CAT2, INJ1, INJ2 = 'gal_truth', 'sof', True, True` then `MATCH_TYPE=inj_gal_truth_cat_inj_sof_cat`. Note that `MATCH_TYPE` reflects the order in which the catalogs were matched in `ms_matcher`.
+If `MATCH_CAT1, MATCH_CAT2, INJ1, INJ2, INJ1_PERCENT, INJ2_PERCENT = 'gal_truth', 'sof', True, True`, `10`, `10` then `MATCH_TYPE=10%_inj_gal_truth_cat_10%_inj_sof_cat`. Note that `MATCH_TYPE` reflects the order in which the catalogs were matched in `ms_matcher`.
 
 **Matched catalogs**
 
@@ -106,16 +106,15 @@ Log files for `ok` and `rerun` FOF groups are saved in: `/{OUTDIR}/outputs/{BALR
 
 **Plots**
 
-Plots are saved in: `/{OUTDIR}/outputs/{BALROG_RUN}/{MATCH_TYPE}/{tile}/{realization}/plots/{plot_type}/`
+Plots are saved in: `/{OUTDIR}/outputs/{BALROG_RUN}/{match_type}/{tile}/{realization}/plots/{plot_obs}/` where `plot_obs` is `color` `flux` or `magnitude`. Plot names are prefaced with the plot type (for example, 'scatter_' if `SCATTER=True`).
 
-Plots for `ok` and `rerun` FOF groups are saved in: `/{OUTDIR}/outputs/{BALROG_RUN}/{MATCH_TYPE}/{tile}/{realization}/plots/fof_analysis/{plot_type}/`
+Plots for `ok` and `rerun` FOF groups are saved in: `/{OUTDIR}/outputs/{BALROG_RUN}/{MATCH_TYPE}/{tile}/{realization}/plots/fof_analysis/{plot_obs}/`
 
 Allowed values for `{realization}`: `0` `1` ... `stack`.
 
 Allowed values for `{tile}`: ... `stack`.
 
-Allowed values for `{plot_type}`: `normalized` `scatter`.
-
+`match_type` is `MATCH_TYPE` unless `PLOT_COMPLETENESS=True` in which case both 10% and 20% Balrog-injected matched catalogs are plotted in the same window, so `match_type` removes the percent injected from `MATCH_TYPE`. That is, `MATCH_TYPE=10%_inj_gal_truth_cat_10%_inj_sof_cat` results in `match_type=inj_gal_truth_cat_inj_sof_cat`.
 
 **Region files**
 
