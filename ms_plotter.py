@@ -7,8 +7,7 @@ Example: $python ms_plotter.py /data/des71.a/data/kuropat/des2247-4414_sof/ /Use
 Relies on ms_matcher. User may need to replace `/data/des71.a/data/mspletts/balrog_validation_tests/scripts/BalVal/ms_matcher` with the correct path to ms_matcher.
 FOF analysis relies on ms_fof_matcher. User may need to replace `/data/des71.a/data/mspletts/balrog_validation_tests/scripts/BalVal/ms_fof_matcher` with the correct path to ms_fof_matcher.
 
-Plot attributes are specified with constants (many of them booleans) at the beginning of this script. See also the table in README.md. 
-Constants that the user may wish to change are indicated by: # !!!!! {description and/or warnings} #. For example, user may wish to set `PRINTOUTS = False` or comment out `NOTICE`.
+Plot attributes are specified with constants (many of them booleans) at the beginning of this script. See 'Table of Parameters' in README.md for descriptions of these constants. 
 
 # Comments are ABOVE the code they correspond to (with the exception of FIXMEs and TODOs). In general, function parameters are named_with_underscores, variables defined within functions (and that should only be accessed by said function) are __named_with_leading_underscores, and variable namesWithoutSpaces are defined by a function via nameWithoutSpace = function(param1=x). # 
 
@@ -21,7 +20,7 @@ from astropy.io import fits
 from astropy.table import Column
 from astropy.table import Table
 from scipy import stats
-# For Python environment with `corner` run: $source activate des17a or $source activate des18a #
+# For Python environment with `corner` run: $source activate des18a #
 import corner
 import csv
 import fileinput
@@ -50,7 +49,7 @@ BASEPATH, OUTDIR, realizations, tiles = sys.argv[1], sys.argv[2], sys.argv[3].sp
 BALROG_RUN = BASEPATH[BASEPATH[:-1].rfind('/')+1:-1]
 # Rewrite #
 if BALROG_RUN == 'Balrog': BALROG_RUN = 'TAMU_Balrog'
-
+if BALROG_RUN == 'DES0102-4914': BALROG_RUN = 'blank_test_DES0102-4914'
 
 ### Constants needed to loop over filters, realizations, and tiles ###
 # Filters #
@@ -62,7 +61,7 @@ if realizations[0] != 'all': ALL_REALIZATIONS = realizations
 if realizations[0] == 'all': ALL_REALIZATIONS = [ '0', '1', '2' ] # !!!!!
 
 # Tiles #
-if tiles[0] != 'all': ALL_TILES = tiles
+if tiles[0] != 'all' and '.dat' not in tiles[0]: ALL_TILES = tiles
 # !!!!! User may need to manually set ALL_TILES or supply a list at command line. #
 if tiles[0] == 'all': ALL_TILES = ['DES0347-5540', 'DES2329-5622', 'DES2357-6456'] # !!!!!
 # Accept .dat file of tile names at command line #
@@ -80,53 +79,46 @@ if '.dat' in tiles[0]:
 
 # Please see 'Table of Parameters' in README.md #
 
-### Catalog attributes ###
-# !!!!! Allowed values: y3_gold_2_0, y3_gold_2_2, sof, mof, star_truth, gal_truth, coadd. Both can be 'sof' and both can be 'mof' if INJ1_10PERCENT and INJ2_10PERCENT are different. Note that truth catalogs always have INJ=True. #
-MATCH_CAT1, MATCH_CAT2 = 'gal_truth', 'sof'
-# !!!!! Booleans. Examine injected catalogs? `INJ1_10PERCENT` `INJ2_10PERCENT` refer to 10% injections #
-# Are catalogs injected? #
+MATCH_CAT1, MATCH_CAT2 = 'gal_truth', 'mof'
 INJ1, INJ2 = True, True
-# If so, what % injection? If not, which directory to get base catalog? #
-INJ1_10PERCENT, INJ2_10PERCENT = True, True 
-INJ1_20PERCENT, INJ2_20PERCENT = False, False
+INJ1_PERCENT, INJ2_PERCENT = 20, 20
 
-# !!!!! What to do with the plot? #
+# Observable #
+PLOT_MAG = True
+PLOT_COLOR = False
+PLOT_FLUX = False
+
 SAVE_PLOT = False
 SHOW_PLOT = True
 
-### Plot type ###
-HIST_2D = False
-CORNER_HIST_2D = True
-HEXBIN = False
+# Display observable #
+PLOT_COMPLETENESS = False
+HIST_2D = True
+CORNER_HIST_2D = False
+HEXBIN = False 
 SCATTER = False
-# `_COLORBAR` cannot be True if NORMALIZE is True #
 CM_T_S2N_COLORBAR = False
 CM_T_ERR_COLORBAR = False
 CM_T_COLORBAR = False
 BIN_CM_T_S2N = False
-# If True, normalizes plot to 1sigma_mag. If True, PLOT_1SIG must be True else errors will not be computed and normalization cannot be performed #
+
+# For magnitude plots #
 NORMALIZE = False
+PLOT_1SIG = True 
+CENTER_ERR_ABT_ZERO = False
 
+SAVE_PLOT = False
+SHOW_PLOT = True
 
-# !!!!! Plot 1sigma_mag curve? Must be True if NORMALIZE is True. If NORMALIZE is True will also plot the 68th percentile of the data in each error bin. #
-PLOT_1SIG = True
-
-# Plot colors not magnitudes?
-PLOT_COLOR = True
-
-PLOT_COMPLETENESS = False
-
-# 1D histogram #
-PLOT_FLUX_HIST = False
-
-# !!!!! If `True` plots x1 versus (x1-x2). If `False` plots x1 versus x2. #
 PLOT_DELTA_VAX = True
 
-
-# !!!!! Limits for the vertical axis. 'None' is an allowed value and will result in default scaling #
 YLOW, YHIGH = None, None
 
-CENTER_ERR_ABT_ZERO = True 
+STACK_REALIZATIONS = False
+STACK_TILES = False
+
+# FOF analysis #
+RUN_TYPE = None
 
 # Swap horizontal axis? Default is magnitude1. Matching script ms_matcher determines which catalog is 1 and which is 2. Generally SWAP_HAX does not need to be changed unless the truth catalog values are not on the horizontal axis. #
 SWAP_HAX = False
@@ -136,12 +128,12 @@ SWAP_HAX = False
 ### Handle nonsensical combinations ###
 # Always non-injections #
 if 'y3_gold' in MATCH_CAT1:
-	INJ1_10PERCENT, INJ1_20PERCENT = False, False
+	#INJ1_10PERCENT, INJ1_20PERCENT = False, False
+	INJ1_PERCENT = None
 if 'y3_gold' in MATCH_CAT2:
-        INJ2_10PERCENT, INJ2_20PERCENT = False, False
+	INJ2_PERCENT = None
 if realizations[0] == 'None':
-	INJ1_10PERCENT, INJ2_10PERCENT, INJ1_20PERCENT, INJ2_20PERCENT = False, False, False, False
-
+	INJ1, INJ2 = False, False
 
 # !!!!! Only used if MATCH_CAT1 or MATCH_CAT2 is 'y3_gold'. If False, SOF catalogs exists in subdirectories of BASEPATH #
 Y3_MOF = None
@@ -151,10 +143,6 @@ if 'y3_gold' in MATCH_CAT1 or 'y3_gold' in MATCH_CAT2:
 	if 'sof' in (MATCH_CAT1, MATCH_CAT2):
 		Y3_MOF = False
  
-
-# !!!!! Must be used with realization=all at command line #
-STACK_REALIZATIONS = False
-STACK_TILES = False
 
 
 # !!!!! Make 2x2 subplots of each griz filter? Or make individual plots? #
@@ -178,7 +166,6 @@ if RUN_TYPE is not None:
                 MATCH_CAT1, MATCH_CAT2 = 'mof', 'mof'
         if MOF is False:
                 MATCH_CAT1, MATCH_CAT2 = 'sof', 'sof'
-        INJ1_10PERCENT, INJ2_10PERCENT = True, False
 
 
 ### !!!!! Make region files? #
@@ -210,6 +197,8 @@ def catch_error():
 	if YLOW is not None and YHIGH is not None and YHIGH == YLOW: msg = 'YLOW and YHIGH cannot be equal'
 	if NORMALIZE and PLOT_1SIG is False: msg = 'If NORMALIZE is True so must be PLOT_1SIG'
 
+	if NORMALIZE and PLOT_COLOR: msg = 'Script not equipped to normalize color plots'
+
 	# Colorbar errors #
 	cbar_counter = 0
 	if HEXBIN: cbar_counter += 1
@@ -222,15 +211,17 @@ def catch_error():
 	#TODO add NORMALIZE
 	if cbar_counter > 1: msg = 'Only one colorbar can be used. Edit HEXBIN, CM_T_S2N_COLORBAR, CM_T_ERR_COLORBAR, HIST_2D, CM_T_COLORBAR, BIN_CM_T_S2N'
 
-	if INJ1_10PERCENT is False and INJ2_10PERCENT is False and INJ1_20PERCENT is False and INJ2_20PERCENT is False and realizations[0] != 'None': msg = 'If INJ1_10PERCENT and INJ2_10PERCENT are False realizations must be None at cmd line'
+	if INJ1 is False and INJ2 is False and realizations[0] != 'None': msg = 'If INJ1 and INJ2 are False realizations must be None at cmd line'
 
-	if ('truth' in MATCH_CAT1 and INJ1_10PERCENT is False and INJ1_20PERCENT is False) or ('truth' in MATCH_CAT2 and INJ2_10PERCENT is False and INJ2_20PERCENT is False): msg = 'Truth catalogs are injected'
+	if ('truth' in MATCH_CAT1 and INJ1 is False) and ('truth' in MATCH_CAT2 and INJ2 is False): msg = 'Truth catalogs are injected'
 
 	if PLOT_COMPLETENESS and 'truth' not in MATCH_CAT1 and 'truth' not in MATCH_CAT2: msg = 'Completeness plots must be made with a truth catalog'
 
+	if PLOT_FLUX and PLOT_COMPLETENESS: msg = 'Script not equipped to make flux completeness plots'
+
 	plt_type_counter = 0
 	if PLOT_COMPLETENESS: plt_type_counter += 1
-	if PLOT_FLUX_HIST: plt_type_counter += 1
+	if PLOT_FLUX: plt_type_counter += 1
 	if plt_type_counter > 1: msg = 'Pick one plot type...' #TODO
 
 	#TODO not normalize and plot_color simult.
@@ -240,9 +231,27 @@ if catch_error() is not None:
         sys.exit('Error: ' + catch_error())
 
 
+lines = [
+['\ncatalog1 (name, injected?, injection percent) :\t ' + str(MATCH_CAT1) + ' ' + str(INJ1) + ' ' + str(INJ1_PERCENT)],
+['catalog2 (name, injected?, injection percent) :\t ' + str(MATCH_CAT2) + ' ' + str(INJ2) + ' ' + str(INJ2_PERCENT)],
+['Observable (mag, color, flux) :]t ' + str(PLOT_MAG) + ', ' + str(PLOT_COLOR) + ', ' + str(PLOT_FLUX)],
+['Plot type (hist2d, corner.hist2d, completeness, scatter, hexbin, ...) :', str(HIST_2D) + ', ' + str(CORNER_HIST_2D) + ' , ' + str(PLOT_COMPLETENESS) + ', '+ str(SCATTER) + ', ' + str(HEXBIN)],
+['Stack matched catalog? (stack realizations, stack tiles) :\t ' + str(STACK_REALIZATIONS) + ', ' + str(STACK_TILES)],
+['Show plot? :\t ' + str(SHOW_PLOT)],
+['Save plot? :\t ' + str(SAVE_PLOT)],
+['Limits for the vertical axis of plot? :\t ' + str(YLOW) + ', ' + str(YHIGH)],
+['Plot 1sigma_meas curve? :\t ' + str(PLOT_1SIG)],
+['If plotting 1sigma_meas curve, center about zero? (else centered about medians) :\t ' + str(CENTER_ERR_ABT_ZERO)],
+['Normalize plot to error? :\t ' + str(NORMALIZE)],
+['FOF analysis? :\t ' + str(RUN_TYPE)]
+]
 
-# !!!!! Check that plots will not be overwritten, etc # #FIXME update this
-NOTICE = raw_input(' \n !! CHECK BEFORE RUNNING !! \n Using catalogs -- ' + str(MATCH_CAT1) + ' & ' + str(MATCH_CAT2) + '\n Injected catalogs -- ' + str(INJ1_10PERCENT) + ' & ' + str(INJ2_10PERCENT) + ' \n Plotting color: ' + str(PLOT_COLOR) + ' \n Save plot(s) -- ' + str(SAVE_PLOT) + '\n Showing plot(s) -- ' + str(SHOW_PLOT) + '\n Normalize plot(s) -- ' + str(NORMALIZE) + '\n Stacking realizations -- ' + str(STACK_REALIZATIONS) + '\n Hexbin -- ' + str(HEXBIN) + '\n cm_T colorbar -- ' + str(CM_T_COLORBAR) + '\n cm_T_err colorbar -- ' + str(CM_T_ERR_COLORBAR) + '\n cm_T_s2n -- ' + str(CM_T_S2N_COLORBAR) + '\n Plot limits -- ' + str(YLOW) + ', ' + str(YHIGH) + '\n Plotting 1sigma curve -- ' + str(PLOT_1SIG) +'\n Plotting flagged objects -- ' + str(PLOT_FLAGGED_OBJS) + '\n Print flags and flag types -- ' + str(SHOW_FLAG_TYPE) + '\n Logging flags -- ' + str(LOG_FLAGS) + '\n --> Press enter to proceed, control+c to stop...\n')
+for line in lines:
+	print('{:>12}'.format(*line))
+
+NOTICE = raw_input('\n Check the above before running! \n --> Press enter to proceed, control+c to stop...\n')
+#Make region files?
+#If NORMALIZE: plot 68th percentile? plot 34th percentile split?
 
 
 
@@ -258,15 +267,12 @@ class CoaddCat():
 	"""Declare headers for coadd catalogs .../coadd/{tile}_{filter}_cat.fits. There is a separate catalog for each filter."""
 
         # Once matched, headers will have form 'hdr_1' or 'hdr_2' with a suffix (suf) #
-	def __init__(self, inj_10percent, inj_20percent, suf):
+	def __init__(self, inj_percent, inj, suf):
 		"""Declare headers for matched (via join=1and2) catalog. Declare descriptive constants.
 
 		Parameters
 		----------
-		inj_10percent (bool)
-			If True refers to 10% Balrog-injected catalog. If False refers to base (non-Balrog-injected) catalog. 
-
-		inj_20percent (bool)
+		inj_percent (int)
 			If True refers to 20% Balrog-injected catalog. If False refers to base (non-Balrog-injected) catalog. 
 
 		suf (str)
@@ -274,12 +280,14 @@ class CoaddCat():
 		"""
 
 		# For plot title #
-		if inj_10percent:
-			self.title_piece = '10% Inj Coadd Cat'
-		if inj_20percent:
-			self.title_piece = '20% Inj Coadd Cat'
-		if inj_10percent is False and inj_20percent is False:
+		if inj:
+			if inj_percent == 10:
+				self.title_piece = '10% Inj Coadd Cat'
+			if inj_percent == 20:
+				self.title_piece = '20% Inj Coadd Cat'
+		if inj is False:
 			self.title_piece = 'Base Coadd Cat'
+
 		self.axlabel = 'meas'
 		# Magnitude, is one number #
 		self.mag_hdr = 'MAG_AUTO' + str(suf)
@@ -323,26 +331,24 @@ class GalTruthCat():
 	"""Declare headers for galaxy truth catalogs. Note that as of May 2018 galaxy truth catalogs are created using MOF (thus have the same headers).""" 
 
 	# Once matched, headers will have form 'hdr_1' or 'hdr_2' with a suffix (suf) #
-	def __init__(self, inj_10percent, inj_20percent, suf):
+	def __init__(self, inj_percent, inj, suf):
 		"""Declare headers for matched (via join=1and2) catalog. Declare descriptive constants.
 
 		Parameters
 		----------
-		inj_10percent (bool)
-			If True refers to 10% Balrog-injected catalog. If False refers to base (non-Balrog-injected) catalog.
-
-		inj_20percent (bool)
-			If True refers to 20% Balrog-injected catalog. If False refers to base (non-Balrog-injected) catalog.
+		inj_percent (int)
 
 		suf (str)
 			Refers to the order in which catalog was matched (via join=1and2) in ms_matcher (order set by STILTS parameters `in1` and `in2`). Allowed values: '_1' '_2'.
 		"""
 
+		 # For plot title #
 		# `inj` forced True for truth catalogs #
-		if inj_10percent:
-			self.title_piece = '10% Inj Gal Truth Cat'
-		if inj_20percent:
-			self.title_piece = '20% Inj Gal Truth Cat'
+		if inj:
+			if inj_percent == 10:
+				self.title_piece = '10% Inj Gal Truth Cat'
+			if inj_percent == 20:
+				self.title_piece = '20% Inj Gal Truth Cat'
 		self.axlabel = 'true'
 		# Headers are the same as MOFCat class. Reproduced below for clarity in ms_plotter.py #
 		# Magnitude, is string of form '(mag_g, mag_r, mag_i, mag_z)' #
@@ -385,27 +391,25 @@ class SOFCat():
         """Declare headers for SOF catalogs.""" 
 
 	# Once matched, headers will have form 'hdr_1' or 'hdr_2' with a suffix (suf) #
-        def __init__(self, inj_10percent, inj_20percent, suf):
+	def __init__(self, inj_percent, inj, suf):
 		"""Declare headers for matched (via join=1and2) catalog. Declare descriptive constants.
 
                 Parameters
                 ----------
-                inj_10percent (bool)
-                        If True refers to 10% Balrog-injected catalog. If False refers to base (non-Balrog-injected) catalog.
-
-                inj_20percent (bool)
-                        If True refers to 20% Balrog-injected catalog. If False refers to base (non-Balrog-injected) catalog.
+                inj_percent (int)
 
                 suf (str)
 			Refers to the order in which catalog was matched (via join=1and2) in ms_matcher (order set by STILTS parameters `in1` and `in2`). Allowed values: '_1' '_2'.
                 """
 
-                if inj_10percent:
-                        self.title_piece = '10% Inj SOF Cat'
-		if inj_20percent:
-			self.title_piece = '20% Inj SOF Cat'
-                if inj_10percent is False and inj_20percent is False:
+		if inj:
+			if inj_percent == 10:
+				self.title_piece = '10% Inj SOF Cat'
+			if inj_percent == 20:
+				self.title_piece = '20% Inj SOF Cat'
+		if inj is False:
                         self.title_piece = 'Base SOF Cat'
+
 		self.axlabel = 'meas'
                 # Headers are the same as MOFCat class with the exception of cm_mof_flags_hdr. Reproduced below for clarity #
 		# Magnitude, is string of form '(mag_g, mag_r, mag_i, mag_z)' #
@@ -448,27 +452,26 @@ class MOFCat():
 	"""Declare headers for MOF catalogs."""
 
 	# Once matched, headers will have form 'hdr_1' or 'hdr_2' with a suffix (suf) #
-        def __init__(self, inj_10percent, inj_20percent, suf):
+	def __init__(self, inj_percent, inj, suf):
 		"""Declare headers for matched (via join=1and2) catalog. Declare descriptive constants.
 
                 Parameters
                 ----------
-                inj_10percent (bool)
-                        If True refers to 10% Balrog-injected catalog. If False refers to base (non-Balrog-injected) catalog.
+                inj_percent (int)
 
-                inj_20percent (bool)
-                        If True refers to 20% Balrog-injected catalog. If False refers to base (non-Balrog-injected) catalog.
+		inj (bool)
 
                 suf (str)
 			Refers to the order in which catalog was matched (via join=1and2) in ms_matcher (order set by STILTS parameters `in1` and `in2`). Allowed values: '_1' '_2'.
                 """
 
 		# For plot title #
-		if inj_10percent:
-			self.title_piece = '10% Inj MOF Cat'
-		if inj_20percent:
-			self.title_piece = '20% Inj MOF Cat'
-		if inj_10percent is False and inj_20percent is False:
+		if inj:
+			if inj_percent == 10:
+				self.title_piece = '10% Inj MOF Cat'
+			if inj_percent == 20:
+				self.title_piece = '20% Inj MOF Cat'
+		if inj is False:
 			self.title_piece = 'Base MOF Cat'
 		self.axlabel = 'meas'
 		# Magnitude, is string of form (mag_g, mag_r, mag_i, mag_z)  #
@@ -511,26 +514,25 @@ class StarTruthCat(): #are there sep headers for MOFStarTruthCat and SOFStarTrut
         """Declare headers for star truth catalogs."""
 
 	# Once matched, headers will have form 'hdr_1' or 'hdr_2' with a suffix (suf) #
-	def __init__(self, inj_10percent, inj_20percent, suf):
+	def __init__(self, inj_percent, inj, suf):
                 """Declare headers for matched (via join=1and2) catalog. Declare descriptive constants.
 
                 Parameters
                 ----------
-                inj_10percent (bool)
-                        If True refers to 10% Balrog-injected catalog. If False refers to base (non-Balrog-injected) catalog.
+                inj_percent (int)
 
-                inj_20percent (bool)
-                        If True refers to 20% Balrog-injected catalog. If False refers to base (non-Balrog-injected) catalog.
+		inj (bool)
 
                 suf (str)
 			Refers to the order in which catalog was matched (via join=1and2) in ms_matcher (order set by STILTS parameters `in1` and `in2`). Allowed values: '_1' '_2'.
                 """	
 
 		# `inj` forced True for truth catalogs #	
-		if inj_10percent:
-			self.title_piece = '10% Inj Star Truth Cat'
-		if inj_20percent:
-			self.title_piece = '20% Inj Star Truth Cat'
+		if inj:
+			if inj_percent == 10:
+				self.title_piece = '10% Inj Star Truth Cat'
+			if inj_percent == 20:
+				self.title_piece = '20% Inj Star Truth Cat'
 		self.axlabel = 'true'
 		# Magnitude #
 		self.mag_hdr = 'g_Corr' + str(suf) 
@@ -573,22 +575,20 @@ class Y3Gold():
 	"""Declare headers for Y3 Gold catalogs (https://cdcvs.fnal.gov/redmine/projects/des-y3/wiki/Full_bins_of_Y3_GOLD_2_0_Columns).""" 
 
 	# Once matched, headers will have form 'hdr_1' or 'hdr_2' with a suffix (suf) #
-	def __init__(self, inj_10percent, inj_20percent, suf):
+	def __init__(self, inj_percent, inj, suf):
                 """Declare headers for matched (via join=1and2) catalog. Declare descriptive constants.
 
                 Parameters
                 ----------
-                inj_10percent (bool)
-                        If True refers to 10% Balrog-injected catalog. If False refers to base (non-Balrog-injected) catalog.
+                inj_percent (int)
 
-                inj_20percent (bool)
-                        If True refers to 20% Balrog-injected catalog. If False refers to base (non-Balrog-injected) catalog.
+                inj (bool)
 
                 suf (str)
                         Refers to the order in which catalog was matched (via join=1and2) in ms_matcher (order set by STILTS parameters `in1` and `in2`). Allowed values: '_1' '_2'.
                 """
 
-		inj = False
+		if inj is False: sys.exit('error in class Y3Gold')
 
 		if BALROG_RUN in ('grid_bkg', 'grid_bkg_noise', 'seed_test_base', 'seed_test_same_seeds' 'seed_test_same_seeds1', 'seed_test_new_seeds', 'des2247-4414_sof', 'grid_test_noise_sof') or Y3_MOF is False: 
 			pref1 = 'SOF_'
@@ -648,7 +648,7 @@ class Y3Gold():
 
 
 
-def get_class(cat_type, inj_10percent, inj_20percent, suf):
+def get_class(cat_type, inj, inj_percent, suf):
         """Get the appropriate class for the catalog type.
 
         Parameters
@@ -656,11 +656,9 @@ def get_class(cat_type, inj_10percent, inj_20percent, suf):
 	cat_type (str)
                 Catalog type. Set by `MATCH_CAT1` or `MATCH_CAT2`.
 
-	inj_10percent (bool)
-		If True refers to 10% Balrog-injected catalog. If False refers to base (non-Balrog-injected) catalog.
+	inj_percent (int)
 
-	inj_20percent (bool)
-		If True refers to 20% Balrog-injected catalog. If False refers to base (non-Balrog-injected) catalog.
+	inj (bool)
 
 	suf (str)
 		Refers to the order in which `cat_type` was matched (via join=1and2) in ms_matcher (order set by `in1` and `in2` in STILTS script). Allowed values: '_1' '_2'.
@@ -672,22 +670,22 @@ def get_class(cat_type, inj_10percent, inj_20percent, suf):
         """
 
         if cat_type == 'gal_truth':
-                __class = GalTruthCat(inj_10percent=inj_10percent, inj_20percent=inj_20percent, suf=suf)
+                __class = GalTruthCat(inj_percent=inj_percent, inj=inj, suf=suf)
 
         if cat_type == 'mof':
-                __class = MOFCat(inj_10percent=inj_10percent, inj_20percent=inj_20percent, suf=suf)
+                __class = MOFCat(inj_percent=inj_percent, inj=inj, suf=suf)
 
         if cat_type == 'star_truth':
-                __class = StarTruthCat(inj_10percent=inj_10percent, inj_20percent=inj_20percent, suf=suf)
+                __class = StarTruthCat(inj_percent=inj_percent, inj=inj, suf=suf)
 
         if cat_type == 'sof':
-                __class = SOFCat(inj_10percent=inj_10percent, inj_20percent=inj_20percent, suf=suf)
+                __class = SOFCat(inj_percent=inj_percent, inj=inj, suf=suf)
 
         if cat_type == 'coadd':
-                __class = CoaddCat(inj_10percent=inj_10percent, inj_20percent=inj_20percent, suf=suf)
+                __class = CoaddCat(inj_percent=inj_percent, inj=inj, suf=suf)
 
 	if 'y3_gold' in cat_type:
-		__class = Y3Gold(inj_10percent=inj_10percent, suf=suf)
+		__class = Y3Gold(inj_percent=inj_percent, inj=inj, suf=suf)
 
 
         return __class
@@ -779,9 +777,10 @@ def get_log_file_names(tile_name, realization_number):
 	fn_complete_rep = fn_complete_rep.replace('20%_', '')
 	if PLOT_COLOR:
 		fn6 = os.path.join(log_dir, 'color_completeness_'+fn_complete_rep+'.log')
-	if PLOT_COLOR is False:
+	if PLOT_MAG:
 		fn6 = os.path.join(log_dir, 'mag_completeness_'+fn_complete_rep+'.log')
-
+	if PLOT_FLUX:
+		fn6 = os.path.join(log_dir, 'dummy_flux_completeness_'+fn_complete_rep+'.log')
 	fn7 = os.path.join(log_dir, 'completeness_mag_outliers_in_bin_'+fn_rep+'.log') #TODO get rid of this eventually.
 
         if RUN_TYPE is not None:
@@ -871,10 +870,10 @@ def get_reg_names(tile_name, realization_number):
 ### For data analysis ###
 # CLASS1 refers to in1 in ms_matcher. in1 appends _1 to all the headers, hence suf=1. ms_fof_matcher is done such that injected catalogs have no suffix #
 if RUN_TYPE is not None:
-	CLASS1 = get_class(cat_type=MATCH_CAT1, inj_10percent=INJ1_10PERCENT, inj_20percent=INJ1_20PERCENT, suf='')
+	CLASS1 = get_class(cat_type=MATCH_CAT1, inj=INJ1, inj_percent=INJ1_PERCENT, suf='')
 if RUN_TYPE is None:
-	CLASS1 = get_class(cat_type=MATCH_CAT1, inj_10percent=INJ1_10PERCENT, inj_20percent=INJ1_20PERCENT, suf='_1')
-CLASS2 = get_class(cat_type=MATCH_CAT2, inj_10percent=INJ2_10PERCENT, inj_20percent=INJ2_20PERCENT, suf='_2')
+	CLASS1 = get_class(cat_type=MATCH_CAT1, inj=INJ1, inj_percent=INJ1_PERCENT, suf='_1')
+CLASS2 = get_class(cat_type=MATCH_CAT2, inj=INJ2, inj_percent=INJ2_PERCENT, suf='_2')
 
 
 # Get arguments to pass to ms_matcher. Need to transform header of form 'ra_1' to 'ra', hence [:-2] #
@@ -922,8 +921,10 @@ FLAG_HDR_LIST = [ FLAGS_HDR1, FLAGS_HDR2, CM_FLAGS_HDR1, CM_FLAGS_HDR2, CM_MOF_F
 ### For `corner.hist2d` contours ###
 # Percentile levels for contours. Default is 1.0 - np.exp(-0.5 * np.arange(0.5, 2.1, 0.5) ** 2) via https://github.com/dfm/corner.py/blob/master/corner/corner.py #
 # Correct 1sigma for a 2D histogram is given by http://corner.readthedocs.io/en/latest/pages/sigmas.html #
-LVLS = 1.0 - np.exp(-0.5 * np.array([0.5, 1.0, 1.5, 2.2]) ** 2)
-CLRS = ['magenta', 'red', 'blue', 'yellow']
+##FIXME LVLS = 1.0 - np.exp(-0.5 * np.array([0.5, 1.0, 1.5, 2.2]) ** 2)
+LVLS = 1.0 - np.exp(-0.5 * np.array([1.5]) ** 2)
+#CLRS = ['magenta', 'red', 'blue', 'yellow']
+CLRS = ['red']
 # FIXME `colors` passed to contour_kwargs are passed/applied in reversed order so reverse order for labels #
 CLRS_LABEL = CLRS[::-1]
 
@@ -1396,7 +1397,7 @@ def handle_flags(df, flag_hdr1, flag_hdr2, filter_name, full_magnitude1, full_ma
 
 
 
-def calculate_total_fractional_magnitude_error(cov_hdr, df, filter_name, flux_hdr, idx_good):
+def calculate_total_fractional_magnitude_error(cov_hdr, df, filter_name, flux_hdr, idx_good, match_cat):
 	"""Calculate the magnitude error via 1.08 * (flux_cov[i][i])^0.5 / flux[i]. Ignore flagged objects in error calculation.
 
 	Parameters
@@ -1424,6 +1425,13 @@ def calculate_total_fractional_magnitude_error(cov_hdr, df, filter_name, flux_hd
 	# Uncleaned lists for flux and flux covariance #
 	full_flux = get_floats_from_string(df=df, hdr=flux_hdr, filter_name=filter_name)
 	full_flux_cov = get_matrix_diagonal_element(df=df, hdr=cov_hdr, filter_name=filter_name)
+
+	# Header for gal_truth in /DES0236+0001_COSMOS/ for flux_cov is different 'cm_flux_cov_{filter}_{filter}' #
+	#if BALROG_RUN != 'DES0236+0001_COSMOS' and 'truth' not in match_cat:
+		#full_flux_cov = get_matrix_diagonal_element(df=df, hdr=cov_hdr, filter_name=filter_name)
+	#if BALROG_RUN == 'DES0236+0001_COSMOS' and 'truth' in match_cat:
+		# Get suffix '_1' or '_2' from `flux_hdr` #
+		#full_flux_cov = df['cm_flux_cov_'+filter_name+'_'+filter_name+flux_hdr[-2:]]		
 
 	error, flux, fluxcov = [], [], []; counter_neg = 0
 
@@ -1453,6 +1461,9 @@ def calculate_total_fractional_magnitude_error(cov_hdr, df, filter_name, flux_hd
 		print ' Number of negative cm_flux_cov: ', counter_neg, ' / ', len(flux), '\n'
 
 	#np.array(error[idx_good])
+
+	if 'truth' in match_cat: error = None
+
 
 	return error
 
@@ -2183,10 +2194,10 @@ def logger(vax_mag_bin_median, tile_name, filter_name, realization_number, clean
 
 	# Write to log.csv with headers: 'TILE', 'REALIZATION', 'FILTER', 'TOTAL_MATCHES', 'TOTAL_FLAGGED_OBJECTS', 'PERCENT_FLAGGED_OBJECTS', 'TOTAL_1SIGMA_MAG', 'PERCENT_1SIGMA_MAG', 'PERCENT_RECOVERED_FLAGS_INCLUDED', 'PERCENT_RECOVERED_FLAGS_REMOVED' #
 	if 'truth' in MATCH_CAT1 or 'truth' in MATCH_CAT2:
-		if INJ1_20PERCENT and INJ2_20PERCENT: const1 = 10000.0
-		if INJ1_20PERCENT is False and INJ2_20PERCENT is False: const1 = 5000.0
+		if INJ1_PERCENT == 20 and INJ2_PERCENT == 20: const1 = 10000.0
+		if INJ1_PERCENT == 10 and INJ2_PERCENT == 10: const1 = 5000.0
 		#FIXME mixed % inj
-		if (INJ1_20PERCENT and INJ2_20PERCENT) is False and (INJ1_10PERCENT and INJ2_10PERCENT) is False: const1=1; const2=15000.0/2
+		if (INJ1 and INJ2 and INJ1_PERCENT != INJ2_PERCENT) is False: const1=1; const2=15000.0/2
 		if STACK_TILES: const2 = len(ALL_TILES)
 		if STACK_REALIZATIONS: const2 = len(ALL_REALIZATIONS)
 		if STACK_TILES is False and STACK_REALIZATIONS is False: const2 = 1
@@ -2216,7 +2227,7 @@ def logger(vax_mag_bin_median, tile_name, filter_name, realization_number, clean
 
 
 
-def get_colorbar_for_magnitude_plot_properties(df, cm_t_hdr, cm_t_err_hdr, idx_good, clean_magnitude1, clean_magnitude2, axlabel, inj_10percent, inj_20percent):
+def get_colorbar_for_magnitude_plot_properties(df, cm_t_hdr, cm_t_err_hdr, idx_good, clean_magnitude1, clean_magnitude2, axlabel, inj_percent, inj):
 	"""Get data that will be used for the colorbar of plot.
 
 	Parameters
@@ -2255,9 +2266,9 @@ def get_colorbar_for_magnitude_plot_properties(df, cm_t_hdr, cm_t_err_hdr, idx_g
 
 	### Colorbar label ###
 	# Prefix to labels #
-        if inj_10percent or inj_20percent:
-                pref = 'inj_'
-        if inj_10percent is False and inj_20percent is False:
+        if inj:
+		pref = str(inj_percent) + '%_inj_' #FIXME do this often
+	if inj is False:
 		if 'y3_gold' not in match_cat:
                         pref = 'base_'
 		if 'y3_gold' in match_cat:
@@ -2293,10 +2304,8 @@ def get_colorbar_for_magnitude_plot_properties(df, cm_t_hdr, cm_t_err_hdr, idx_g
 
 
 
-
-
 def get_magnitude_error(mag_err_hdr, flux_hdr, cov_hdr, df, filter_name, idx_good, match_cat):
-	"""Get errors for plot data.
+	"""Get errors for plot data. Not interested in errors from truth catalogs.
 
 	Parameters
 	----------
@@ -2326,21 +2335,22 @@ def get_magnitude_error(mag_err_hdr, flux_hdr, cov_hdr, df, filter_name, idx_goo
 		Error in magnitude or color (set by `PLOT_COLOR`). `error` will be `None` if `PLOT_1SIG` is False.
 	"""
 
-        if PLOT_1SIG:
-                if mag_err_hdr is None:
-                        magError = calculate_total_fractional_magnitude_error(df=df, flux_hdr=flux_hdr, cov_hdr=cov_hdr, filter_name=filter_name, idx_good=idx_good)
+        if PLOT_1SIG and 'truth' not in match_cat:
+                if mag_err_hdr is None: 
+                        __mag_error = calculate_total_fractional_magnitude_error(df=df, flux_hdr=flux_hdr, cov_hdr=cov_hdr, filter_name=filter_name, idx_good=idx_good, match_cat=match_cat)
                 if mag_err_hdr is not None:
 			if match_cat == 'coadd':
-				magError = get_floats_from_string(df=df, hdr=mag_err_hdr, filter_name=filter_name)
+				__mag_error = get_floats_from_string(df=df, hdr=mag_err_hdr, filter_name=filter_name)
 			if match_cat == 'star_truth' or 'y3_gold' in match_cat:
-                                magError = df[str(mag_err_hdr[:-2]) + '_' + filter_name.upper() + str(mag_err_hdr[-2:])]
+                                __mag_error = df[str(mag_err_hdr[:-2]) + '_' + filter_name.upper() + str(mag_err_hdr[-2:])]
 			# Pass good indices #
-			magError = np.array(magError)[idx_good]
+			__mag_error = np.array(__mag_error)[idx_good]
 
-        if PLOT_1SIG is False:
-		magError = None
+        if PLOT_1SIG is False or 'truth' in match_cat:
+		#__mag_error = None
+		__mag_error = np.zeros(df.shape[0])
 
-	return magError 
+	return __mag_error 
 
 
 
@@ -2349,6 +2359,7 @@ def get_magnitude_error(mag_err_hdr, flux_hdr, cov_hdr, df, filter_name, idx_goo
 def get_color_plot_error(mag_err_hdr, flux_hdr, cov_hdr, df, filter_name, idx_good, match_cat):
 	""" TODO. See @get_magnitude_plot_error docstring """
 
+
 	magErr = get_magnitude_error(mag_err_hdr=mag_err_hdr, flux_hdr=flux_hdr, cov_hdr=cov_hdr, df=df, filter_name=filter_name, idx_good=idx_good, match_cat=match_cat)
 
 	if filter_name == 'g': filterFollow = 'r'
@@ -2356,7 +2367,7 @@ def get_color_plot_error(mag_err_hdr, flux_hdr, cov_hdr, df, filter_name, idx_go
 	if filter_name == 'i': filterFollow = 'z'
 
 	if mag_err_hdr is None:
-		magErrorFollow = calculate_total_fractional_magnitude_error(df=df, flux_hdr=flux_hdr, cov_hdr=cov_hdr, filter_name=filterFollow, idx_good=idx_good)
+		magErrorFollow = calculate_total_fractional_magnitude_error(df=df, flux_hdr=flux_hdr, cov_hdr=cov_hdr, filter_name=filterFollow, idx_good=idx_good, match_cat=match_cat)
 	if mag_err_hdr is None:
 		if match_cat == 'coadd':
 			magErrorFollow = get_floats_from_string(df=df, hdr=mag_err_hdr, filter_name=filterFollow)
@@ -2475,16 +2486,14 @@ def get_color_from_binned_magnitude(df, hdr1, hdr2, clean_magnitude_1a, clean_ma
 
 
 
-def get_magnitude_axlabel(inj_10percent, mag_hdr, axlabel, match_cat, filter_name, inj_20percent):
+def get_magnitude_axlabel(inj, mag_hdr, axlabel, match_cat, filter_name, inj_percent):
 	"""Get labels for the horizontal axis. 
 	
 	Parameters
 	----------
-	inj_10percent (bool)
-		If `inj_10percent=True` refers to 10% Balrog-injected catalog. Set by `INJ1_10PERCENT` or `INJ2_10PERCENT`.
+	inj_percent (int)
 		
-	inj_20percent (bool)
-		If `inj_20percent=True` refers to 20% Balrog-injected catalog. Set by `INJ1_20PERCENT` or `INJ2_20PERCENT`.
+	inj (bool)
 	
 	mag_hdr, cm_t_hdr, cm_t_err (str) 
 		Headers in the matched catalog that refer to the magnitude, cm_T (size), and cm_T error.
@@ -2500,12 +2509,12 @@ def get_magnitude_axlabel(inj_10percent, mag_hdr, axlabel, match_cat, filter_nam
 	"""
 
 	### Prefix to labels ###
-	if inj_10percent:
+	if inj and inj_percent == 10:
 		__pref = '10%_inj_'
-	if inj_20percent:
+	if inj and inj_percent == 20:
 		__pref = '20%_inj_'
 
-	if inj_10percent is False and inj_20percent is False:
+	if inj is False:
 		if 'y3_gold' not in match_cat:
 			__pref = 'base_'
 		if 'y3_gold' in match_cat:
@@ -2527,7 +2536,7 @@ def get_magnitude_axlabel(inj_10percent, mag_hdr, axlabel, match_cat, filter_nam
 
 
  
-def get_color_axlabel(inj_10percent, axlabel, match_cat, filter_name, inj_20percent):
+def get_color_axlabel(inj, axlabel, match_cat, filter_name, inj_percent):
 	"""Get axes labels for color plots.
 
 	Parameters
@@ -2541,11 +2550,12 @@ def get_color_axlabel(inj_10percent, axlabel, match_cat, filter_name, inj_20perc
 		Contains LaTeX formatting. Ex: 'inj_(g-r)_true'.
 	"""
 
-	if inj_10percent:
-                __pref = '10%_inj_'
-        if inj_20percent:
-                __pref = '20%_inj_'
-        if inj_10percent is False and inj_20percent is False:
+	if inj:
+		if inj_percent == 10:
+			__pref = '10%_inj_'
+		if inj_percent == 20:
+			__pref = '20%_inj_'
+        if inj is False:
 		if 'y3_gold' not in match_cat:
                         __pref = 'base_'
 		if 'y3_gold' in match_cat:
@@ -2571,37 +2581,40 @@ def magnitude_completeness_subplotter(filter_name, flag_idx, mag_hdr1, mag_hdr2,
 	-------
 	"""
 
-	# Get completeness for 10% inj via `inj_10percent=True` #
-	__df1 = get_df_for_completeness_plot(realization_number=realization_number, tile_name=tile_name, filter_name=filter_name, inj_10percent=True, inj_20percent=False)
+	if BALROG_RUN != 'DES0236+0001_COSMOS':
+		# Get completeness for 10% inj via `inj_percent=10` #
+		__df1 = get_df(realization_number=realization_number, tile_name=tile_name, inj1=True, inj2=True, inj1_percent=10, inj2_percent=10, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2)[0]
 
-	err1, err2, cleanMag1, cleanMag2, idxGood, fullMag1, fullMag2, haxLabel1, haxLabel2, vaxLabel = get_magnitude_plot_variables(filter_name=filter_name, df=__df1, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization_number=realization_number, tile_name=tile_name, mag_axlabel1=M_AXLABEL1, mag_axlabel2=M_AXLABEL2, fd_flag=fd_flag, plot_title=plot_title, fn_plot=fn_plot) #TODO this does not have inj_% parameter so axlabel is wrong
+		err1, err2, cleanMag1, cleanMag2, idxGood, fullMag1, fullMag2, haxLabel1, haxLabel2, vaxLabel = get_magnitude_plot_variables(filter_name=filter_name, df=__df1, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization_number=realization_number, tile_name=tile_name, mag_axlabel1=M_AXLABEL1, mag_axlabel2=M_AXLABEL2, fd_flag=fd_flag, plot_title=plot_title, fn_plot=fn_plot) #TODO this does not have inj_% parameter so axlabel is wrong
 
-	completenessFraction1, binMedian1 = get_magnitude_completeness(inj_10percent=True, inj_20percent=False, idx_good=idxGood, df=__df1, clean_magnitude1=cleanMag1, clean_magnitude2=cleanMag2, full_magnitude1=fullMag1, full_magnitude2=fullMag2, tile_name=tile_name, realization_number=realization_number, filter_name=filter_name, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, error1=err1, error2=err2, fd_completeness_log=fd_completeness_log, fd_completeness_delta_mag_log=fd_completeness_delta_mag_log)[:2]
+		completenessFraction1, binMedian1 = get_magnitude_completeness(inj_percent=10, idx_good=idxGood, df=__df1, clean_magnitude1=cleanMag1, clean_magnitude2=cleanMag2, full_magnitude1=fullMag1, full_magnitude2=fullMag2, tile_name=tile_name, realization_number=realization_number, filter_name=filter_name, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, error1=err1, error2=err2, fd_completeness_log=fd_completeness_log, fd_completeness_delta_mag_log=fd_completeness_delta_mag_log)[:2]
 
 
-	# Get completeness for 20% injection via `inj_20percent=True` #
-	__df2 = get_df_for_completeness_plot(realization_number=realization_number, tile_name=tile_name, filter_name=filter_name, inj_10percent=False, inj_20percent=True)
+	# Get completeness for 20% injection via `inj_percent=20` #
+	__df2 = get_df(realization_number=realization_number, tile_name=tile_name, inj1=True, inj2=True, inj1_percent=20, inj2_percent=20, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2)[0]
 
 	err1, err2, cleanMag1, cleanMag2, idxGood, fullMag1, fullMag2, haxLabel1, haxLabel2, vaxLabel = get_magnitude_plot_variables(filter_name=filter_name, df=__df2, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization_number=realization_number, tile_name=tile_name, mag_axlabel1=M_AXLABEL1, mag_axlabel2=M_AXLABEL2, fd_flag=fd_flag, plot_title=plot_title, fn_plot=fn_plot)
 
-	completenessFraction2, binMedian2 = get_magnitude_completeness(inj_10percent=False, inj_20percent=True, df=__df2, idx_good=idxGood, clean_magnitude1=cleanMag1, clean_magnitude2=cleanMag2, full_magnitude1=fullMag1, full_magnitude2=fullMag2, tile_name=tile_name, realization_number=realization_number, filter_name=filter_name, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, error1=err1, error2=err2, fd_completeness_log=fd_completeness_log, fd_completeness_delta_mag_log=fd_completeness_delta_mag_log)[:2]
+	completenessFraction2, binMedian2 = get_magnitude_completeness(inj_percent=20, df=__df2, idx_good=idxGood, clean_magnitude1=cleanMag1, clean_magnitude2=cleanMag2, full_magnitude1=fullMag1, full_magnitude2=fullMag2, tile_name=tile_name, realization_number=realization_number, filter_name=filter_name, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, error1=err1, error2=err2, fd_completeness_log=fd_completeness_log, fd_completeness_delta_mag_log=fd_completeness_delta_mag_log)[:2]
 
 
 	print 'Plotting magnitude completeness...\n'
 
 	plt.figure(figsize=(12, 10))
 
-	plt.subplot(1, 2, 1)
-	plt.plot(binMedian1, completenessFraction1, color='blue')
-	plt.axhline(y=1, color='black', linestyle='-', linewidth=0.7)
-	plt.axhline(y=0, color='black', linestyle='-', linewidth=0.7)
-	plt.axhline(y=0.9, color='orange', linestyle='--', linewidth=0.7)
-	plt.title('10% Injection') #TODO automate this?
-	plt.ylabel('Magnitude Completeness')
-	plt.xlabel('10%_inj_cm_mag_$\\bf{'+str(filter_name)+'}$_true') #TODO automate this?
-	plt.grid(linestyle='dotted')
+	if BALROG_RUN != 'DES0236+0001_COSMOS':
+		plt.subplot(1, 2, 1)
+		plt.plot(binMedian1, completenessFraction1, color='blue')
+		plt.axhline(y=1, color='black', linestyle='-', linewidth=0.7)
+		plt.axhline(y=0, color='black', linestyle='-', linewidth=0.7)
+		plt.axhline(y=0.9, color='orange', linestyle='--', linewidth=0.7)
+		plt.title('10% Injection') #TODO automate this?
+		plt.ylabel('Magnitude Completeness')
+		plt.xlabel('10%_inj_cm_mag_$\\bf{'+str(filter_name)+'}$_true') #TODO automate this?
+		plt.grid(linestyle='dotted')
 
-	plt.subplot(1, 2, 2)
+		plt.subplot(1, 2, 2)
+
 	plt.plot(binMedian2, completenessFraction2, color='green')
         plt.axhline(y=1, color='black', linestyle='-', linewidth=0.7)
         plt.axhline(y=0, color='black', linestyle='-', linewidth=0.7)
@@ -2625,23 +2638,13 @@ def magnitude_completeness_subplotter(filter_name, flag_idx, mag_hdr1, mag_hdr2,
 	return 0
 
 
-'''
-def get_color_completeness(truth_mag, match_mag, filter_name, realization_number, tile_name, mag_hdr1, mag_hdr2):
-	"""TODO
-
+#def get_color_completeness(truth_mag, match_mag, filter_name, realization_number, tile_name, mag_hdr1, mag_hdr2):
+	'''
 	Parameters
 	----------
 
 	Returns
 	-------
-	"""
-
-	if INJ1_10PERCENT:
-                print 'Calculating color completeness of 10% injected catalogs ... \n'
-                __write_inj_percent = '10%'
-        if INJ2_20PERCENT:
-                print 'Calculating color completeness of 20% injected catalogs ... \n'
-                __write_inj_percent = '20%'
 
 	__completeness_bins, __plot_bins = [], []
 
@@ -2705,15 +2708,11 @@ def get_color_completeness(truth_mag, match_mag, filter_name, realization_number
 
 
 
-'''
 def color_completeness_subplotter(filter_name, df, flag_idx, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, plot_title, realization_number, tile_name, fd_flag, fd_completeness_log, fn_plot):
-	"""TODO"""
 
 
 	### Force order ###
-	INJ1_10PERCENT = True; INJ2_10PERCENT = True; INJ1_20PERCENT = False; INJ2_20PERCENT = False
 
-        if INJ1_10PERCENT: print 'Plotting 10% magnitude completeness ... \n'
 
         err1, err2, cleanMag1, cleanMag2, idxGood, fullMag1, fullMag2, haxLabel1, haxLabel2, vaxLabel = get_magnitude_plot_variables(filter_name=filter_name, df=df, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization_number=realization_number, tile_name=tile_name, mag_axlabel1=M_AXLABEL1, mag_axlabel2=M_AXLABEL2, fd_flag=fd_flag, plot_title=plot_title, fn_plot=fn_plot)
 
@@ -2724,10 +2723,6 @@ def color_completeness_subplotter(filter_name, df, flag_idx, mag_hdr1, mag_hdr2,
 	colorCompleteness1, bins1 = get_color_completeness(truth_mag=truthMag1, match_mag=matchMag1, filter_name=filter_name, realization_number=realization_number, tile_name=tile_name, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2)
 
 
-	# Reverse bool value and recalculate #
-        INJ1_10PERCENT = not INJ1_10PERCENT; INJ2_10PERCENT = not INJ2_10PERCENT; INJ1_20PERCENT = not INJ1_20PERCENT; INJ2_20PERCENT = not INJ2_20PERCENT
-
-        if INJ1_20PERCENT: print 'Getting 20% magnitude completeness ... \n'
 
         err1, err2, cleanMag1, cleanMag2, idxGood, fullMag1, fullMag2, haxLabel1, haxLabel2, vaxLabel = get_magnitude_plot_variables(filter_name=filter_name, df=df, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization_number=realization_number, tile_name=tile_name, mag_axlabel1=M_AXLABEL1, mag_axlabel2=M_AXLABEL2, fd_flag=fd_flag, plot_title=plot_title, fn_plot=fn_plot)
 
@@ -2738,12 +2733,14 @@ def color_completeness_subplotter(filter_name, df, flag_idx, mag_hdr1, mag_hdr2,
 	if SAVE_PLOT: fn_plot = fn_plot.replace('placehold', writeColor); print '-----> Saving plot as, ', fn_plot; plt.savefig(fn_plot) 
 
 	return 0
+'''
 
 
 
+def get_truth_cat_and_cut_for_completeness():
+	if STACK_TILES: print 'TODO'
 
-
-def get_magnitude_completeness(idx_good, df, clean_magnitude1, clean_magnitude2, full_magnitude1, full_magnitude2, tile_name, realization_number, filter_name, mag_hdr1, mag_hdr2, error1, error2, fd_completeness_log, fd_completeness_delta_mag_log, inj_10percent, inj_20percent):
+def get_magnitude_completeness(idx_good, df, clean_magnitude1, clean_magnitude2, full_magnitude1, full_magnitude2, tile_name, realization_number, filter_name, mag_hdr1, mag_hdr2, error1, error2, fd_completeness_log, fd_completeness_delta_mag_log, inj_percent): #FIXME inj?
 	"""TODO after function is done
 	Introduce cutoff for bin size.
 	#FIXME i don't think df is being changed when it needs to be, call matcher?
@@ -2752,19 +2749,20 @@ def get_magnitude_completeness(idx_good, df, clean_magnitude1, clean_magnitude2,
 	GRID_PLOT = False
 	mag_bin_l = 21
 
-	if inj_10percent: 
-		print 'Calculating magnitude completeness of 10% injected catalogs ... \n'
+	if inj_percent == 10: 
+		print 'Calculating magnitude completeness of 10% injected catalogs ... '
 		__write_inj_percent = '10%'
-        if inj_20percent: 
-		print 'Calculating magnitude completeness of 20% injected catalogs ... \n'
+        if inj_percent == 20: 
+		print 'Calculating magnitude completeness of 20% injected catalogs ... '
 		__write_inj_percent = '20%'
 
 	__completeness_bins, __plot_bins = [], []
 
 
 	### Read truth catalog which has magnitudes in form (m_g, m_r, m_i, m_z) ###
+	#TODO get_truth_cat_and_cut_for_completeness()
 	if 'truth' in MATCH_CAT1:
-		fn_truth_cat = get_catalog(cat_type=MATCH_CAT1, inj_10percent=inj_10percent, inj_20percent=inj_20percent, realization_number=realization_number, tile_name=tile_name, filter_name=filter_name, inj=INJ1)	
+		fn_truth_cat = get_catalog(cat_type=MATCH_CAT1, inj_percent=inj_percent, realization_number=realization_number, tile_name=tile_name, filter_name=filter_name, inj=INJ1)	
 		mag_hdr = mag_hdr1
 		# Use error in measured catalogs only #
 		error1 = np.zeros(len(error2))
@@ -2783,7 +2781,7 @@ def get_magnitude_completeness(idx_good, df, clean_magnitude1, clean_magnitude2,
 		other_truth_ra, other_truth_dec = np.array(other_truth_ra)[idx_good], np.array(other_truth_dec)[idx_good]
 
 	if 'truth' in MATCH_CAT2:
-		fn_truth_cat = get_catalog(cat_type=MATCH_CAT2, inj_10percent=inj_10percent, inj_20percent=inj_20percent, realization_number=realization_number, tile_name=tile_name, filter_name=filter_name, inj=INJ2)
+		fn_truth_cat = get_catalog(cat_type=MATCH_CAT2, inj_percent=inj_percent, realization_number=realization_number, tile_name=tile_name, filter_name=filter_name, inj=INJ2)
 		mag_hdr = mag_hdr2
 		ra_hdr, dec_hdr = RA_HDR2, DEC_HDR2
 		# Use error in measured catalogs only #
@@ -2825,9 +2823,9 @@ def get_magnitude_completeness(idx_good, df, clean_magnitude1, clean_magnitude2,
 	### Photometry cuts on matched catalog (|DeltaM| < 3sigma) where sigma refers to measured catalog only ###
         match_mag1, match_mag2 = [], []
         for k in np.arange(0, len(clean_magnitude1)):
-                #print '3sigma_mag:', 3.0*(error1[k]**2 + error2[k]**2)**0.5
-                if abs(clean_magnitude1[k] - clean_magnitude2[k]) < 3.0 * (error1[k]**2 + error2[k]**2)**0.5:
-                #if True is True:
+                print '3sigma_mag:', 3.0*(error1[k]**2 + error2[k]**2)**0.5
+                #if abs(clean_magnitude1[k] - clean_magnitude2[k]) < 3.0 * (error1[k]**2 + error2[k]**2)**0.5:
+                if True is True:
                         match_mag1.append(clean_magnitude1[k])
                         match_mag2.append(clean_magnitude2[k])
 
@@ -2915,10 +2913,7 @@ def get_magnitude_completeness(idx_good, df, clean_magnitude1, clean_magnitude2,
 		plt.ylim([decmin-0.15, decmax+0.15])
 		plt.xlabel('ra')
 		plt.ylabel('dec')
-		if inj_10percent:
-			plt.title(str(tile_name) + '. Binned via '+str(mag_bin_l) + '<10%_inj_truth_mag<' + str(mag_bin_l+1) +'. Truth Objs: '+str(len(__bin_truth_ra)) + '. Matched: ' + str(len(__bin_truth_match_ra)))
-		if inj_20percent:
-			plt.title(str(tile_name) + '. Binned via '+str(mag_bin_l) + '<20%_inj_truth_mag<' + str(mag_bin_l+1) +'. Truth Objs: '+str(len(__bin_truth_ra)) + '. Matched: ' + str(len(__bin_truth_match_ra)))
+		plt.title(str(tile_name) + '. Binned via '+str(mag_bin_l) + '<'+str(inj_percent)+'%_inj_truth_mag<' + str(mag_bin_l+1) +'. Truth Objs: '+str(len(__bin_truth_ra)) + '. Matched: ' + str(len(__bin_truth_match_ra)))
 		plt.legend().draggable()
 		if SHOW_PLOT: plt.show()
 
@@ -2971,7 +2966,7 @@ def norm_flux_histogram_plotter(filter_name, df, flux_hdr1, flux_hdr2, mag_hdr1,
 	-------
 	"""
 
-	TRIM = False 
+	TRIM = True
 
 	### Plot DeltaFlux/SigmaFlux as normalized histogram ###
 	plotData = get_flux_plot_variables(filter_name=filter_name, df=df, flux_hdr1=flux_hdr1, flux_hdr2=flux_hdr2, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2)
@@ -3038,12 +3033,14 @@ def get_flux_histogram_hax_label(mag_hdr1, mag_hdr2, filter_name):
 
 	#TODO will we deal with psf mag ever?
 
-	if INJ1_10PERCENT and INJ2_10PERCENT and (INJ1_20PERCENT and INJ2_20PERCENT) is False:
-		label = '(10%_inj_'+label
-	if INJ1_20PERCENT and INJ2_20PERCENT and (INJ1_10PERCENT and INJ2_10PERCENT) is False:
-                label = '(20%_inj_'+label
+	if INJ1 and INJ2:
+		if INJ1_PERCENT == 10 and INJ2_PERCENT == 10:
+			label = '(10%_inj_'+label
+		if INJ1_PERCENT == 20 and INJ2_PERCENT == 20:
+			label = '(20%_inj_'+label
+	
 
-	if (INJ1_10PERCENT and INJ2_10PERCENT and INJ1_10PERCENT and INJ2_10PERCENT) is False:
+	if INJ1 is False and INJ2 is False:
 		label = '(base_'+label
 
 	return label
@@ -3099,8 +3096,8 @@ def color_subplotter(filter_name, df, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_
 	# For log file #
 	writeColor = get_write_color(filter_name=filter_name)
 
-	axLabel1 = get_color_axlabel(inj_10percent=INJ1_10PERCENT, axlabel=AXLABEL1, match_cat=MATCH_CAT1, filter_name=filter_name, inj_20percent=INJ1_20PERCENT)
-	axLabel2 = get_color_axlabel(inj_10percent=INJ2_10PERCENT, axlabel=AXLABEL2, match_cat=MATCH_CAT2, filter_name=filter_name, inj_20percent=INJ2_20PERCENT)
+	axLabel1 = get_color_axlabel(inj_percent=INJ1_PERCENT, inj=INJ1, axlabel=AXLABEL1, match_cat=MATCH_CAT1, filter_name=filter_name)
+	axLabel2 = get_color_axlabel(inj_percent=INJ2_PERCENT, inj=INJ2, axlabel=AXLABEL2, match_cat=MATCH_CAT2, filter_name=filter_name)
 
 	vaxDeltaColorLabel = get_delta_color_axlabel(label1=axLabel1, label2=axLabel2, filter_name=filter_name)
 
@@ -3108,9 +3105,12 @@ def color_subplotter(filter_name, df, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_
 	errMag1, errMag2, cleanMag1, cleanMag2, idxGood, fullMag1, fullMag2, haxMagLabel1, haxMagLabel2, vaxMagLabel = get_magnitude_plot_variables(filter_name=filter_name, df=df, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization_number=realization_number, tile_name=tile_name, mag_axlabel1=M_AXLABEL1, mag_axlabel2=M_AXLABEL2, fd_flag=fd_flag, plot_title=plot_title, fn_plot=fn_plot)
 
 	#TODO get_magnitude_error is called twice
-	err1 = get_color_plot_error(mag_err_hdr=mag_err_hdr1, flux_hdr=CM_FLUX_HDR1, cov_hdr=CM_FLUX_COV_HDR1, df=df, filter_name=filter_name, idx_good=idxGood, match_cat=MATCH_CAT1)
-        err2 = get_color_plot_error(mag_err_hdr=mag_err_hdr2, flux_hdr=CM_FLUX_HDR2, cov_hdr=CM_FLUX_COV_HDR2, df=df, filter_name=filter_name, idx_good=idxGood, match_cat=MATCH_CAT2)
-
+	'''
+	if 'truth' not in MATCH_CAT1:
+		err1 = get_color_plot_error(mag_err_hdr=mag_err_hdr1, flux_hdr=CM_FLUX_HDR1, cov_hdr=CM_FLUX_COV_HDR1, df=df, filter_name=filter_name, idx_good=idxGood, match_cat=MATCH_CAT1)
+	if 'truth' not in MATCH_CAT2:
+		err2 = get_color_plot_error(mag_err_hdr=mag_err_hdr2, flux_hdr=CM_FLUX_HDR2, cov_hdr=CM_FLUX_COV_HDR2, df=df, filter_name=filter_name, idx_good=idxGood, match_cat=MATCH_CAT2)
+	'''
 
 	if filter_name != 'z':
 		cleanColor1, cleanColor2, magBins = get_color_from_binned_magnitude(df=df, hdr1=mag_hdr1, hdr2=mag_hdr2, filter_name=filter_name, idx_good=idxGood, clean_magnitude_1a=cleanMag1, clean_magnitude_2a=cleanMag2)
@@ -3159,14 +3159,14 @@ def color_subplotter(filter_name, df, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_
 			__yhigh = np.max(np.array(__vax_color[i])) # np.max(abs(np.array(__vax_color[i]))) ?
 			__bin_x = np.linspace(np.min(cleanColor1[i]), np.max(cleanColor1[i]), math.ceil(4.0*(np.max(cleanColor1[i]) - np.min(cleanColor1[i]))))
 			__bin_y = np.linspace(__ylow, __yhigh, 20.0*(__yhigh-__ylow))
-			#__ylims = np.max(abs(np.array(__vax_color[i]))) #? 
-			__ylims = np.min(np.array(__vax_color[i]))
+			__ylims = np.max(abs(np.array(__vax_color[i]))) #? 
+			#__ylims = np.min(np.array(__vax_color[i]))
 
 			# Pass `levels` to `corner.hist2d` (interpreted as percentiles). `bins` are centered about zero along the vertical axis. #
-                        corner.hist2d(cleanColor1[i], __vax_color[i], bins=np.array([__bin_x, __bin_y]), no_fill_contours=False, color=get_color(filter_name=filter_name)[0], levels=LVLS, contour_kwargs={'colors':CLRS, 'cmap':None, 'linewidths':__lw})
+                        #corner.hist2d(cleanColor1[i], __vax_color[i], bins=np.array([__bin_x, __bin_y]), no_fill_contours=False, color=get_color(filter_name=filter_name)[0], levels=LVLS, contour_kwargs={'colors':CLRS, 'cmap':None, 'linewidths':__lw})
 
 			# Plot points and not density bins #
-			#corner.hist2d(cleanColor1[i], __vax_color[i], plot_density=False, bins=np.array([__bin_x, __bin_y]), no_fill_contours=True, color=get_color(filter_name=filter_name)[0], levels=LVLS, contour_kwargs={'colors':CLRS, 'cmap':None, 'linewidths':__lw}, data_kwargs={'alpha':0.25, 'ms':1.75})
+			corner.hist2d(cleanColor1[i], __vax_color[i], plot_density=False, bins=np.array([__bin_x, __bin_y]), no_fill_contours=True, color=get_color(filter_name=filter_name)[0], levels=LVLS, contour_kwargs={'colors':CLRS, 'cmap':None, 'linewidths':__lw}, data_kwargs={'alpha':0.25, 'ms':1.75})
 
 			if YLOW is None and YHIGH is None:
 				# Force symmetric vertical axis #
@@ -3287,8 +3287,8 @@ def get_magnitude_plot_variables(filter_name, df, mag_hdr1, mag_hdr2, mag_err_hd
 	"""
 
 	### Axes labels ###
-        haxLabel1 = get_magnitude_axlabel(inj_20percent=INJ1_20PERCENT, inj_10percent=INJ1_10PERCENT, mag_hdr=mag_hdr1, axlabel=AXLABEL1, match_cat=MATCH_CAT1, filter_name=filter_name)
-        haxLabel2 = get_magnitude_axlabel(inj_20percent=INJ2_20PERCENT, inj_10percent=INJ2_10PERCENT, mag_hdr=mag_hdr2, axlabel=AXLABEL2, match_cat=MATCH_CAT2, filter_name=filter_name)
+        haxLabel1 = get_magnitude_axlabel(inj_percent=INJ1_PERCENT, inj=INJ1, mag_hdr=mag_hdr1, axlabel=AXLABEL1, match_cat=MATCH_CAT1, filter_name=filter_name)
+        haxLabel2 = get_magnitude_axlabel(inj_percent=INJ2_PERCENT, inj=INJ2, mag_hdr=mag_hdr2, axlabel=AXLABEL2, match_cat=MATCH_CAT2, filter_name=filter_name)
         vaxLabel = get_delta_magnitude_axlabel(label1=haxLabel1, label2=haxLabel2, filter_name=filter_name)
 
 
@@ -3308,7 +3308,7 @@ def get_magnitude_plot_variables(filter_name, df, mag_hdr1, mag_hdr2, mag_err_hd
         cleanMag2 = get_good_data(df=df, hdr=mag_hdr2, idx_good=idxGood, magnitude=True, filter_name=filter_name)
 
 
-        ### Calculate errors. get_error() handles the case when PLOT_COLOR=True. ###
+        ### Calculate errors. get_magnitude_error() can return array of zeros for truth catalogs. ###
         err1 = get_magnitude_error(mag_err_hdr=mag_err_hdr1, flux_hdr=CM_FLUX_HDR1, cov_hdr=CM_FLUX_COV_HDR1, df=df, filter_name=filter_name, idx_good=idxGood, match_cat=MATCH_CAT1)
         err2 = get_magnitude_error(mag_err_hdr=mag_err_hdr2, flux_hdr=CM_FLUX_HDR2, cov_hdr=CM_FLUX_COV_HDR2, df=df, filter_name=filter_name, idx_good=idxGood, match_cat=MATCH_CAT2)
 
@@ -3936,7 +3936,7 @@ def delta_magnitude_subplotter(df, flag_idx, mag_hdr1, mag_hdr2, mag_err_hdr1, m
 
 
 		if CM_T_COLORBAR or CM_T_ERR_COLORBAR or CM_T_S2N_COLORBAR:
-			cbarData, cbarIdxBins, cbarBins, cbarLabel = get_colorbar_for_magnitude_plot_properties(df=df, cm_t_hdr=CM_T_HDR2, cm_t_err_hdr=CM_T_ERR_HDR2, idx_good=idxGood, clean_magnitude1=cleanMag1, clean_magnitude2=cleanMag2, axlabel=AXLABEL2, inj_10percent=INJ2_10PERCENT, inj_20percent=INJ2_20PERCENT)
+			cbarData, cbarIdxBins, cbarBins, cbarLabel = get_colorbar_for_magnitude_plot_properties(df=df, cm_t_hdr=CM_T_HDR2, cm_t_err_hdr=CM_T_ERR_HDR2, idx_good=idxGood, clean_magnitude1=cleanMag1, clean_magnitude2=cleanMag2, axlabel=AXLABEL2, inj=INJ2, inj_percent=INJ2_PERCENT) #FIXME use same suf
 		else: 
 			cbarData, cbarIdxBins, cbarBins, cbarLabel = None, None, None, None
 
@@ -4052,8 +4052,8 @@ def get_plot_save_name(realization_number, tile_name):
 
 	### `plot_obs` describes the observable ### 
         if PLOT_COLOR: plot_obs = 'color'
-        if PLOT_COLOR is False: plot_obs = 'magnitude'
-        if PLOT_FLUX_HIST: plot_obs = 'flux'
+        if PLOT_MAG: plot_obs = 'magnitude'
+        if PLOT_FLUX: plot_obs = 'flux'
 	#if PLOT_DELTA_VAX: plot_type1 = 'delta_' + plot_obs #TODO are we interested in x vs y plots?
 
 	# By construction, completeness plots contain both 10% and 20% injected catalogs. Remove this distinction #
@@ -4065,15 +4065,16 @@ def get_plot_save_name(realization_number, tile_name):
 
 
 	# Get plot type #
-	if PLOT_FLUX_HIST: plot_type = 'norm_flux_hist_'
+	if PLOT_FLUX: plot_type = 'norm_flux_hist_'
         if CORNER_HIST_2D: plot_type = 'cornerhist2d_'
+	if HIST_2D: plot_type = 'hist2d_'
         if PLOT_COMPLETENESS: plot_type = 'completeness_'
         if SCATTER: plot_type = 'scatter_'
         if CM_T_S2N_COLORBAR: plot_type = 'cbar_cm_t_s2n_'
         if CM_T_COLORBAR: plot_type = 'cbar_cm_t_'
         if CM_T_ERR_COLORBAR: plot_type = 'cbar_cm_t_err_'
         if HEXBIN: plot_type = 'hexbin_'
-        if plot_type not in locals(): plot_type = '' 
+        if 'plot_type' not in locals(): plot_type = '' 
 	
 
 	### End of filename after lowest-level directory: {tile}_{realization}_{filter(s)/color}_{match_type}_{vertical_axis_limits}.png ###
@@ -4093,10 +4094,10 @@ def get_plot_save_name(realization_number, tile_name):
                 endname = endname.replace('10%_', ''); endname = endname.replace('20%_', '')
 	
 	# Filename after lowest-level directory /*/*/*/`fn`/ #
-	fn = plot_type + endmae
+	fn = plot_type + endname
 
 
-	#TODO PLOT_FLUX_HIST --> PLOT_FLUX & PLOT_MAG
+	#TODO PLOT_FLUX --> PLOT_FLUX & PLOT_MAG
 	#if PLOT_DELTA_VAX: outname = 'delta_vax_' + outname
 
 	'''
@@ -4267,17 +4268,17 @@ def get_y3_gold_mag(df, mag_hdr):
 
 
 
-
-def get_catalog(cat_type, inj_10percent, inj_20percent, realization_number, tile_name, filter_name, inj):
+def get_catalog(cat_type, inj, inj_percent, realization_number, tile_name, filter_name):
         """Get catalog to analyze.
 	
         Parameters
 	----------
 	cat_type -- Catalog type. Allowed values: 'gal_truth', 'mof', 'star_truth', 'sof', 'coadd', 'y3_gold'. Set by `MATCH_CAT1` or `MATCH_CAT2`.
 
-	inj_10percent (bool)
+	inj_percent (int)
+		If `inj` is False this will not be used nor referenced.
 
-	inj_20percent (bool)
+	inj (bool)
 
 	realization_number (str) -- 
 
@@ -4290,35 +4291,62 @@ def get_catalog(cat_type, inj_10percent, inj_20percent, realization_number, tile
 	fn (str) -- Complete catalog filename.
         """
 
-	if (cat_type == 'gal_truth' or cat_type == 'star_truth') and inj_10percent is False and inj_20percent is False:
+	if (cat_type == 'gal_truth' or cat_type == 'star_truth') and inj is False:
 		sys.exit('No non-injected truth catalog exists.')
 
+
+	if BALROG_RUN == 'test':
+		if cat_type == 'gal_truth' and inj_percent == 20 and inj:
+                        fn = os.path.join(BASEPATH, tile_name, tile_name+'_0_balrog_truth_cat_gals.fits')
+		if cat_type == 'sof' and inj_percent == 20 and inj:
+			fn = os.path.join(BASEPATH, tile_name, 'real_0_'+tile_name+'_sof.fits')
+		if cat_type == 'mof' and inj_percent == 20 and inj:
+			fn = os.path.join(BASEPATH, tile_name, 'real_0_'+tile_name+'_mof.fits')
+
+
+	# TODO GoogleDoc link to Balrog log to see which catalogs can exist within ea `BALROG_RUN` 
+	if BALROG_RUN == 'DES0236+0001_COSMOS':
+		if cat_type == 'gal_truth' and inj_percent == 20 and inj:
+			fn = os.path.join(BASEPATH, tile_name+'_0_balrog_truth_cat_gals.fits')
+		if cat_type == 'sof' and inj_percent == 20 and inj:
+			fn = os.path.join(BASEPATH, 'real_0_'+tile_name+'_sof.fits')
+		if cat_type == 'mof' and inj_percent == 20 and inj:
+			fn = os.path.join(BASEPATH, 'real_0_'+tile_name+'_mof.fits')
 	# TODO As of May 2018 only TAMU_Balrog catalogs have 20% injections
 	if BALROG_RUN == 'TAMU_Balrog':
-		fn = get_tamu_catalog(cat_type=cat_type, inj_10percent=inj_10percent, inj_20percent=inj_20percent, realization_number=realization_number, tile_name=tile_name, filter_name=filter_name, inj=inj)
+		fn = get_tamu_catalog(cat_type=cat_type, inj_percent=inj_percent, realization_number=realization_number, tile_name=tile_name, filter_name=filter_name, inj=inj)
 
 
-	if BALROG_RUN != 'TAMU_Balrog':
-		if cat_type == 'gal_truth' and inj_10percent:
+	if BALROG_RUN != 'TAMU_Balrog' and BALROG_RUN != 'DES0236+0001_COSMOS' and BALROG_RUN != 'test':
+
+		# $/data/des61.a/data/kuropat/blank_test/DES0102-4914/ #
+		if cat_type == 'gal_truth' and inj_percent == 20 and inj:
 			fn = os.path.join(BASEPATH, 'y3v02', 'balrog_images', realization_number, tile_name, tile_name+'_'+realization_number+'_balrog_truth_cat_gals.fits')
-		#if cat_type == 'gal_truth' and inj_20percent
+		if cat_type == 'mof' and inj_percent == 20 and inj:
+			fn = os.path.join(BASEPATH, 'y3v02', 'balrog_images', realization_number, tile_name, 'mof', tile_name+'_mof.fits')			
+		if cat_type == 'sof' and inj_percent == 20 and inj:
+			fn = os.path.join(BASEPATH, 'y3v02', 'balrog_images', realization_number, tile_name, 'sof', tile_name+'_sof.fits')
 
-		if cat_type == 'star_truth' and inj_10percent:
+
+		if cat_type == 'gal_truth' and inj_percent == 10 and inj:
+			fn = os.path.join(BASEPATH, 'y3v02', 'balrog_images', realization_number, tile_name, tile_name+'_'+realization_number+'_balrog_truth_cat_gals.fits')
+
+		if cat_type == 'star_truth' and inj_percent == 10 and inj:
 			fn = os.path.join(BASEPATH, 'y3v02', 'balrog_images', realization_number, tile_name, tile_name+'_'+realization_number+'_balrog_truth_cat_stars.fits')
 
-		if cat_type == 'sof' and inj_10percent:
+		if cat_type == 'sof' and inj_percent == 10 and inj:
 			fn = os.path.join(BASEPATH, 'y3v02', 'balrog_images', realization_number, tile_name, 'sof', tile_name+'_sof.fits')
-		if cat_type == 'sof' and inj_10percent is False:
+		if cat_type == 'sof' and inj is False:
 			fn = os.path.join(BASEPATH, 'y3v02', tile_name, 'sof', tile_name+'_sof.fits')
 
-		if cat_type == 'mof' and inj_10percent:
+		if cat_type == 'mof' and inj_percent == 10 and inj:
 			fn = os.path.join(BASEPATH, 'y3v02', 'balrog_images', realization_number, tile_name, 'mof', tile_name+'_mof.fits')
-		if cat_type == 'mof' and inj_10percent is False:
+		if cat_type == 'mof' and inj is False:
 			fn = os.path.join(BASEPATH, 'y3v02', tile_name, 'mof', tile_name+'_mof.fits')
 
-		if cat_type == 'coadd' and inj_10percent:
+		if cat_type == 'coadd' and inj_percent == 10 and inj:
 			fn = os.path.join(BASEPATH, 'y3v02', 'balrog_images', realization_number, tile_name, 'coadd', tile_name+'_'+filter_name+'_cat.fits')
-		if cat_type == 'coadd' and inj_10percent is False:
+		if cat_type == 'coadd' and inj is False:
 			fn = os.path.join(BASEPATH, 'y3v02', tile_name, 'coadd', tile_name+'_'+filter_name+'_cat.fits')
 
 
@@ -4340,15 +4368,14 @@ def get_catalog(cat_type, inj_10percent, inj_20percent, realization_number, tile
 
 
 
-def get_tamu_catalog(cat_type, inj_10percent, inj_20percent, realization_number, tile_name, filter_name, inj):
+def get_tamu_catalog(cat_type, inj, inj_percent, realization_number, tile_name, filter_name):
 	"""Get catalog for TAMU runs.
 
 	Parameters
 	----------
-	inj_10percent (bool) -- Set by `INJ1_10PERCENT` or `INJ2_10PERCENT`.
+	inj_percent (int) -- Set by `INJ1_PERCENT` or `INJ2_PERCENT` typically.
 
-
-	inj_20percent (bool) -- Set by `INJ1_20PERCENT` or `INJ2_20PERCENT`.
+	inj (bool) -- 
 
 	cat_type (str) -- Allowed values: mof, sof, gal_truth, star_truth, coadd. Set by `MATCH_CAT1` or `MATCH_CAT2`.
 
@@ -4361,9 +4388,8 @@ def get_tamu_catalog(cat_type, inj_10percent, inj_20percent, realization_number,
 	fn (str) -- Complete catalog filename.
 	"""
 
-	# 20% injection #	
-	if inj_20percent:
-		# TODO add general `inj` param to access base catalogs
+	# 20% injection directory #	
+	if inj_percent == 20:
 		if cat_type == 'mof' and inj:
                         fn = os.path.join(BASEPATH, tile_name + '_20', 'real_' + realization_number + '_' + tile_name + '_mof.fits')
 		if cat_type == 'mof' and inj is False:
@@ -4380,9 +4406,8 @@ def get_tamu_catalog(cat_type, inj_10percent, inj_20percent, realization_number,
 		if cat_type == 'star_truth':
                         fn = os.path.join(BASEPATH, tile_name + '_20', tile_name + '_' + realization_number + '_balrog_truth_cat_stars.fits')
 
-	# 10% injection #
-	if inj_10percent:
-
+	# 10% injection directory #
+	if inj_percent == 10:
 		if cat_type == 'mof' and inj:
 			fn = os.path.join(BASEPATH, tile_name, 'real_' + realization_number + '_' + tile_name + '_mof.fits')
 		if cat_type == 'mof' and inj is False:
@@ -4408,7 +4433,7 @@ def get_tamu_catalog(cat_type, inj_10percent, inj_20percent, realization_number,
 
 
 
-def matcher(realization_number, tile_name, filter_name):
+def matcher(realization_number, tile_name, filter_name, inj1, inj2, inj1_percent, inj2_percent):
         """Match two catalogs on RA and DEC with a tolerance of 1 arcsecond via STILTS.
 
         Parameters
@@ -4434,17 +4459,33 @@ def matcher(realization_number, tile_name, filter_name):
 
         # Input catalogs for STILTS #
 	if MATCH_CAT1 is not 'coadd':
-		in1 = get_catalog(cat_type=MATCH_CAT1, inj_10percent=INJ1_10PERCENT, inj_20percent=INJ1_20PERCENT, realization_number=realization_number, tile_name=tile_name, filter_name=filter_name, inj=INJ1)
+		in1 = get_catalog(cat_type=MATCH_CAT1, inj=inj1, inj_percent=inj1_percent, realization_number=realization_number, tile_name=tile_name, filter_name=filter_name)
 	if MATCH_CAT1 == 'coadd':
-		in1 =  get_coadd_matcher_catalog(cat_type=MATCH_CAT1, inj_10percent=INJ1_10PERCENT, inj_20percent=INJ1_20PERCENT, realization_number=realization_number, tile_name=tile_name, mag_hdr=M_HDR1, err_hdr=M_ERR_HDR1, inj=INJ1)
+		in1 =  get_coadd_matcher_catalog(cat_type=MATCH_CAT1, inj_percent=inj1_percent,  realization_number=realization_number, tile_name=tile_name, mag_hdr=M_HDR2, err_hdr=M_ERR_HDR2)
 
 	if MATCH_CAT2 is not 'coadd':
-		in2 = get_catalog(cat_type=MATCH_CAT2, inj_10percent=INJ2_10PERCENT, inj_20percent=INJ2_20PERCENT, realization_number=realization_number, tile_name=tile_name, filter_name=filter_name, inj=INJ2)
+		in2 = get_catalog(cat_type=MATCH_CAT2, inj=inj2, inj_percent=inj2_percent, realization_number=realization_number, tile_name=tile_name, filter_name=filter_name)	
 	if MATCH_CAT2 == 'coadd':
-		in2 =  get_coadd_matcher_catalog(cat_type=MATCH_CAT2, inj_10percent=INJ2_10PERCENT, inj_20percent=INJ2_20PERCENT, realization_number=realization_number, tile_name=tile_name, mag_hdr=M_HDR2, err_hdr=M_ERR_HDR2, inj=INJ2)
+		in2 =  get_coadd_matcher_catalog(cat_type=MATCH_CAT2, inj_percent=inj2_percent,  realization_number=realization_number, tile_name=tile_name, mag_hdr=M_HDR2, err_hdr=M_ERR_HDR2, inj=INJ2)
+
+	print 'Matching: '
+	print in1
+	print in2, '\n'
+
+	if PLOT_COMPLETENESS: 
+		### Rewrite `match_type` ###
+		if RUN_TYPE is not None:
+			__class1 = get_class(cat_type=MATCH_CAT1, inj_percent=inj1_percent, inj=inj1, suf='')
+		if RUN_TYPE is None:
+			__class1 = get_class(cat_type=MATCH_CAT1, inj_percent=inj1_percent, inj=inj1, suf='_1')
+		__class2 = get_class(cat_type=MATCH_CAT2, inj_percent=inj2_percent, inj=inj2, suf='_2')
+		__title1, __title2 = __class1.title_piece, __class2.title_piece,
+		match_type = get_match_type(title_piece1=__title1, title_piece2=__title2)
+
+	if PLOT_COMPLETENESS is False: match_type = MATCH_TYPE
 
         # !!!!! User may wish to edit directory structure. Output catalog name for STILTS #
-	match_dir = os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, tile_name, realization_number, 'catalog_compare')	
+	match_dir = os.path.join(OUTDIR, 'outputs', BALROG_RUN, match_type, tile_name, realization_number, 'catalog_compare')	
 
 	# Check for directory existence #
 	if os.path.isdir(match_dir) is False:
@@ -4455,9 +4496,9 @@ def matcher(realization_number, tile_name, filter_name):
 			os.makedirs(match_dir)
 
 	# Filenames #
-        outname_match = os.path.join(match_dir, tile_name+'_'+realization_number+'_'+str(MATCH_TYPE)+'_match1and2.csv')
-	outname_1not2 = os.path.join(match_dir, tile_name+'_'+realization_number+'_'+str(MATCH_TYPE)+'_match1not2.csv')
-	outname_2not1 = os.path.join(match_dir, tile_name+'_'+realization_number+'_'+str(MATCH_TYPE)+'_match2not1.csv')
+        outname_match = os.path.join(match_dir, tile_name+'_'+realization_number+'_'+str(match_type)+'_match1and2.csv')
+	outname_1not2 = os.path.join(match_dir, tile_name+'_'+realization_number+'_'+str(match_type)+'_match1not2.csv')
+	outname_2not1 = os.path.join(match_dir, tile_name+'_'+realization_number+'_'+str(match_type)+'_match2not1.csv')
 
 	# Overwrite matched catalogs if one already exists? # 
         overwrite = False 
@@ -4471,66 +4512,6 @@ def matcher(realization_number, tile_name, filter_name):
 		subprocess.call(['/data/des71.a/data/mspletts/balrog_validation_tests/scripts/BalVal/ms_matcher', in1, in2, outname_match, outname_1not2, outname_2not1, RA_HDR1, DEC_HDR1, RA_HDR2, DEC_HDR2])
 
         return outname_match, outname_1not2, outname_2not1
-
-
-
-
-
-def completeness_matcher(realization_number, tile_name, filter_name, inj_10percent, inj_20percent):
-	"""Get the name of the matched catalogs for completeness plots. By construction, completeness plots examine matches between 10% injected catalogs and 20% injected catalogs separately so BOTH `INJ1_10PERCENT` and `INJ2_10PERCENT` are simultaneously True and then `INJ1_20PERCENT` and `INJ2_20PERCENT` are simultaneously True. Must change the values of these constants in the middle of the script, thus they are parameters here."""
-
-	# Input catalogs for STILTS #
-	#TODO change all inj to True?
-        if MATCH_CAT1 is not 'coadd':
-                in1 = get_catalog(cat_type=MATCH_CAT1, inj_10percent=inj_10percent, inj_20percent=inj_20percent, realization_number=realization_number, tile_name=tile_name, filter_name=filter_name, inj=INJ1)
-        if MATCH_CAT1 == 'coadd':
-                in1 =  get_coadd_matcher_catalog(cat_type=MATCH_CAT1, inj_10percent=inj_10percent, inj_20percent=inj_20percent, realization_number=realization_number, tile_name=tile_name, mag_hdr=M_HDR1, err_hdr=M_ERR_HDR1, inj=INJ1)
-
-        if MATCH_CAT2 is not 'coadd':
-                in2 = get_catalog(cat_type=MATCH_CAT2, inj_10percent=inj_10percent, inj_20percent=inj_20percent, realization_number=realization_number, tile_name=tile_name, filter_name=filter_name, inj=INJ2)
-        if MATCH_CAT2 == 'coadd':
-                in2 =  get_coadd_matcher_catalog(cat_type=MATCH_CAT2, inj_10percent=inj_10percent, inj_20percent=inj_20percent, realization_number=realization_number, tile_name=tile_name, mag_hdr=M_HDR2, err_hdr=M_ERR_HDR2, inj=INJ2)
-
-	# Rewrite #
-	if RUN_TYPE is not None:
-		__class1 = get_class(cat_type=MATCH_CAT1, inj_10percent=inj_10percent, inj_20percent=inj_20percent, suf='')
-	if RUN_TYPE is None:
-		__class1 = get_class(cat_type=MATCH_CAT1, inj_10percent=inj_10percent, inj_20percent=inj_20percent, suf='_1')
-
-	__class2 = get_class(cat_type=MATCH_CAT2, inj_10percent=inj_10percent, inj_20percent=inj_20percent, suf='_2')	
-
-	__title1, __title2 = __class1.title_piece, __class2.title_piece,
-	match_type = get_match_type(title_piece1=__title1, title_piece2=__title2)
-
-
-	# !!!!! User may wish to edit directory structure. Output catalog name for STILTS #
-        match_dir = os.path.join(OUTDIR, 'outputs', BALROG_RUN, match_type, tile_name, realization_number, 'catalog_compare')
-
-        # Check for directory existence #
-        if os.path.isdir(match_dir) is False:
-                if NO_DIR_MAKE is False:
-                        sys.exit('Directory ' + str(match_dir) + ' does not exist. \n Change directory structure in ms_plotter.matcher() or set `NO_DIR_MAKE=True`')
-                if NO_DIR_MAKE:
-                        print 'Making directory ', match_dir, '...\n'
-                        os.makedirs(match_dir)
-
-	outname_match = os.path.join(match_dir, tile_name+'_'+realization_number+'_'+str(match_type)+'_match1and2.csv')
-	outname_1not2 = os.path.join(match_dir, tile_name+'_'+realization_number+'_'+str(match_type)+'_match1not2.csv')
-        outname_2not1 = os.path.join(match_dir, tile_name+'_'+realization_number+'_'+str(match_type)+'_match2not1.csv')
-
-	# Overwrite matched catalogs if one already exists? #
-        overwrite = False
-
-        # Check existence #
-        if os.path.isfile(outname_2not1) is False or (os.path.isfile(outname_2not1) and overwrite):
-
-
-                ### Matching done in ms_matcher. Parameters in1, in2, out, RA_HDR1, DEC_HDR1, RA_HDR2, DEC_HDR2, overwrite ###
-                # !!!!! Ensure that path to ms_matcher is correct #
-                subprocess.call(['/data/des71.a/data/mspletts/balrog_validation_tests/scripts/BalVal/ms_matcher', in1, in2, outname_match, outname_1not2, outname_2not1, RA_HDR1, DEC_HDR1, RA_HDR2, DEC_HDR2])
-
-
-	return outname_match, outname_1not2, outname_2not1
 
 
 
@@ -4692,10 +4673,10 @@ def stack_tiles(realization_number):
 		for t in ALL_TILES:
 
 			if RUN_TYPE is None:
-				fn_match, fn_1not2, fn_2not1 = matcher(realization_number=realization_number, tile_name=t, filter_name=None)
+				fn_match, fn_1not2, fn_2not1 = matcher(realization_number=realization_number, tile_name=t, filter_name=None, inj1=INJ1, inj2=INJ2, inj1_percent=INJ1_PERCENT, inj2_percent=INJ2_PERCENT)
 
 			if RUN_TYPE is not None:
-				fn_match, fn_1not2, fn_2not1 = fof_matcher(realization_number=realization_number, tile_name=t)
+				fn_match, fn_1not2, fn_2not1 = fof_matcher(realization_number=realization_number, tile_name=t) #TODO update with inj?
 
 			all_fn_match.append(fn_match); all_fn_1not2.append(fn_1not2); all_fn_2not1.append(fn_2not1)
 
@@ -4776,10 +4757,10 @@ def stack_realizations(tile_name):
 		for r in ALL_REALIZATIONS:
 
 			if RUN_TYPE is None:
-				fn_match, fn_1not2, fn_2not1 = matcher(realization_number=r, tile_name=tile_name, filter_name=None)
+				fn_match, fn_1not2, fn_2not1 = matcher(realization_number=r, tile_name=tile_name, filter_name=None, inj1=INJ1, inj2=INJ2, inj1_percent=INJ1_PERCENT, inj2_percent=INJ2_PERCENT)
 
 			if RUN_TYPE is not None:
-				fn_match, fn_1not2, fn_2not1 = fof_matcher(realization_number=r, tile_name=tile_name)
+				fn_match, fn_1not2, fn_2not1 = fof_matcher(realization_number=r, tile_name=tile_name) #FIXME
 
 			all_fn_match.append(fn_match); all_fn_1not2.append(fn_1not2); all_fn_2not1.append(fn_2not1)
 
@@ -4806,15 +4787,12 @@ def stack_realizations(tile_name):
 
 
 
-def get_fraction_recovered_include_flags(inj_10percent, inj_20percent, constant, df):
+def get_fraction_recovered_include_flags(inj_percent, constant, df):
 	"""Get fraction of injected objects recovered after matching.
 
 	Parameters
 	----------
-	inj_10percent (bool) -- If `inj_10percent=True` refers to 10% Balrog-injected catalog.
-
-
-	inj_20percent (bool) -- If `inj_20percent=True` refers to 20% Balrog-injected catalog.
+	inj_percent (int) -- Refers to percent injected in Balrog catalog.
 
 	constant (int) -- Refers to the number of catalogs. `constant=1` unless catalogs are stacked (by tile or by realization).
 
@@ -4826,10 +4804,9 @@ def get_fraction_recovered_include_flags(inj_10percent, inj_20percent, constant,
 	notRecovered = df.shape[0]
 
 	# Number of injections in a single truth catalog #
-	if inj_10percent:
-		# 10% injection #
+	if inj_percent == 10:
 		injSingleCat = 5000.0
-	if inj_20percent:
+	if inj_percent == 20:
 		injSingleCat = 10000.0
 
 	# Total number of injections. Differs from `injSingleCat` if catalogs were stacked #
@@ -4856,27 +4833,10 @@ def get_fraction_recovered_include_flags(inj_10percent, inj_20percent, constant,
 
 
 
+def get_df(realization_number, tile_name, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, inj1, inj2, inj1_percent, inj2_percent):
+	"""Get pandas DataFrame and read it."""
 
-def get_df_for_completeness_plot(realization_number, tile_name, filter_name, inj_10percent, inj_20percent):
-	"""Get pandas DataFrame"""
-	
-	# Filenames for catalogs #
-	if RUN_TYPE is None:
-		fn_match, fn_1not2, fn_2not1 = completeness_matcher(realization_number=realization_number, tile_name=tile_name, filter_name=None, inj_10percent=inj_10percent, inj_20percent=inj_20percent)
-
-	if RUN_TYPE is not None:
-		print 'TODO'
-
-	# Get DataFrame #
-	df1and2 = pd.read_csv(fn_match)
-
-	return df1and2
-
-
-
-
-def get_df(realization_number, tile_name, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
-	"""TODO?"""
+	print 'Getting and reading DataFrame ... \n'
 
 	__mag_hdr1, __mag_hdr2, __mag_err_hdr1, __mag_err_hdr2 = mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2
 
@@ -4884,12 +4844,14 @@ def get_df(realization_number, tile_name, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_
         for r in ALL_REALIZATIONS:
                 if STACK_TILES and STACK_REALIZATIONS is False:
                         fn_stack_match, fn_stack_1not2, fn_stack_2not1, num_stack_tile = stack_tiles(realization_number=r)
+			num_stack_real = None
 
 
 	### Stack realizations ###
         for t in ALL_TILES:
                 if STACK_REALIZATIONS and STACK_TILES is False:
                         fn_stack_match, fn_stack_1not2, fn_stack_2not1, num_stack_real = stack_realizations(tile_name=t)
+			num_stack_tile = None
 
 	### Read stacked catalog ###
 	if STACK_TILES or STACK_REALIZATIONS:
@@ -4904,9 +4866,9 @@ def get_df(realization_number, tile_name, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_
 		num_stack_tile, num_stack_real = None, None
 		# Filenames for catalogs #
 		if RUN_TYPE is None:
-			fn_match, fn_1not2, fn_2not1 = matcher(realization_number=realization_number, tile_name=tile_name, filter_name=None)
+			fn_match, fn_1not2, fn_2not1 = matcher(realization_number=realization_number, tile_name=tile_name, filter_name=None, inj1=inj1, inj2=inj2, inj1_percent=inj1_percent, inj2_percent=inj2_percent)
 		if RUN_TYPE is not None:
-			fn_match, fn_1not2, fn_2not1 = fof_matcher(realization_number=realization_number, tile_name=tile_name)
+			fn_match, fn_1not2, fn_2not1 = fof_matcher(realization_number=realization_number, tile_name=tile_name) #FIXME
 
 		# Get DataFrame #
 		df1and2 = pd.read_csv(fn_match)
@@ -4994,7 +4956,8 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 	for t in list_of_tiles_for_loop:
                 for r in list_of_realizations_for_loop:
 
-			df1and2, df1not2, df2not1, magHdr1, magHdr2, magErrHdr1, magErrHdr2, numStackTile, numStackReal = get_df(realization_number=r, tile_name=t, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2)
+			#if PLOT_COMPLETENESS is False: need numStack 
+			df1and2, df1not2, df2not1, magHdr1, magHdr2, magErrHdr1, magErrHdr2, numStackTile, numStackReal = get_df(realization_number=r, tile_name=t, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, inj1=INJ1, inj2=INJ2, inj1_percent=INJ1_PERCENT, inj2_percent=INJ2_PERCENT)
 
 			fn_flag, fn_mag_bins, fn_main_log, __fn_color_plot_log, __fn_mag_outliers, fnCompletenessLog, fnMagCompletenessDeltaMagLog = get_log_file_names(tile_name=t, realization_number=r)
                         # Write headers #
@@ -5012,10 +4975,10 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 			### Objects recovered from truth catalog (truth catalogs ONLY) ###
                         if 'truth' in MATCH_CAT1 or 'truth' in MATCH_CAT2:
 
-                                if 'truth' in MATCH_CAT1:
-                                         fractionRecovered = get_fraction_recovered_include_flags(inj_10percent=True, inj_20percent=INJ1_20PERCENT, df=df1not2, constant=const)
-                                if 'truth' in MATCH_CAT2:
-                                        fractionRecovered = get_fraction_recovered_include_flags(inj_10percent=True, inj_20percent=INJ2_20PERCENT, df=df2not1, constant=const)
+                                if 'truth' in MATCH_CAT1 and INJ1:
+                                         fractionRecovered = get_fraction_recovered_include_flags(inj_percent=INJ1_PERCENT, df=df1not2, constant=const)
+                                if 'truth' in MATCH_CAT2 and INJ2:
+                                        fractionRecovered = get_fraction_recovered_include_flags(inj_percent=INJ2_PERCENT, df=df2not1, constant=const)
 
                                 # TILE \t REALIZATION \t FILTER \t PERCENT_RECOVERED #
                                 #fd_full_recovered_log.write(str(t) + '\t' + str(r) + '\t' + 'griz\t' + str(fractionRecovered*100) + '\n')
@@ -5028,185 +4991,28 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 			### Region files ####
                         if MAKE_REG: make_region_files(df_match=df1and2, df_1not2=df1not2, df_2not1=df2not1, realization_number=r, tile_name=t)	
 
-	#sys.exit('test get_df') 
 
-
-
-
-
-
-
-	'''
-	### Stack tiles ###
-	for r in ALL_REALIZATIONS:
-		if STACK_TILES and STACK_REALIZATIONS is False:
-			fn_stack_match, fn_stack_1not2, fn_stack_2not1, num_stack_tile = stack_tiles(realization_number=r)
-			# Rewrite #
-			list_of_tiles_for_loop = ['stack']
-
-
-
-	### Stack realizations ###
-	for t in ALL_TILES:
-		if STACK_REALIZATIONS and STACK_TILES is False:
-			fn_stack_match, fn_stack_1not2, fn_stack_2not1, num_stack_real = stack_realizations(tile_name=t)
-			# Rewrite #
-			list_of_realizations_for_loop = ['stack']
-
-
-
-	### Objects recovered from truth catalog (truth catalogs ONLY) ###
-	#TODO do not need to get df1and2 here if making completeness plot because overwritten in completeness_matcher. Note that this will not work for stacked catalogs
-	if STACK_TILES or STACK_REALIZATIONS:
-
-		# Get DataFrame for stacked catalogs #
-		if STACK_REALIZATIONS or STACK_TILES:
-			df1and2 = pd.read_csv(fn_stack_match)
-			df1not2 = pd.read_csv(fn_stack_1not2)
-			df2not1 = pd.read_csv(fn_stack_2not1)
-
-		# Define number of catalogs stacked #
-		if STACK_TILES: const = num_stack_tile
-		if STACK_REALIZATIONS: const = num_stack_real
-
-
-
-	for t in list_of_tiles_for_loop:
-
-		for r in list_of_realizations_for_loop:
-
-			# Filenames for log files #
-			#TODO fnFlagLog, fnMagErrLog, fnMainLog, fnColorPlotLog..forwhat, fnDeltaMagOutlierLog, fnCompletenessLog 
-			fn_flag, fn_mag_bins, fn_main_log, __fn_color_plot_log, __fn_mag_outliers, fnCompletenessLog, fnMagCompletenessDeltaMagLog = get_log_file_names(tile_name=t, realization_number=r)
-			# Write headers #
-			fd_main_log, fd_mag_bins, fd_flag, __fd_color_plot_log, fdDeltaMagOutliers, fdCompletenessLog, fdMagCompletenessDeltaMagLog = fd_first_write(fn_main_log=fn_main_log, fn_mag_bins=fn_mag_bins, fn_flag=fn_flag, fn_color_plot_log=__fn_color_plot_log, fn_delta_mag_outliers=__fn_mag_outliers, fn_completeness_log=fnCompletenessLog, fn_mag_completeness_delta_mag=fnMagCompletenessDeltaMagLog)
-
-
-			if STACK_REALIZATIONS is False and STACK_TILES is False:
-				const = 1
-				print 'Not stacking realizations and not stacking tiles ...\n'
-
-				# Filenames for catalogs #
-				if RUN_TYPE is None:
-					fn_match, fn_1not2, fn_2not1 = matcher(realization_number=r, tile_name=t, filter_name=None)
-				if RUN_TYPE is not None:
-					fn_match, fn_1not2, fn_2not1 = fof_matcher(realization_number=r, tile_name=t)
-
-				# Get DataFrame #
-				df1and2 = pd.read_csv(fn_match)
-				df1not2 = pd.read_csv(fn_1not2)
-				df2not1 = pd.read_csv(fn_2not1)
-
-
-
-
-			### Objects recovered from truth catalog (truth catalogs ONLY) ###
-			if 'truth' in MATCH_CAT1 or 'truth' in MATCH_CAT2:
-
-				if 'truth' in MATCH_CAT1:
-					 fractionRecovered = get_fraction_recovered_include_flags(inj_10percent=True, inj_20percent=INJ1_20PERCENT, df=df1not2, constant=const)
-				if 'truth' in MATCH_CAT2:
-					fractionRecovered = get_fraction_recovered_include_flags(inj_10percent=True, inj_20percent=INJ2_20PERCENT, df=df2not1, constant=const)
-
-				# TILE \t REALIZATION \t FILTER \t PERCENT_RECOVERED #
-				#fd_full_recovered_log.write(str(t) + '\t' + str(r) + '\t' + 'griz\t' + str(fractionRecovered*100) + '\n')
-
-			if 'truth' not in MATCH_CAT1 and 'truth' not in MATCH_CAT2:
-				# This will not be used, is a placeholder #
-				fractionRecovered = None
-
-			
-
-                        # Name for plt.savefig() #
-                        fn = get_plot_save_name(realization_number=r, tile_name=t)
-
-                        # Title for plot #
-			if STACK_REALIZATIONS is False: num_stack_real = None
-			if STACK_TILES is False: num_stack_tile = None
-                        title = get_plot_suptitle(realization_number=r, tile_name=t, num_stack_real=num_stack_real, num_stack_tile=num_stack_tile) 
-
-
-			### Handle star truth catalogs ###
-			# Star truth catalogs matched then combined #
-			if MATCH_CAT1 == 'star_truth' or MATCH_CAT2 == 'star_truth':
-                                print 'Adding new column to matched csv ...\n'
-				# mag_star #
-				new_hdr = 'mag_s'
-
-				if MATCH_CAT1 == 'star_truth':
-					suf = '_1'
-					mag_hdr1 = new_hdr
-				if MATCH_CAT2 == 'star_truth':
-					suf = '_2'
-					mag_hdr2 = new_hdr
-
-                                star_mag = get_star_mag(df=df1and2, suf=suf)
-                                # New header must be of the form {base}_x where x is a single character because of the way m_axlabel is created from m_hdr #
-                                df1and2.insert(len(df1and2.columns), new_hdr, star_mag)
-
-
-
-			### Handle Y3 Gold catalogs ###
-			# Y3 catalogs are matched then combined #
-			if 'y3_gold' in MATCH_CAT1 or 'y3_gold' in MATCH_CAT2:
-                                print 'Adding new column to matched csv ...\n'
-
-                                # New header name #
-                                if 'star' in MATCH_CAT1 or 'star' in MATCH_CAT2:
-                                        new_hdr = 'psf_mag_y'
-                                if 'star' not in MATCH_CAT1 and 'star' not in MATCH_CAT2:
-                                        new_hdr = 'cm_mag_y'
-
-                                if 'y3_gold' in MATCH_CAT1: 
-                                        hdr = M_HDR1
-                                        mag_hdr1 = new_hdr
-				if 'y3_gold' in MATCH_CAT2:
-                                        hdr = M_HDR2
-                                        mag_hdr2 = new_hdr
-
-                                y3_gold_mag = get_y3_gold_mag(df=df1and2, mag_hdr=hdr)
-                                # Add new column to df #
-                                df1and2.insert(len(df1and2.columns), new_hdr, y3_gold_mag)
-
-
-	
-
-			### Handle coadd catalogs. New column has been added with name 'mag_c'. Catalog combined then matched so has suffix (unlike star) #
-			if MATCH_CAT1 == 'coadd':
-				mag_hdr1 = 'mag_c_1'
-				mag_err_hdr1 = 'mag_err_c_1'
-			if MATCH_CAT2 == 'coadd':
-				mag_hdr2 = 'mag_c_2'
-				mag_err_hdr2 = 'mag_err_c_2'
-
-
-			### Region files ####
-                        if MAKE_REG: make_region_files(df_match=df1and2, df_1not2=df1not2, df_2not1=df2not1, realization_number=r, tile_name=t)
-			'''
-
-	if True is True:
-		if True is True:
-			if PLOT_COLOR is False and PLOT_COMPLETENESS is False and PLOT_FLUX_HIST is False:
+			### Call plotting functions ###	
+			if PLOT_MAG and PLOT_COMPLETENESS is False:
 				delta_magnitude_subplotter(df=df1and2, flag_idx=flag_idx, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, fn_plot=fn, plot_title=title, realization_number=r, tile_name=t, fd_mag_bins=fd_mag_bins, fd_main_log=fd_main_log, fd_flag=fd_flag, fraction_recovered=fractionRecovered, fd_delta_mag_outliers=fdDeltaMagOutliers) 
-			#FIXME call to normalized_delta_magnitude_subplotter()
 
 			if PLOT_COLOR and PLOT_COMPLETENESS is False:
-				for f in ['g', 'r', 'i']:
+				for f in ALL_FILTERS:
 					color_subplotter(filter_name=f, df=df1and2, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization_number=r, tile_name=t, fd_flag=fd_flag, plot_title=title, fn_plot=fn, fd_color_plot_log=__fd_color_plot_log)
 
-			### Completeness plots (for truth catalogs vs ...) ###
-			if ('truth' in MATCH_CAT1 or 'truth' in MATCH_CAT2) and ((INJ1_10PERCENT and INJ2_10PERCENT) or (INJ1_20PERCENT and INJ2_20PERCENT)) and PLOT_COMPLETENESS:
-				if PLOT_COLOR is False:
-					for f in ['g', 'r', 'i', 'z']:
+			### Completeness plots (for truth catalogs vs injected {mof/sof/coadd/...}) ###
+			if ('truth' in MATCH_CAT1 or 'truth' in MATCH_CAT2) and (INJ1 and INJ2) and PLOT_COMPLETENESS:
+				if PLOT_MAG:
+					for f in ALL_FILTERS: 
 						#FIXME pass different df for dif inj %
 						magnitude_completeness_subplotter(filter_name=f, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization_number=r, tile_name=t, plot_title=title, fn_plot=fn, fd_flag=fd_flag, flag_idx=[], fd_completeness_log=fdCompletenessLog, fd_completeness_delta_mag_log=fdMagCompletenessDeltaMagLog)#TODO change flag_idx?
 				if PLOT_COLOR:
-					for f in ['g', 'r', 'i']:
+					for f in ALL_FILTERS[:-1]: 
 						color_completeness_subplotter(filter_name=f, df=df1and2, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization_number=r, tile_name=t, plot_title=title, fn_plot=fn, fd_flag=fd_flag, flag_idx=[], fd_completeness_log=fdCompletenessLog)
 
 
-			if PLOT_FLUX_HIST:
-				norm_flux_histogram_subplotter(df=df1and2, flux_hdr1=CM_FLUX_HDR1, flux_hdr2=CM_FLUX_HDR2, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, plot_title=title)
+			if PLOT_FLUX:
+				norm_flux_histogram_subplotter(df=df1and2, flux_hdr1=CM_FLUX_HDR1, flux_hdr2=CM_FLUX_HDR2, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, plot_title=title, fn_plot=fn)
 
 			### Close log files after each iteration over a realization ###
 			fd_flag.close(); fd_mag_bins.close(); fd_main_log.close(); fdMagCompletenessDeltaMagLog.close(); fdCompletenessLog.close() 
@@ -5219,17 +5025,14 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 
 
 
-def get_coadd_matcher_catalog(cat_type, inj_10percent, inj_20percent, realization_number, mag_hdr, err_hdr, tile_name, inj):
+def get_coadd_matcher_catalog(cat_type, inj_percent, inj, realization_number, mag_hdr, err_hdr, tile_name):
 	"""Make FITS file that includes a column of form '(m_g, m_r, m_i, m_z)' where m is magnitude. Column will be added to '..._i_cat.fits'. This will be used in matcher(). Relies on directory structure /`OUTDIR`/outputs/`BALROG_RUN`/`MATCH_TYPE`/{tile}/{realization}/catalog_compare/
 
 	Parameters
 	----------
 	cat_type (str) -- Catalog type. Allowed values: mof, sof, coadd, gal_truth, star_truth, y3_gold.
 
-
-	inj_10percent (bool) -- If `inj_10percent=True` refers to 10% Balrog-injected catalog.
-
-	inj_20percent (bool) -- If `inj_20percent=True` refers to 20% Balrog-injected catalog.
+	inj_percent (int) --
 
 	realization_number (str)
 
@@ -5264,7 +5067,7 @@ def get_coadd_matcher_catalog(cat_type, inj_10percent, inj_20percent, realizatio
 		# Get list of filenames #
 		fn_griz = []
 		for f in ALL_FILTERS:
-			fn_griz.append(get_catalog(inj=inj, cat_type=cat_type, inj_10percent=inj_10percent, inj_20percent=inj_20percent, realization_number=realization_number, tile_name=tile_name, filter_name=f))
+			fn_griz.append(cat_type=cat_type, inj=inj, inj_percent=inj_percent, realization_number=realization_number, tile_name=tile_name, filter_name=filter_name)
 		fn_g, fn_r, fn_i, fn_z = fn_griz
 
 		# Get coadd magnitude (mag_c) and magnitude error to be of form '(m_g, m_r, m_i, m_z)'. Recall that this is a string #
