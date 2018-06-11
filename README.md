@@ -34,33 +34,33 @@ Parameter(s) | Type | Description & _allowed values_ (if Type not bool)
 :---: | :---: | ---
 |`MATCH_CAT1` `MATCH_CAT2` | str | Type of catalogs to analyse. _Allowed values_:  `mof` `sof` `star_truth` `gal_truth` `y3_gold` `coadd`
 | `INJ1` `INJ2` | bool | If `True` then `MATCH_CAT1` `MATCH_CAT2` are Balrog-injected. If `False` then `MATCH_CAT1` `MATCH_CAT2` are base catalogs.
-|`INJ1_PERCENT` `INJ2_PERCENT` | int | Injection percent for `MATCH_CAT1` `MATCH_CAT2`. Is important to specify for `INJ1=False` `INJ2=False` because impacts directory structure.
+|`INJ1_PERCENT` `INJ2_PERCENT` | int | Injection percent for `MATCH_CAT1` `MATCH_CAT2`. It is important to specify these parameters even in the case of `INJ1=False` `INJ2=False` because this parameters impacts directory structure.
 | `PLOT_MAG` | bool | If `True` plots of g-, r-, i-, and z-band magnitude are created.
-| `PLOT_COLOR` | bool | If `True` colors g-r, r-i, and i-z are plotted. If `False` magnitudes are plotted. `PLOT_COLOR` creates a 2x2 subplot with subplots corresponding to different magnitude bins (currently \[20,21), \[21,22), \[22,23), and \[23,24)). Magnitudes are binned according to values in `MATCH_CAT1` for the leading filter (g for g-r, etc). 
-| `PLOT_FLUX` | bool | If `True` a 1D histogram of DeltaFlux/SigmaFlux is plotted along with a standard Gaussian (mean=0, standard_deviation=1) and a fit to the 1D histogram. DeltaFlux is computed as truth_flux minus {SOF/MOF/coadd}\_flux. SigmaFlux is computed using only the measured catalog (SOF/MOF/coadd).
+| `PLOT_COLOR` | bool | If `True` colors g-r, r-i, and i-z are plotted. Creates a 2x2 grid with subplots corresponding to different magnitude bins (currently \[20,21), \[21,22), \[22,23), and \[23,24)). Magnitudes are binned according to values in `MATCH_CAT1` for the leading filter (g for g-r, etc). 
+| `PLOT_FLUX` | bool | If `True` a 1D histogram of Delta_Flux/Sigma_Flux is plotted along with a standard Gaussian (mean=0, standard_deviation=1) and a fit to the 1D histogram. Delta_Flux is computed as truth_flux minus {SOF/MOF/coadd}\_flux. Sigma_Flux is computed using only the measured catalog (SOF/MOF/coadd).
 | `SAVE_PLOT` | bool | If `True` plot is saved using name assigned by `ms_plotter.get_plot_save_name()`.
 | `SHOW_PLOT` | bool | If `True` plot is displayed after it is created.
 | `NORMALIZE` | bool | If `True` the magnitude plot is normalized according to the *measured* 1sigma magnitude error.
 | `HIST_2D` | bool | If `True` a `matplotlib.pyplot` 2D histogram is plotted.
 | `CORNER_HIST_2D` | bool | If `True` `corner.hist2d` plots are created using [corner.py](https://github.com/dfm/corner.py).
 | `PLOT_DELTA_VAX` | bool | If `True` a difference is plotted on the vertical axis to produce a plot of form `x` versus `x-y`. If `False` a plot of form `x` versus `y` is produced.
-| `PLOT_COMPLETENESS` | bool | If `True` a 1x2 plot grid is produced with 10% injection {magnitude/color} completeness plot and 20% {magnitude/color} completeness plot, respectively. `PLOT_COLOR` determines if the completeness plot displays magnitude or color completeness.
-| `SCATTER` | bool | If `True` a scatter plot is produced.
-|`HEXBIN` | bool | If `True` a density plot via `hexbin()` is produced.
-|`CM_T_S2N_COLORBAR` | bool | If `True` a colorbar that displays the *measured* cm_T signal-to-noise is added to the magnitude versus delta magnitude plot. `NORMALIZE` must be False.
-|`CM_T_COLORBAR` | bool | If `True` a colorbar is added to the magnitude versus delta magnitude plot according to the *measured* cm_T. `NORMALIZE` must be False.
-| `CM_T_ERR_COLORBAR` | bool | If `True` a colorbar is added to the magnitude versus delta magnitude plot according to the *measured* cm_T error. `NORMALIZE` must be False.
-| `BIN_CM_T_S2N` | bool | If `True` the *measured* cm_T signal-to-noise is binned using `[0, 1, 9, 20, max(cm_t_s2n)]`
-| `PLOT_1SIG` | bool | If `True` the 1sigma magnitude error curve is plotted. `NORMALIZE` must be False.
+| `PLOT_COMPLETENESS` | bool | If `True` a 1x2 plot grid is produced with 10% injection {magnitude/color} completeness plot and 20% {magnitude/color} completeness plot, respectively. `PLOT_MAG` and `PLOT_COLOR` determines if the completeness plot displays magnitude or color completeness.
+| `SCATTER` | bool | If `True` a `matplotlib.pyplot.scatter()` plot is produced.
+|`HEXBIN` | bool | If `True` a density plot via `matplotlib.pyplot.hexbin()` is produced.
+|`CM_T_S2N_COLORBAR` | bool | If `True` and `PLOT_MAG` a colorbar that displays the *measured* cm_T signal-to-noise is added to the plot. `NORMALIZE` must be False.
+|`CM_T_COLORBAR` | bool | If `True` and `PLOT_MAG` a colorbar is added to the plot according to the *measured* cm_T. `NORMALIZE` must be False.
+| `CM_T_ERR_COLORBAR` | bool | If `True` and `PLOT_MAG` a colorbar is added to the plot according to the *measured* cm_T error. `NORMALIZE` must be False.
+| `BIN_CM_T_S2N` | bool | If `True` and `PLOT_MAG` the *measured* cm_T signal-to-noise is binned using `[0, 1, 9, 20, max(cm_t_s2n)]`
+| `PLOT_1SIG` | bool | If `True` and and `PLOT_MAG` the 1sigma magnitude error curve is plotted. `NORMALIZE` must be False.
 | `YLOW` `YHIGH` | int, float or `None` | Limits for the vertical axis of plot. `None` results in default scaling.
 | `STACK_REALIZATIONS` | bool | If `True` catalogs are matched then stacked. One stacked realization catalog is produced per tile. Plotting resumes with stacked catalog. Must be used with `realizations=all` at command line...
 | `STACK_TILES` | bool | If `True` catalogs are matched then stacked. One stacked tile catalog is produced per realization.
 | `CENTER_ERR_ABT_ZERO`| bool | If `True` the plot of the magnitude error is centered about zero. This (minorly) affects the number of objects within 1sigma_mag. If `False` the plot of the magnitude error is centered about the median of the vertical axis data each bin.
-| `PLOT_68P` | bool | Only considered if `NORMALIZE=True`. If `True` the 68th percentile of the vertical axis data in each bin are plotted. Bins refer to the magnitude bins used in the magnitude error calculation. Exists in `ms_plotter.normalized_delta_magnitude_plotter()`.
-| `PLOT_34P_SPLIT` | bool | Only considered if `NORMALIZE=True`. If `True` the 34th percentile of the positive and negative vertical axis data in each bin are plotted separately. Bins refer to the magnitude bins used in the magnitude error calculation. Exists in `ms_plotter.normalized_delta_magnitude_plotter()`.
+| `PLOT_68P` | bool | Considered if `NORMALIZE=True`. If `True` the 68th percentile of the vertical axis data in each bin are plotted. Bins refer to the magnitude bins used in the magnitude error calculation. Exists in `ms_plotter.normalized_delta_magnitude_plotter()`.
+| `PLOT_34P_SPLIT` | bool | Considered if `NORMALIZE=True`. If `True` the 34th percentile of the positive and negative vertical axis data in each bin are plotted separately. Bins refer to the magnitude bins used in the magnitude error calculation. Exists in `ms_plotter.normalized_delta_magnitude_plotter()`.
 | `SUBPLOT` | bool | If `True` four subplots are created in a 2x2 grid. If `False` plots are created individually.
 | `MOF` | bool | Only used if `RUN_TYPE` is not `None`. Does `BASEPATH` entered at command line contain MOF (`MOF=True` or SOF `MOF=False` catalogs?
-| `MAKE_REG`| bool | If `True`, three DS9 region files created containing 1) objects in both catalogs, 2) objects in the first not second catalog, 3) objects in second not first.
+| `MAKE_REG`| bool | If `True`, three DS9 region files created containing 1) objects in both catalogs, 2) objects in the first not the second catalog, 3) objects in the second not the first catalog.
 | `NO_DIR_MAKE` | bool| If `True` nonexistent directories will be created. If `False`, `sys.exit()` is invoked when nonexistent directories are encountered.
 | `SWAP_HAX` | bool | If `False` (default) `MATCH_CAT1` values are plotted on the horizontal axis. If `True` `MATCH_CAT2` values are plotted on the horizontal axis.
 | `RUN_TYPE` | str | _Allowed values_: `None` `'ok'` `'rerun'`. `'ok'`: FOF groups *un*changed after Balrog-injection. `'rerun'`: FOF groups changed after Balrog-injection. `None`: FOF analysis not conducted. If `RUN_TYPE='rerun'` or `RUN_TYPE='ok'` then `MATCH_CAT1` `MATCH_CAT2` `INJ1` and `INJ2` will be overwritten.
