@@ -26,7 +26,6 @@ import csv
 import fileinput
 import math
 import matplotlib.pyplot as plt
-import matplotlib #FIXME
 import numpy as np
 import os
 import pandas as pd
@@ -84,8 +83,8 @@ INJ1, INJ2 = True, True
 INJ1_PERCENT, INJ2_PERCENT = 20, 20
 
 # Observable #
-PLOT_MAG = True
-PLOT_COLOR = False
+PLOT_MAG = False
+PLOT_COLOR = True
 PLOT_FLUX = False
 
 SAVE_PLOT = False
@@ -93,8 +92,8 @@ SHOW_PLOT = True
 
 # Display observable #
 PLOT_COMPLETENESS = False
-HIST_2D = True
-CORNER_HIST_2D = False
+HIST_2D = False
+CORNER_HIST_2D = True
 HEXBIN = False 
 SCATTER = False
 CM_T_S2N_COLORBAR = False
@@ -112,7 +111,7 @@ SHOW_PLOT = True
 
 PLOT_DELTA_VAX = True
 
-YLOW, YHIGH = None, None
+YLOW, YHIGH = None, None 
 
 STACK_REALIZATIONS = False
 STACK_TILES = False
@@ -272,6 +271,8 @@ class CoaddCat():
 
 		Parameters
 		----------
+		inj (bool)
+
 		inj_percent (int)
 			If True refers to 20% Balrog-injected catalog. If False refers to base (non-Balrog-injected) catalog. 
 
@@ -336,6 +337,8 @@ class GalTruthCat():
 
 		Parameters
 		----------
+		inj (bool)
+
 		inj_percent (int)
 
 		suf (str)
@@ -396,6 +399,8 @@ class SOFCat():
 
                 Parameters
                 ----------
+		inj (bool)
+
                 inj_percent (int)
 
                 suf (str)
@@ -922,6 +927,8 @@ FLAG_HDR_LIST = [ FLAGS_HDR1, FLAGS_HDR2, CM_FLAGS_HDR1, CM_FLAGS_HDR2, CM_MOF_F
 # Percentile levels for contours. Default is 1.0 - np.exp(-0.5 * np.arange(0.5, 2.1, 0.5) ** 2) via https://github.com/dfm/corner.py/blob/master/corner/corner.py #
 # Correct 1sigma for a 2D histogram is given by http://corner.readthedocs.io/en/latest/pages/sigmas.html #
 ##FIXME LVLS = 1.0 - np.exp(-0.5 * np.array([0.5, 1.0, 1.5, 2.2]) ** 2)
+
+# `LVLS` passed to `corner.hist2d` interpreted as percentiles #
 LVLS = 1.0 - np.exp(-0.5 * np.array([1.5]) ** 2)
 #CLRS = ['magenta', 'red', 'blue', 'yellow']
 CLRS = ['red']
@@ -937,15 +944,6 @@ flag_idx = []
 TITLE_PIECE1, TITLE_PIECE2 = CLASS1.title_piece, CLASS2.title_piece
 MATCH_TYPE = get_match_type(title_piece1=TITLE_PIECE1, title_piece2=TITLE_PIECE2)
 
-'''
-fn_full_log = os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, 'all_flags_all_1sig.csv') 
-fd_full_log = open(fn_full_log, 'w')
-fd_full_log.write('TILE\tREALIZATION\tFILTER\tRUN_TYPE\tTOTAL_MATCHES\tTOTAL_FLAGS\tPERCENT_FLAGS\tTOTAL_1SIGMA_MAG\tPERCENT_1SIGMA_MAG\n')
-
-fn_full_recovered_log = os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, 'all_recovered.csv')
-fd_full_recovered_log = open(fn_full_recovered_log, 'w')
-fd_full_recovered_log.write('TILE\tREALIZATION\tFILTER\tPERCENT_RECOVERED\n')
-'''
 # Make pandas-readable csv #
 log_dir = os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE)
 if os.path.isdir(log_dir) is False:
@@ -1675,16 +1673,16 @@ def bin_and_cut_measured_magnitude_error(clean_magnitude1, clean_magnitude2, err
 	if 'meas' in AXLABEL1 and 'meas' not in AXLABEL2:
 		error2 = np.zeros(len(error1))
 		if PRINTOUTS:
-			print 'Using measured catalog (catalog1) for error calculation ... '
+			print 'Using measured catalog (', MATCH_CAT1, ') for error calculation ... '
 
 	if 'meas' in AXLABEL2 and 'meas' not in AXLABEL1:
 		error1 = np.zeros(len(error2))
 		if PRINTOUTS:
-			print 'Using measured catalog (catalog2) for error calculation ... '
+			print 'Using measured catalog (', MATCH_CAT2, ') for error calculation ... '
 
 	if 'meas' in AXLABEL1 and 'meas' in AXLABEL2:
 		if PRINTOUTS:
-			print 'Using measured catalogs (catalog1 AND catalog2) for error calculation ... '
+			print 'Using measured catalogs (', MATCH_CAT1, '&', MATCH_CAT2, ') for error calculation ... '
 
 	if 'true' in AXLABEL1 and 'true' in AXLABEL2:
 		sys.exit('Errors are to be computed using the measured catalog(s), not the truth catalog(s).')
@@ -2187,7 +2185,6 @@ def logger(vax_mag_bin_median, tile_name, filter_name, realization_number, clean
 	# TILE, REALIZATION, FILTER, RUN_TYPE, TOTAL_MATCHES, TOTAL_FLAGS, PERCENT_FLAGS, TOTAL_1SIGMA_MAG, PERCENT_1SIGMA_MAG #
 	fd_main_log.write( str(tile_name) + ' \t ' + str(realization_number) + ' \t ' + str(filter_name) + ' \t ' + str(RUN_TYPE) + ' \t ' + str(len(full_magnitude1)) + ' \t ' + str(num_flags) + ' \t ' + str(float(num_flags)/len(full_magnitude1)*100) + ' \t ' + str(num_1sig) + ' \t ' + str(float(num_1sig)/len(clean_magnitude1)*100) + '\n')
 
-	#fd_full_log.write( str(tile_name) + ' \t ' + str(realization_number) + ' \t ' + str(filter_name) + ' \t ' + str(RUN_TYPE) + ' \t ' + str(len(full_magnitude1)) + ' \t ' + str(num_flags) + ' \t ' + str(float(num_flags)/len(full_magnitude1)*100) + ' \t ' + str(num_1sig) + ' \t ' + str(float(num_1sig)/len(clean_magnitude1)*100) + '\n')
 
 	percent_in_1sig = float(num_1sig)/len(clean_magnitude1)
 
@@ -3154,23 +3151,26 @@ def color_subplotter(filter_name, df, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_
                 plt.subplot(2, 2, i+1)
 
 		if CORNER_HIST_2D:
-			# Create bins of 1/4 magnitude for hax and 1/20 magnitude for vax # 
+			# Create bins of 1/4 magnitude for hax # 
+			__bin_x = np.linspace(np.min(cleanColor1[i]), np.max(cleanColor1[i]), math.ceil(4.0*(np.max(cleanColor1[i]) - np.min(cleanColor1[i]))))
+			# Create bins of 1/20 magnitude for vax #
 			__ylow = np.min(np.array(__vax_color[i])) # -1*np.max(abs(np.array(__vax_color[i]))) ?
 			__yhigh = np.max(np.array(__vax_color[i])) # np.max(abs(np.array(__vax_color[i]))) ?
-			__bin_x = np.linspace(np.min(cleanColor1[i]), np.max(cleanColor1[i]), math.ceil(4.0*(np.max(cleanColor1[i]) - np.min(cleanColor1[i]))))
 			__bin_y = np.linspace(__ylow, __yhigh, 20.0*(__yhigh-__ylow))
-			__ylims = np.max(abs(np.array(__vax_color[i]))) #? 
-			#__ylims = np.min(np.array(__vax_color[i]))
 
-			# Pass `levels` to `corner.hist2d` (interpreted as percentiles). `bins` are centered about zero along the vertical axis. #
+			# Force symmetric vertical axis #
+			__sym_ylim = np.mean([abs(__ylow), __yhigh])
+			if abs(abs(__ylow) - __yhigh) > 1:
+				__sym_ylim = np.min([abs(__ylow), __yhigh])
+
                         #corner.hist2d(cleanColor1[i], __vax_color[i], bins=np.array([__bin_x, __bin_y]), no_fill_contours=False, color=get_color(filter_name=filter_name)[0], levels=LVLS, contour_kwargs={'colors':CLRS, 'cmap':None, 'linewidths':__lw})
 
 			# Plot points and not density bins #
-			corner.hist2d(cleanColor1[i], __vax_color[i], plot_density=False, bins=np.array([__bin_x, __bin_y]), no_fill_contours=True, color=get_color(filter_name=filter_name)[0], levels=LVLS, contour_kwargs={'colors':CLRS, 'cmap':None, 'linewidths':__lw}, data_kwargs={'alpha':0.25, 'ms':1.75})
+			corner.hist2d(cleanColor1[i], __vax_color[i], plot_density=False, bins=np.array([__bin_x, __bin_y]), no_fill_contours=True, color=get_color(filter_name=filter_name)[0], levels=LVLS, contour_kwargs={'colors':CLRS, 'cmap':None, 'linewidths':__lw}, data_kwargs={'alpha':0.35, 'ms':1.75})
 
 			if YLOW is None and YHIGH is None:
 				# Force symmetric vertical axis #
-				plt.ylim([-1*__ylims, __ylims])
+				plt.ylim([-1*__sym_ylim, __sym_ylim])
 			if YLOW is not None and YHIGH is not None:
 				plt.ylim([YLOW, YHIGH])
 
@@ -3196,7 +3196,7 @@ def color_subplotter(filter_name, df, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_
         plt.suptitle(plot_title, fontweight='bold')
 
         if SAVE_PLOT:
-		fn_plot = fn_plot.replace('placehold', get_write_color(filter_name=filter_name)); 
+		fn_plot = fn_plot.replace('placehold', writeColor) 
                 print '-----> Saving plot as: ', fn_plot 
                 plt.savefig(fn_plot)
 
@@ -3622,22 +3622,28 @@ def normalized_delta_magnitude_plotter(mag_hdr1, mag_hdr2, cbar_val, error1, err
 
 
         if CORNER_HIST_2D:
-                # Only the densest regions of the plot are binned so increase bin size of plt.hist2d() #
-                const = 5
-                bin_x = np.arange(min(plotHaxMag), max(plotHaxMag), const*0.5/10)
-                if YLOW is not None and YHIGH is not None:
-                        bin_y = np.arange(YLOW, YHIGH, (YHIGH-YLOW)*const*0.01)
-                if YLOW is None and YHIGH is None:
-                        bin_y = np.arange(min(plotDeltaMag), max(plotDeltaMag), (max(plotDeltaMag)-min(plotDeltaMag))*0.01)
+		# Create bins of 1/4 magnitude for hax #
+		__bin_x = np.linspace(np.min(plotHaxMag), np.max(plotHaxMag), math.ceil(4.0*(np.max(plotHaxMag) - np.min(plotHaxMag))))
+		# Create bins of 1/20 magnitude for vax #
+		__ylow = np.min(np.array(plotDeltaMag)) # -1*np.max(abs(np.array(__vax_color[i]))) ?
+		__yhigh = np.max(np.array(plotDeltaMag)) # np.max(abs(np.array(__vax_color[i]))) ?
+		__bin_y = np.linspace(__ylow, __yhigh, 20.0*(__yhigh-__ylow))
 
-		# Sigmas #
+		# Force symmetric vertical axis #
+		__sym_ylim = np.mean([abs(__ylow), __yhigh])
+
 		__lw = 0.9
-
-                corner.hist2d(plotHaxMag, plotDeltaMag, no_fill_contours=True, levels=LVLS, color=get_color(filter_name=filter_name)[0], contour_kwargs={'colors':CLRS, 'cmap':None, 'linewidth':__lw})
+		#FIXME force bin size here
+                corner.hist2d(plotHaxMag, plotDeltaMag, bins=np.array([__bin_x, __bin_y]), no_fill_contours=True, levels=LVLS, color=get_color(filter_name=filter_name)[0], contour_kwargs={'colors':CLRS, 'cmap':None, 'linewidth':__lw})
 		# Work-around for contour labels #
 		for j in np.arange(0, len(LVLS)):
 			plt.plot([0.5, 0.5], [0.5, 0.5], color=CLRS_LABEL[j], label='$P_{'+str(round(LVLS[j], 2))[2:]+'}$', linewidth=__lw)
 		plt.legend().draggable()
+
+		if YLOW is not None and YHIGH is not None:
+			plt.ylim([YLOW, YHIGH])
+		if YLOW is None and YHIGH is None:
+			plt.ylim([-1*__sym_ylim, __sym_ylim])
 
 	### Axes labels ###
         # Horizontal axis labels #
@@ -3807,28 +3813,33 @@ def delta_magnitude_plotter(mag_hdr1, mag_hdr2, cbar_val, error1, error2, filter
 	if CORNER_HIST_2D: 
 		__lw = 0.9
 
+		# Create bins of 1/4 magnitude for hax #
+		__bin_x = np.linspace(np.min(__hax_mag), np.max(__hax_mag), math.ceil(4.0*(np.max(__hax_mag) - np.min(__hax_mag))))
+		# Create bins of 1/20 magnitude for vax #
+		__ylow = np.min(np.array(__delta_mag)) # -1*np.max(abs(np.array(__vax_color[i]))) ?
+		__yhigh = np.max(np.array(__delta_mag)) # np.max(abs(np.array(__vax_color[i]))) ?
+		__bin_y = np.linspace(__ylow, __yhigh, 20.0*(__yhigh-__ylow))
+
+		# Force symmetric vertical axis #
+		__sym_ylim = np.mean([abs(__ylow), __yhigh])
+
+		# Plot points and not density bins #
+		#corner.hist2d(__hax_mag, __delta_mag, plot_density=False, bins=np.array([__bin_x, __bin_y]), no_fill_contours=True, color=get_color(filter_name=filter_name)[0], levels=LVLS, contour_kwargs={'colors':CLRS, 'cmap':None, 'linewidths':__lw}, data_kwargs={'alpha':0.25, 'ms':1.75})
+
 		# Only the densest regions of the plot are binned so increase bin size of plt.hist2d() #
 		# SLACK channel corner.hist2d "draws 1- and 2-sigma contours automatically."Correct 1sigma levels: http://corner.readthedocs.io/en/latest/pages/sigmas.html #
-		corner.hist2d(__hax_mag, __delta_mag, no_fill_contours=True, levels=LVLS, color=get_color(filter_name=filter_name)[0], contour_kwargs={'colors':CLRS, 'cmap':None, 'linewidths':__lw}) 
+		corner.hist2d(__hax_mag, __delta_mag, bins=np.array([__bin_x, __bin_y]), no_fill_contours=True, levels=LVLS, color=get_color(filter_name=filter_name)[0], contour_kwargs={'colors':CLRS, 'cmap':None, 'linewidths':__lw}) 
+
+		if YLOW is None and YHIGH is None:
+			plt.ylim([-1*__sym_ylim, __sym_ylim])
+		if YLOW is not None and YHIGH is not None:
+			plt.ylim([YLOW, YHIGH])
+
 		# Work-around for contour labels #
 		for j in np.arange(0, len(LVLS)):
 			plt.plot([0.5, 0.5], [0.5, 0.5], color=CLRS_LABEL[j], label='$P_{'+str(round(LVLS[j], 2))[2:]+'}$', linewidth=__lw)
 		plt.legend().draggable()
 
-		'''
-		# Bin magnitudes. Using bins for error but not necessary #
-		__counter_ax = 0
-		for b in np.arange(0, len(initialBins)-1):
-			__hax_mag_bin, __delta_mag_bin = [], []
-			__counter_bin = 0
-			for i in np.arange(0, len(__hax_mag)):
-				if __hax_mag[i] >= initialBins[b] and __hax_mag[i] < initialBins[b+1]:
-					__hax_mag_bin.append(__hax_mag[i])
-					__delta_mag_bin.append(__delta_mag[i])
-					__counter_bin += 1
-			if __counter_bin > 0:
-				#FIXME not being stacked. `ax` is NoneType 
-				corner.hist2d(np.array(__hax_mag_bin), np.array(__delta_mag_bin), color=get_color(filter_name=filter_name)[0], contour_kwargs={'colors':'red', 'cmap':None, 'linewidths':0.7})'''
 	### Axes labels ###
 	# Horizontal axis labels #
 	if SWAP_HAX: plt.xlabel(str(mag_axlabel2))
@@ -4468,9 +4479,9 @@ def matcher(realization_number, tile_name, filter_name, inj1, inj2, inj1_percent
 	if MATCH_CAT2 == 'coadd':
 		in2 =  get_coadd_matcher_catalog(cat_type=MATCH_CAT2, inj_percent=inj2_percent,  realization_number=realization_number, tile_name=tile_name, mag_hdr=M_HDR2, err_hdr=M_ERR_HDR2, inj=INJ2)
 
-	print 'Matching: '
-	print in1
-	print in2, '\n'
+	print 'Matching or already matched:'
+	print ' ', in1
+	print ' ', in2, '\n'
 
 	if PLOT_COMPLETENESS: 
 		### Rewrite `match_type` ###
@@ -4997,7 +5008,7 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 				delta_magnitude_subplotter(df=df1and2, flag_idx=flag_idx, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, fn_plot=fn, plot_title=title, realization_number=r, tile_name=t, fd_mag_bins=fd_mag_bins, fd_main_log=fd_main_log, fd_flag=fd_flag, fraction_recovered=fractionRecovered, fd_delta_mag_outliers=fdDeltaMagOutliers) 
 
 			if PLOT_COLOR and PLOT_COMPLETENESS is False:
-				for f in ALL_FILTERS:
+				for f in ALL_FILTERS[:-1]:
 					color_subplotter(filter_name=f, df=df1and2, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization_number=r, tile_name=t, fd_flag=fd_flag, plot_title=title, fn_plot=fn, fd_color_plot_log=__fd_color_plot_log)
 
 			### Completeness plots (for truth catalogs vs injected {mof/sof/coadd/...}) ###
@@ -5238,5 +5249,3 @@ if RUN_TYPE_LOOP:
 
 
 # Close files #
-#fd_full_log.close()
-#fd_full_recovered_log.close()
