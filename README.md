@@ -11,6 +11,7 @@ ___
 
 `ms_plotter.py` calls `ms_matcher` or `ms_fof_matcher` (which calls `ms_par.py`), analyses the matched catalog, and produces various comparison plots.
 
+Note that `ms_matcher` and `ms_fof_matcher` return CSV file formats. Further, arrays in FITS files of form `(1 2 3 4)` are converted to strings of form `'(1, 2, 3, 4)'` in matched catalogs. Similarly for matrices.
 ___
 
 # Running BalVal
