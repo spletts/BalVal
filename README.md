@@ -39,13 +39,15 @@ Parameter(s) | Type | Description & _allowed values_ (if Type not bool)
 | `PLOT_MAG` | bool | If `True` plots of g-, r-, i-, and z-band magnitude are created.
 | `PLOT_COLOR` | bool | If `True` colors g-r, r-i, and i-z are plotted. Creates a 2x2 grid with subplots corresponding to different magnitude bins (currently \[20,21), \[21,22), \[22,23), and \[23,24)). Magnitudes are binned according to values in `MATCH_CAT1` for the leading filter (g for g-r, etc). 
 | `PLOT_FLUX` | bool | If `True` a 1D histogram of Delta_Flux/Sigma_Flux is plotted along with a standard Gaussian (mean=0, standard_deviation=1) and a fit to the 1D histogram. Delta_Flux is computed as truth_flux minus {SOF/MOF/coadd}\_flux. Sigma_Flux is computed using only the measured catalog (SOF/MOF/coadd).
+| `GAUSS_APER` | bool | If `True` and `PLOT_FLUX=True` a Gaussian aperture method is used to measure the flux.
+| `TRIM_FLUX` | bool | If `True` histograms of Delta_Flux/Sigma_Flux (even those created using `GAUSS_APER`) include the 2<sup>nd</sup>-98<sup>th</sup> percentiles.
 | `SAVE_PLOT` | bool | If `True` plot is saved using name assigned by `ms_plotter.get_plot_save_name()`.
 | `SHOW_PLOT` | bool | If `True` plot is displayed after it is created.
 | `NORMALIZE` | bool | If `True` the magnitude plot is normalized according to the *measured* 1sigma magnitude error.
 | `HIST_2D` | bool | If `True` a `matplotlib.pyplot` 2D histogram is plotted.
 | `CORNER_HIST_2D` | bool | If `True` `corner.hist2d` plots are created using [corner.py](https://github.com/dfm/corner.py).
 | `PLOT_DELTA_VAX` | bool | If `True` a difference is plotted on the vertical axis to produce a plot of form `x` versus `x-y`. If `False` a plot of form `x` versus `y` is produced.
-| `PLOT_COMPLETENESS` | bool | If `True` a 1x2 plot grid is produced with 10% injection {magnitude/color} completeness plot and 20% {magnitude/color} completeness plot, respectively. `PLOT_MAG` and `PLOT_COLOR` determines if the completeness plot displays magnitude or color completeness.
+| `PLOT_COMPLETENESS` | bool | If `True` a 1x2 plot grid is produced with 10% injection {magnitude/color} completeness plot and 20% {magnitude/color} completeness plot, respectively (provided both injections are available for the particular `BALROG_RUN`). `PLOT_MAG` and `PLOT_COLOR` determines if the completeness plot displays magnitude or color completeness.
 | `SCATTER` | bool | If `True` a `matplotlib.pyplot.scatter()` plot is produced.
 |`HEXBIN` | bool | If `True` a density plot via `matplotlib.pyplot.hexbin()` is produced.
 |`CM_T_S2N_COLORBAR` | bool | If `True` and `PLOT_MAG` a colorbar that displays the *measured* cm_T signal-to-noise is added to the plot. `NORMALIZE` must be False.
