@@ -40,7 +40,7 @@ Parameter(s) | Type | Description & _allowed values_ (if Type not bool)
 | `PLOT_COLOR` | bool | If `True` colors g-r, r-i, and i-z are plotted. Creates a 2x2 grid with subplots corresponding to different magnitude bins (currently \[20,21), \[21,22), \[22,23), and \[23,24)). Magnitudes are binned according to values in `MATCH_CAT1` for the leading filter (g for g-r, etc). 
 | `PLOT_FLUX` | bool | If `True` a 1D histogram of Delta_Flux/Sigma_Flux is plotted along with a standard Gaussian (mean=0, standard_deviation=1) and a fit to the 1D histogram. Delta_Flux is computed as truth_flux minus {SOF/MOF/coadd}\_flux. Sigma_Flux is computed using only the measured catalog (SOF/MOF/coadd).
 | `GAUSS_APER` | bool | If `True` and `PLOT_FLUX=True` a Gaussian aperture method is used to measure the flux.
-| `TRIM_FLUX` | bool | If `True` histograms of Delta_Flux/Sigma_Flux (even those created using `GAUSS_APER`) include the 2<sup>nd</sup>-98<sup>th</sup> percentiles.
+| `TRIM_FLUX` | bool | If `True` and `PLOT_FLUX=True` histograms of Delta_Flux/Sigma_Flux (even those created using `GAUSS_APER`) include the 2<sup>nd</sup>-98<sup>th</sup> percentiles.
 | `SAVE_PLOT` | bool | If `True` plot is saved using name assigned by `ms_plotter.get_plot_save_name()`.
 | `SHOW_PLOT` | bool | If `True` plot is displayed after it is created.
 | `NORMALIZE` | bool | If `True` the magnitude plot is normalized according to the *measured* 1sigma magnitude error.
@@ -56,8 +56,8 @@ Parameter(s) | Type | Description & _allowed values_ (if Type not bool)
 | `BIN_CM_T_S2N` | bool | If `True` and `PLOT_MAG` the *measured* cm_T signal-to-noise is binned using `[0, 1, 9, 20, max(cm_t_s2n)]`
 | `PLOT_1SIG` | bool | If `True` and and `PLOT_MAG` the 1sigma magnitude error curve is plotted. `NORMALIZE` must be False.
 | `YLOW` `YHIGH` | int, float or `None` | Limits for the vertical axis of plot. `None` results in default scaling.
-| `STACK_REALIZATIONS` | bool | If `True` catalogs are matched then stacked. One stacked realization catalog is produced per tile. Plotting resumes with stacked catalog. Must be used with `realizations=all` at command line...
-| `STACK_TILES` | bool | If `True` catalogs are matched then stacked. One stacked tile catalog is produced per realization.
+| `STACK_REALIZATIONS` | bool | If `True` catalogs are matched then stacked. One stacked realization catalog is produced per tile. Plotting resumes with stacked catalog. Must be used with `realizations=all` or (for example) `realizations=0,1,2` at the command line.
+| `STACK_TILES` | bool | If `True` catalogs are matched then stacked. One stacked tile catalog is produced per realization. Must be used with (for example) `tiles=DES0220-0207,DES0222+0043` at the command line.
 | `CENTER_ERR_ABT_ZERO`| bool | If `True` the plot of the magnitude error is centered about zero. This (minorly) affects the number of objects within 1sigma_mag. If `False` the plot of the magnitude error is centered about the median of the vertical axis data each bin.
 | `PLOT_68P` | bool | Considered if `NORMALIZE=True`. If `True` the 68th percentile of the vertical axis data in each bin are plotted. Bins refer to the magnitude bins used in the magnitude error calculation. Exists in `ms_plotter.normalized_delta_magnitude_plotter()`.
 | `PLOT_34P_SPLIT` | bool | Considered if `NORMALIZE=True`. If `True` the 34th percentile of the positive and negative vertical axis data in each bin are plotted separately. Bins refer to the magnitude bins used in the magnitude error calculation. Exists in `ms_plotter.normalized_delta_magnitude_plotter()`.
