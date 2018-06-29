@@ -43,7 +43,7 @@ import sys
 if len(sys.argv) != 5:
         sys.exit("Args: basepath (location of catalogs), output directory, realizations (can be 'all', None (non-injected catalog), a list of form: real1,real2,...), tiles (can be 'all', a file, or a list of form: tile1,tile2,...) \n")
 # Convert `realizations` and `tiles` into lists (may be one-element list). Note 'None' entered at command line is interpreted as a str #
-BASEPATH, OUTDIR, realizations, tiles = sys.argv[1], sys.argv[2], sys.argv[3].split(','), sys.argv[4].split(',')
+BASEPATH, OUTDIR, cmd_line_realizations, cmd_line_tiles = sys.argv[1], sys.argv[2], sys.argv[3].split(','), sys.argv[4].split(',')
 
 
 ### For directory structure ###
@@ -58,18 +58,18 @@ if BALROG_RUN == 'DES0102-4914': BALROG_RUN = 'blank_test_DES0102-4914'
 ALL_FILTERS = [ 'g', 'r', 'i', 'z' ]
 
 # Realizations #
-if realizations[0] != 'all': ALL_REALIZATIONS = realizations
+if cmd_line_realizations[0] != 'all': ALL_REALIZATIONS = cmd_line_realizations
 # !!!!! Number of realizations depends on the tile. User may need to manually set ALL_REALIZATIONS or supply a list at command line. #
-if realizations[0] == 'all': ALL_REALIZATIONS = [ '0', '1', '2' ] # !!!!!
+if cmd_line_realizations[0] == 'all': ALL_REALIZATIONS = [ '0', '1', '2' ] # !!!!!
 
 # Tiles #
-if tiles[0] != 'all' and '.dat' not in tiles[0]: ALL_TILES = tiles
+if cmd_line_tiles[0] != 'all' and '.dat' not in cmd_line_tiles[0]: ALL_TILES = cmd_line_tiles
 # !!!!! User may need to manually set ALL_TILES or supply a list at command line. #
-if tiles[0] == 'all': ALL_TILES = ['DES0347-5540', 'DES2329-5622', 'DES2357-6456'] # !!!!!
+if cmd_line_tiles[0] == 'all': ALL_TILES = ['DES0347-5540', 'DES2329-5622', 'DES2357-6456'] # !!!!!
 # Accept .dat file of tile names at command line #
-if '.dat' in tiles[0]:
+if '.dat' in cmd_line_tiles[0]:
 	ALL_TILES = []
-	for line in fileinput.input(tiles):
+	for line in fileinput.input(cmd_line_tiles):
 		# Get rid of newline character \n #
 		ALL_TILES.append(line[:-1])
 
@@ -133,7 +133,7 @@ if 'y3_gold' in MATCH_CAT1:
 	INJ1_PERCENT = None
 if 'y3_gold' in MATCH_CAT2:
 	INJ2_PERCENT = None
-if realizations[0] == 'None':
+if cmd_line_realizations[0] == 'None':
 	INJ1, INJ2 = False, False
 
 # !!!!! Only used if MATCH_CAT1 or MATCH_CAT2 is 'y3_gold'. If False, SOF catalogs exists in subdirectories of BASEPATH #
@@ -191,9 +191,9 @@ def catch_error():
 
 	msg = None
 
-	if STACK_REALIZATIONS and len(realizations) == 1: msg = 'STACK_REALIZATIONS must be used with multiple realizations'
+	if STACK_REALIZATIONS and len(cmd_line_realizations) == 1: msg = 'STACK_REALIZATIONS must be used with multiple realizations'
 	#if STACK_REALIZATIONS and realizations[0] != 'all': msg = 'STACK_REALIZATIONS is True must be used with realization = all'
-	if STACK_TILES and ('.dat' not in tiles[0] and len(tiles) == 1): msg = 'STACK_TILES must be used with multiple tiles'
+	if STACK_TILES and ('.dat' not in cmd_line_tiles[0] and len(cmd_line_tiles) == 1): msg = 'STACK_TILES must be used with multiple tiles'
 	if YLOW is not None and YHIGH is not None and YHIGH == YLOW: msg = 'YLOW and YHIGH cannot be equal'
 	if NORMALIZE and PLOT_1SIG is False: msg = 'If NORMALIZE is True so must be PLOT_1SIG'
 
@@ -213,7 +213,7 @@ def catch_error():
 	#TODO add NORMALIZE
 	if cbar_counter > 1: msg = 'Only one colorbar can be used. Edit HEXBIN, CM_T_S2N_COLORBAR, CM_T_ERR_COLORBAR, HIST_2D, CM_T_COLORBAR, BIN_CM_T_S2N'
 
-	if INJ1 is False and INJ2 is False and realizations[0] != 'None': msg = 'If INJ1 and INJ2 are False realizations must be None at cmd line'
+	if INJ1 is False and INJ2 is False and cmd_line_realizations[0] != 'None': msg = 'If INJ1 and INJ2 are False realizations must be None at cmd line'
 
 	if ('truth' in MATCH_CAT1 and INJ1 is False) and ('truth' in MATCH_CAT2 and INJ2 is False): msg = 'Truth catalogs are injected'
 
@@ -738,14 +738,14 @@ def get_match_type(title_piece1, title_piece2):
 
 
 
-def get_log_file_names(tile_name, realization_number):
+def get_log_file_names(tile, realization):
         """Generate names for log files. Relies on directory structure: /`OUTDIR`/log_files/`BALROG_RUN`/`MATCH_TYPE`/{tile}/{realization}/log_files/.
 
         Parameters
 	----------
-	tile_name (str)
+	tile (str)
 
-	realization_number (str)
+	realization (str)
 
         Returns
 	-------
@@ -770,7 +770,7 @@ def get_log_file_names(tile_name, realization_number):
         """
 
         # !!!!! User may wish to edit directory structure #
-	log_dir = os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, tile_name, realization_number, 'log_files') 
+	log_dir = os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, tile, realization, 'log_files') 
         if RUN_TYPE is not None:
 		log_dir = os.path.join(log_dir, 'fof_analysis')
 
@@ -783,7 +783,7 @@ def get_log_file_names(tile_name, realization_number):
                         os.makedirs(log_dir)
 
 	# Repeated #
-	fn_rep = '_'.join([tile_name, realization_number, MATCH_TYPE])
+	fn_rep = '_'.join([tile, realization, MATCH_TYPE])
 	fn1 = os.path.join(log_dir, 'flag_log_'+fn_rep+'.log')
 	fn2 = os.path.join(log_dir, 'err_calc_'+fn_rep+'.log')
 	fn3 = os.path.join(log_dir, 'num_flags_num_1sig_'+fn_rep+'.log')
@@ -833,14 +833,14 @@ def get_log_file_names(tile_name, realization_number):
 
 
 
-def get_reg_names(tile_name, realization_number):
+def get_reg_names(tile, realization):
 	"""Generate names for region files of different join types (join types specified in ms_matcher or ms_fof_matcher). Relies on directory structure `/OUTDIR/outputs/BALROG_RUN/MATCH_TYPE/{tile}/{realization}/region_files/`
 
         Parameters
 	----------
-	tile_name (str)
+	tile (str)
 
-	realization_number (str)
+	realization (str)
 
         Returns
 	-------
@@ -855,7 +855,7 @@ def get_reg_names(tile_name, realization_number):
         """
 
         # !!!!! User may wish to edit directory structure #
-	reg_dir = os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, tile_name, realization_number, 'region_files')
+	reg_dir = os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, tile, realization, 'region_files')
         if RUN_TYPE is not None:
 		reg_dir = os.path.join(reg_dir, 'fof_analysis')
 
@@ -868,7 +868,7 @@ def get_reg_names(tile_name, realization_number):
                         os.makedirs(reg_dir)
 
 	# Repeated #
-        fn_rep = '_'.join([tile_name, realization_number, MATCH_TYPE])
+        fn_rep = '_'.join([tile, realization, MATCH_TYPE])
 	fn1 = os.path.join(reg_dir, fn_rep+'_match1and2.reg')
 	fn2 = os.path.join(reg_dir, fn_rep+'_match1not2.reg')
 	fn3 = os.path.join(reg_dir, fn_rep+'_match2not1.reg')
@@ -1348,7 +1348,7 @@ def get_good_index_using_quality_cuts(df, full_magnitude1, full_magnitude2):
 
 
 
-def handle_flags(df, flag_hdr1, flag_hdr2, filter_name, full_magnitude1, full_magnitude2, realization_number, tile_name, fd_flag):
+def handle_flags(df, flag_hdr1, flag_hdr2, filter_name, full_magnitude1, full_magnitude2, realization, tile, fd_flag):
 	"""Examine a particular flag and write to log file. Can also be used to check all flags in a list of flags.
 
 	Parameters
@@ -1360,10 +1360,10 @@ def handle_flags(df, flag_hdr1, flag_hdr2, filter_name, full_magnitude1, full_ma
 
 	full_magnitude1, full_magnitude2 (numpy.ndarray if directly from `df[hdr]` OR list of floats if from `get_floats_from_string()`) -- Values read directly from pandas DataFrame via `df[hdr]`; no objects removed using nonzero flag values and no quality cuts performed.
 
-	realization_number (str)
+	realization (str)
 		Allowed values: 0 1 2 None. Refers to Balrog injection and None refers to a one-realization run.
 
-	tile_name (str) 
+	tile (str) 
 
         Returns
 	-------
@@ -1407,12 +1407,12 @@ def handle_flags(df, flag_hdr1, flag_hdr2, filter_name, full_magnitude1, full_ma
                                 counter_idx_bad += 1
 
 				### Write flags to file with headers TILE, REALIZATION, FILTER, RUN_TYPE, FLAG1_HEADER, FLAG2_HEADER, FLAG1_VALUE, FLAG2_VALUE, MAG1, MAG2 ### 
-				fd_flag.write(str(tile_name) + '\t' + str(realization_number) + '\t' + str(filter_name) + '\t' + str(RUN_TYPE) + '\t' + str(flag_hdr1) + '\t' + str(flag_hdr2) + '\t' + str(flag1[i]) + '\t' + str(flag2[i]) + '\t' + str(full_magnitude1[i]) + '\t' + str(full_magnitude2[i]) +'\n')
+				fd_flag.write(str(tile) + '\t' + str(realization) + '\t' + str(filter_name) + '\t' + str(RUN_TYPE) + '\t' + str(flag_hdr1) + '\t' + str(flag_hdr2) + '\t' + str(flag1[i]) + '\t' + str(flag2[i]) + '\t' + str(full_magnitude1[i]) + '\t' + str(full_magnitude2[i]) +'\n')
 
 
 
 	if PRINTOUTS:
-		print 'For tile: ', str(tile_name), ' and filter: ', str(filter_name), ', checked flags: ', flag_hdr1, ' & ', flag_hdr2, '...'
+		print 'For tile: ', str(tile), ' and filter: ', str(filter_name), ', checked flags: ', flag_hdr1, ' & ', flag_hdr2, '...'
 
 	### Check if flags were found ###
 	if counter_idx_bad > 0 and PRINTOUTS:
@@ -1677,7 +1677,7 @@ def get_68percentile_from_normalized_data(norm_dm_bins, bins, hax_mag_bins):
 
 
 #TODO error --> mag_err
-def bin_and_cut_measured_magnitude_error(clean_magnitude1, clean_magnitude2, error1, error2, filter_name, tile_name, realization_number, fd_mag_bins, fd_delta_mag_outliers):
+def bin_and_cut_measured_magnitude_error(clean_magnitude1, clean_magnitude2, error1, error2, filter_name, tile, realization, fd_mag_bins, fd_delta_mag_outliers):
         """Clean error. Bin error according to horizontal axis of plot. Remove error values corresponding to objects with |DeltaMagnitude|>3. Do not consider error corresponding to empty bins nor bins with a small number of objects.
 
         Parameters
@@ -1779,7 +1779,7 @@ def bin_and_cut_measured_magnitude_error(clean_magnitude1, clean_magnitude2, err
 			if abs(__vax_mag[i]) > __log_cutoff_delta_mag:
 				__counter_delta_mag_geq1 += 1
 				# Write to log file with headers TILE REALIZATION FILTER MAG1 MAG2 DELTA_MAG #
-				fd_delta_mag_outliers.write(str(tile_name) + '\t' + str(realization_number) + '\t' + str(filter_name) + '\t' + str(clean_magnitude1[i]) + '\t' + str(clean_magnitude2[i]) + '\t' + str(__vax_mag[i]) + '\n')
+				fd_delta_mag_outliers.write(str(tile) + '\t' + str(realization) + '\t' + str(filter_name) + '\t' + str(clean_magnitude1[i]) + '\t' + str(clean_magnitude2[i]) + '\t' + str(__vax_mag[i]) + '\n')
 
                         # Do not calculate errors using outlier magnitudes (chosen to be |Delta-M| > 3). Bin magnitude errors according to the magnitude on the horizontal axis of the plot #
                         if __hax_mag[i] >= b and __hax_mag[i] < b+__step and abs(__vax_mag[i]) < __cutoff_delta_mag: 
@@ -1799,7 +1799,7 @@ def bin_and_cut_measured_magnitude_error(clean_magnitude1, clean_magnitude2, err
 		if __counter == 0: write_median, write_err = None, None
 		if __counter > 0: write_median, write_err = np.median(__hax_mag_in_bin), np.median(__err_mag_in_bin)
 		# TILE, REALIZATION, FILTER, NUM_OBJS_IN_BIN, BIN_LHS, BIN_RHS, MEDIAN_HAXIS_MAG, MEDIAN_ERROR #
-		fd_mag_bins.write( str(tile_name) + ' \t ' + str(realization_number) + ' \t ' + str(filter_name) + ' \t ' + str(__counter) + ' \t ' + str(round(b, 2)) + ' \t ' + str(round(b+__step, 2)) + ' \t ' + str(write_median)+ ' \t ' + str(write_err) + '\n')
+		fd_mag_bins.write( str(tile) + ' \t ' + str(realization) + ' \t ' + str(filter_name) + ' \t ' + str(__counter) + ' \t ' + str(round(b, 2)) + ' \t ' + str(round(b+__step, 2)) + ' \t ' + str(write_median)+ ' \t ' + str(write_err) + '\n')
 
 
                 ### Tame error calculation and normalization by adding `None` to empty bins and bins with a small number of points ###
@@ -1846,7 +1846,7 @@ def bin_and_cut_measured_magnitude_error(clean_magnitude1, clean_magnitude2, err
 
 
 #TODO err --> mag_err
-def normalize_plot_maintain_bin_structure(clean_magnitude1, clean_magnitude2, error1, error2, filter_name, tile_name, realization_number, fd_mag_bins, fd_delta_mag_outliers):
+def normalize_plot_maintain_bin_structure(clean_magnitude1, clean_magnitude2, error1, error2, filter_name, tile, realization, fd_mag_bins, fd_delta_mag_outliers):
 	"""Normalize the vertical axis using 1sigma_mag and preserve the bin structure of the horizontal axis. 
 
 	Parameters
@@ -1868,7 +1868,7 @@ def normalize_plot_maintain_bin_structure(clean_magnitude1, clean_magnitude2, er
 	# Stores the median of each bin #
 	__norm_vax_bin_median = []
 
-	haxBinMedian, vaxBinMedian, errorBinMedian, bins, haxBins, vaxBins, errorBins, hax, vax = bin_and_cut_measured_magnitude_error(clean_magnitude1=clean_magnitude1, clean_magnitude2=clean_magnitude2, error1=error1, error2=error2, filter_name=filter_name, tile_name=tile_name, realization_number=realization_number, fd_mag_bins=fd_mag_bins, fd_delta_mag_outliers=fd_delta_mag_outliers)
+	haxBinMedian, vaxBinMedian, errorBinMedian, bins, haxBins, vaxBins, errorBins, hax, vax = bin_and_cut_measured_magnitude_error(clean_magnitude1=clean_magnitude1, clean_magnitude2=clean_magnitude2, error1=error1, error2=error2, filter_name=filter_name, tile=tile, realization=realization, fd_mag_bins=fd_mag_bins, fd_delta_mag_outliers=fd_delta_mag_outliers)
  
 
 	# Loop through bins (b) #
@@ -2104,7 +2104,7 @@ def one_sigma_counter_for_normalized_delta_magnitude(norm_delta_mag, clean_magni
 
 
 #TODO bins-->mag_bins, error-->mag_err?
-def logger(vax_mag_bin_median, tile_name, filter_name, realization_number, clean_magnitude1, full_magnitude1, bins, hax_mag, fd_main_log, error, vax_mag):
+def logger(vax_mag_bin_median, tile, filter_name, realization, clean_magnitude1, full_magnitude1, bins, hax_mag, fd_main_log, error, vax_mag):
 	"""Write to various log files. Records the number of objects matched, the number of objects flagged, the number of objects within 1sigma_mag, etc.
 
 	Parameters
@@ -2131,9 +2131,9 @@ def logger(vax_mag_bin_median, tile_name, filter_name, realization_number, clean
 
         filter_name (str) 
 
-        realization_number (str) 
+        realization (str) 
 
-	tile_name
+	tile
 
         Returns
 	-------
@@ -2155,7 +2155,7 @@ def logger(vax_mag_bin_median, tile_name, filter_name, realization_number, clean
 	num_flags = len(full_magnitude1)-len(clean_magnitude1)
 
 	# TILE, REALIZATION, FILTER, RUN_TYPE, TOTAL_MATCHES, TOTAL_FLAGS, PERCENT_FLAGS, TOTAL_1SIGMA_MAG, PERCENT_1SIGMA_MAG #
-	fd_main_log.write( str(tile_name) + ' \t ' + str(realization_number) + ' \t ' + str(filter_name) + ' \t ' + str(RUN_TYPE) + ' \t ' + str(len(full_magnitude1)) + ' \t ' + str(num_flags) + ' \t ' + str(float(num_flags)/len(full_magnitude1)*100) + ' \t ' + str(num_1sig) + ' \t ' + str(float(num_1sig)/len(clean_magnitude1)*100) + '\n')
+	fd_main_log.write( str(tile) + ' \t ' + str(realization) + ' \t ' + str(filter_name) + ' \t ' + str(RUN_TYPE) + ' \t ' + str(len(full_magnitude1)) + ' \t ' + str(num_flags) + ' \t ' + str(float(num_flags)/len(full_magnitude1)*100) + ' \t ' + str(num_1sig) + ' \t ' + str(float(num_1sig)/len(clean_magnitude1)*100) + '\n')
 
 
 	percent_in_1sig = float(num_1sig)/len(clean_magnitude1)
@@ -2163,9 +2163,9 @@ def logger(vax_mag_bin_median, tile_name, filter_name, realization_number, clean
 
 	# Write to log.csv with headers: 'TILE', 'REALIZATION', 'FILTER', 'TOTAL_MATCHES', 'TOTAL_FLAGGED_OBJECTS', 'PERCENT_FLAGGED_OBJECTS', 'TOTAL_1SIGMA_MAG', 'PERCENT_1SIGMA_MAG', 'PERCENT_RECOVERED_FLAGS_INCLUDED', 'PERCENT_RECOVERED_FLAGS_REMOVED' #
 	if 'truth' in MATCH_CAT1:
-		percentRecoveredFlags, percentRecoveredNoFlags = get_percent_recovered(full_magnitude=full_magnitude1, clean_magnitude=clean_magnitude1, inj_percent=INJ1_PERCENT, filter_name=filter_name, tile_name=tile_name, realization_number=realization_number)	
+		percentRecoveredFlags, percentRecoveredNoFlags = get_percent_recovered(full_magnitude=full_magnitude1, clean_magnitude=clean_magnitude1, inj_percent=INJ1_PERCENT, filter_name=filter_name, tile=tile, realization=realization)	
 	if 'truth' in MATCH_CAT2:
-		percentRecoveredFlags, percentRecoveredNoFlags = get_percent_recovered(full_magnitude=full_magnitude1, clean_magnitude=clean_magnitude1, inj_percent=INJ2_PERCENT, filter_name=filter_name, tile_name=tile_name, realization_number=realization_number)
+		percentRecoveredFlags, percentRecoveredNoFlags = get_percent_recovered(full_magnitude=full_magnitude1, clean_magnitude=clean_magnitude1, inj_percent=INJ2_PERCENT, filter_name=filter_name, tile=tile, realization=realization)
 
 	if 'truth' not in MATCH_CAT1 and 'truth' not in MATCH_CAT2:
 		percentRecoveredFlags, percentRecoveredNoFlags = None, None
@@ -2173,7 +2173,7 @@ def logger(vax_mag_bin_median, tile_name, filter_name, realization_number, clean
 	# Append to csv #	
 	with open(FN_LOG, 'a') as csvfile:
 		writer = csv.writer(csvfile, delimiter=',')
-		writer.writerow([str(tile_name), str(realization_number), str(filter_name), str(len(full_magnitude1)), str(num_flags), str(100.0*num_flags/len(full_magnitude1)), str(num_1sig), str(100.0*num_1sig/len(clean_magnitude1)), str(percentRecoveredFlags), str(percentRecoveredNoFlags)])
+		writer.writerow([str(tile), str(realization), str(filter_name), str(len(full_magnitude1)), str(num_flags), str(100.0*num_flags/len(full_magnitude1)), str(num_1sig), str(100.0*num_1sig/len(clean_magnitude1)), str(percentRecoveredFlags), str(percentRecoveredNoFlags)])
 
 
         return percent_in_1sig, percentRecoveredFlags, percentRecoveredNoFlags 
@@ -2532,7 +2532,7 @@ def get_color_axlabel(inj, axlabel, match_cat, filter_name, inj_percent):
 
 
 #FIXME get rid of flag_idx?
-def stacked_magnitude_completeness_subplotter(flag_idx, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, fn_plot, plot_title, realization_number, fd_flag, fd_completeness_log, fd_completeness_delta_mag_log):
+def stacked_magnitude_completeness_subplotter(flag_idx, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, fn_plot, plot_title, realization, fd_flag, fd_completeness_log, fd_completeness_delta_mag_log):
 	"""TODO
 
 	Parameters
@@ -2561,15 +2561,15 @@ def stacked_magnitude_completeness_subplotter(flag_idx, mag_hdr1, mag_hdr2, mag_
                 if 'COSMOS' not in BALROG_RUN:
 
 			### Get DataFrame for tile with 10% injection via `inj_percent=10` ###
-                        __df1 = get_df(realization_number=realization_number, tile_name=t, inj1=True, inj2=True, inj1_percent=10, inj2_percent=10, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2)[0]
+                        __df1 = get_df(realization=realization, tile=t, inj1=True, inj2=True, inj1_percent=10, inj2_percent=10, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2)[0]
 
 			# Fill second axis: filter #
 			for j in np.arange(0, len(ALL_FILTERS)):
 				f = ALL_FILTERS[j]
 
-                                err1, err2, cleanMag1, cleanMag2, idxGood, fullMag1, fullMag2, haxLabel1, haxLabel2, vaxLabel = get_magnitude_plot_variables(filter_name=f, df=__df1, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization_number=realization_number, tile_name=t, mag_axlabel1=M_AXLABEL1, mag_axlabel2=M_AXLABEL2, fd_flag=fd_flag, plot_title=plot_title, fn_plot=fn_plot) #TODO this does not have inj_% parameter so axlabel is wrong
+                                err1, err2, cleanMag1, cleanMag2, idxGood, fullMag1, fullMag2, haxLabel1, haxLabel2, vaxLabel = get_magnitude_plot_variables(filter_name=f, df=__df1, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization=realization, tile=t, mag_axlabel1=M_AXLABEL1, mag_axlabel2=M_AXLABEL2, fd_flag=fd_flag, plot_title=plot_title, fn_plot=fn_plot) #TODO this does not have inj_% parameter so axlabel is wrong
 
-                                completenessFraction1 = get_magnitude_completeness(inj_percent=10, idx_good=idxGood, df=__df1, clean_magnitude1=cleanMag1, clean_magnitude2=cleanMag2, full_magnitude1=fullMag1, full_magnitude2=fullMag2, tile_name=t, realization_number=realization_number, filter_name=f, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, error1=err1, error2=err2, fd_completeness_log=fd_completeness_log, fd_completeness_delta_mag_log=fd_completeness_delta_mag_log)[0]
+                                completenessFraction1 = get_magnitude_completeness(inj_percent=10, idx_good=idxGood, df=__df1, clean_magnitude1=cleanMag1, clean_magnitude2=cleanMag2, full_magnitude1=fullMag1, full_magnitude2=fullMag2, tile=t, realization=realization, filter_name=f, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, error1=err1, error2=err2, fd_completeness_log=fd_completeness_log, fd_completeness_delta_mag_log=fd_completeness_delta_mag_log)[0]
 			
 				# Fill third axis: completeness (list) #
 				__completeness1[i][j] = completenessFraction1
@@ -2577,15 +2577,15 @@ def stacked_magnitude_completeness_subplotter(flag_idx, mag_hdr1, mag_hdr2, mag_
 
 		### Get DataFrame for tile with 20% injection ###
 		print 'Getting DataFrame for tile: ', t, ' ... '
-		__df2 = get_df(realization_number=realization_number, tile_name=t, inj1=True, inj2=True, inj1_percent=20, inj2_percent=20, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2)[0]
+		__df2 = get_df(realization=realization, tile=t, inj1=True, inj2=True, inj1_percent=20, inj2_percent=20, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2)[0]
 
 		# Fill second axis: filter #
 		for j in np.arange(0, len(ALL_FILTERS)):
 			f = ALL_FILTERS[j]
 
-                        err1, err2, cleanMag1, cleanMag2, idxGood, fullMag1, fullMag2, haxLabel1, haxLabel2, vaxLabel = get_magnitude_plot_variables(filter_name=f, df=__df2, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization_number=realization_number, tile_name=t, mag_axlabel1=M_AXLABEL1, mag_axlabel2=M_AXLABEL2, fd_flag=fd_flag, plot_title=plot_title, fn_plot=fn_plot) #TODO this does not have inj_% parameter so axlabel is wrong
+                        err1, err2, cleanMag1, cleanMag2, idxGood, fullMag1, fullMag2, haxLabel1, haxLabel2, vaxLabel = get_magnitude_plot_variables(filter_name=f, df=__df2, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization=realization, tile=t, mag_axlabel1=M_AXLABEL1, mag_axlabel2=M_AXLABEL2, fd_flag=fd_flag, plot_title=plot_title, fn_plot=fn_plot) #TODO this does not have inj_% parameter so axlabel is wrong
 
-                        completenessFraction2 = get_magnitude_completeness(inj_percent=20, idx_good=idxGood, df=__df2, clean_magnitude1=cleanMag1, clean_magnitude2=cleanMag2, full_magnitude1=fullMag1, full_magnitude2=fullMag2, tile_name=t, realization_number=realization_number, filter_name=f, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, error1=err1, error2=err2, fd_completeness_log=fd_completeness_log, fd_completeness_delta_mag_log=fd_completeness_delta_mag_log)[0]
+                        completenessFraction2 = get_magnitude_completeness(inj_percent=20, idx_good=idxGood, df=__df2, clean_magnitude1=cleanMag1, clean_magnitude2=cleanMag2, full_magnitude1=fullMag1, full_magnitude2=fullMag2, tile=t, realization=realization, filter_name=f, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, error1=err1, error2=err2, fd_completeness_log=fd_completeness_log, fd_completeness_delta_mag_log=fd_completeness_delta_mag_log)[0]
 
 			# Fill third axis: completeness (list) #
 			__completeness2[i][j] = completenessFraction2
@@ -2634,7 +2634,7 @@ def stacked_magnitude_completeness_subplotter(flag_idx, mag_hdr1, mag_hdr2, mag_
 
 
 
-def magnitude_completeness_subplotter(flag_idx, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, fn_plot, plot_title, realization_number, tile_name, fd_flag, fd_completeness_log, fd_completeness_delta_mag_log):
+def magnitude_completeness_subplotter(flag_idx, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, fn_plot, plot_title, realization, tile, fd_flag, fd_completeness_log, fd_completeness_delta_mag_log):
 	"""Creates two completeness plots with two panels of completeness for 10% injections (first subplot panel) and 20% injections (second subplot panel).
 	This function is only to be called when comparing Balrog-injected catalogs and truth catalogs.
 
@@ -2654,23 +2654,23 @@ def magnitude_completeness_subplotter(flag_idx, mag_hdr1, mag_hdr2, mag_err_hdr1
 
 		# Get completeness for 10% inj via `inj_percent=10` #
 		#FIXME instances where data_frame depends on filter:
-		__df1 = get_df(realization_number=realization_number, tile_name=tile_name, inj1=True, inj2=True, inj1_percent=10, inj2_percent=10, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2)[0]
+		__df1 = get_df(realization=realization, tile=tile, inj1=True, inj2=True, inj1_percent=10, inj2_percent=10, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2)[0]
 
 		for f in ALL_FILTERS:
-			err1, err2, cleanMag1, cleanMag2, idxGood, fullMag1, fullMag2, haxLabel1, haxLabel2, vaxLabel = get_magnitude_plot_variables(filter_name=f, df=__df1, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization_number=realization_number, tile_name=tile_name, mag_axlabel1=M_AXLABEL1, mag_axlabel2=M_AXLABEL2, fd_flag=fd_flag, plot_title=plot_title, fn_plot=fn_plot) #TODO this does not have inj_% parameter so axlabel is wrong
+			err1, err2, cleanMag1, cleanMag2, idxGood, fullMag1, fullMag2, haxLabel1, haxLabel2, vaxLabel = get_magnitude_plot_variables(filter_name=f, df=__df1, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization=realization, tile=tile, mag_axlabel1=M_AXLABEL1, mag_axlabel2=M_AXLABEL2, fd_flag=fd_flag, plot_title=plot_title, fn_plot=fn_plot) #TODO this does not have inj_% parameter so axlabel is wrong
 
-			completenessFraction1 = get_magnitude_completeness(inj_percent=10, idx_good=idxGood, df=__df1, clean_magnitude1=cleanMag1, clean_magnitude2=cleanMag2, full_magnitude1=fullMag1, full_magnitude2=fullMag2, tile_name=tile_name, realization_number=realization_number, filter_name=f, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, error1=err1, error2=err2, fd_completeness_log=fd_completeness_log, fd_completeness_delta_mag_log=fd_completeness_delta_mag_log)[0]
+			completenessFraction1 = get_magnitude_completeness(inj_percent=10, idx_good=idxGood, df=__df1, clean_magnitude1=cleanMag1, clean_magnitude2=cleanMag2, full_magnitude1=fullMag1, full_magnitude2=fullMag2, tile=tile, realization=realization, filter_name=f, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, error1=err1, error2=err2, fd_completeness_log=fd_completeness_log, fd_completeness_delta_mag_log=fd_completeness_delta_mag_log)[0]
 
 			__completeness_griz1.append(completenessFraction1)
 
 
 	# Get completeness for 20% injection via `inj_percent=20` #
-	__df2 = get_df(realization_number=realization_number, tile_name=tile_name, inj1=True, inj2=True, inj1_percent=20, inj2_percent=20, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2)[0]
+	__df2 = get_df(realization=realization, tile=tile, inj1=True, inj2=True, inj1_percent=20, inj2_percent=20, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2)[0]
 
 	for f in ALL_FILTERS:
-		err1, err2, cleanMag1, cleanMag2, idxGood, fullMag1, fullMag2, haxLabel1, haxLabel2, vaxLabel = get_magnitude_plot_variables(filter_name=f, df=__df2, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization_number=realization_number, tile_name=tile_name, mag_axlabel1=M_AXLABEL1, mag_axlabel2=M_AXLABEL2, fd_flag=fd_flag, plot_title=plot_title, fn_plot=fn_plot)
+		err1, err2, cleanMag1, cleanMag2, idxGood, fullMag1, fullMag2, haxLabel1, haxLabel2, vaxLabel = get_magnitude_plot_variables(filter_name=f, df=__df2, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization=realization, tile=tile, mag_axlabel1=M_AXLABEL1, mag_axlabel2=M_AXLABEL2, fd_flag=fd_flag, plot_title=plot_title, fn_plot=fn_plot)
 
-		completenessFraction2 = get_magnitude_completeness(inj_percent=20, df=__df2, idx_good=idxGood, clean_magnitude1=cleanMag1, clean_magnitude2=cleanMag2, full_magnitude1=fullMag1, full_magnitude2=fullMag2, tile_name=tile_name, realization_number=realization_number, filter_name=f, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, error1=err1, error2=err2, fd_completeness_log=fd_completeness_log, fd_completeness_delta_mag_log=fd_completeness_delta_mag_log)[0]
+		completenessFraction2 = get_magnitude_completeness(inj_percent=20, df=__df2, idx_good=idxGood, clean_magnitude1=cleanMag1, clean_magnitude2=cleanMag2, full_magnitude1=fullMag1, full_magnitude2=fullMag2, tile=tile, realization=realization, filter_name=f, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, error1=err1, error2=err2, fd_completeness_log=fd_completeness_log, fd_completeness_delta_mag_log=fd_completeness_delta_mag_log)[0]
 
 		print 'Getting completeness for band: ', f, '\n'
 
@@ -2721,7 +2721,7 @@ def magnitude_completeness_subplotter(flag_idx, mag_hdr1, mag_hdr2, mag_err_hdr1
 	return 0
 
 
-#def get_color_completeness(truth_mag, match_mag, filter_name, realization_number, tile_name, mag_hdr1, mag_hdr2):
+#def get_color_completeness(truth_mag, match_mag, filter_name, realization, tile, mag_hdr1, mag_hdr2):
 	'''
 	Parameters
 	----------
@@ -2742,11 +2742,11 @@ def magnitude_completeness_subplotter(flag_idx, mag_hdr1, mag_hdr2, mag_err_hdr1
 
 	### Read truth catalog which has magnitudes in form (m_g, m_r, m_i, m_z) ###
         if 'truth' in MATCH_CAT1:
-                fn_truth_cat = get_catalog_filename(cat_type=MATCH_CAT1, inj_10percent=INJ1_10PERCENT, inj_20percent=INJ1_20PERCENT, realization_number=realization_number, tile_name=tile_name, filter_name=filter_name, inj=INJ1)
+                fn_truth_cat = get_catalog_filename(cat_type=MATCH_CAT1, inj_10percent=INJ1_10PERCENT, inj_20percent=INJ1_20PERCENT, realization=realization, tile=tile, filter_name=filter_name, inj=INJ1)
                 mag_hdr = mag_hdr1
 
         if 'truth' in MATCH_CAT2:
-                fn_truth_cat = get_catalog_filename(cat_type=MATCH_CAT2, inj_10percent=INJ2_10PERCENT, inj_20percent=INJ2_20PERCENT, realization_number=realization_number, tile_name=tile_name, filter_name=filter_name, inj=INJ2)
+                fn_truth_cat = get_catalog_filename(cat_type=MATCH_CAT2, inj_10percent=INJ2_10PERCENT, inj_20percent=INJ2_20PERCENT, realization=realization, tile=tile, filter_name=filter_name, inj=INJ2)
                 mag_hdr = mag_hdr2
 
         hdu = fits.open(fn_truth_cat)
@@ -2791,25 +2791,25 @@ def magnitude_completeness_subplotter(flag_idx, mag_hdr1, mag_hdr2, mag_err_hdr1
 
 
 
-def color_completeness_subplotter(filter_name, df, flag_idx, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, plot_title, realization_number, tile_name, fd_flag, fd_completeness_log, fn_plot):
+def color_completeness_subplotter(filter_name, df, flag_idx, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, plot_title, realization, tile, fd_flag, fd_completeness_log, fn_plot):
 
 
 	### Force order ###
 
 
-        err1, err2, cleanMag1, cleanMag2, idxGood, fullMag1, fullMag2, haxLabel1, haxLabel2, vaxLabel = get_magnitude_plot_variables(filter_name=filter_name, df=df, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization_number=realization_number, tile_name=tile_name, mag_axlabel1=M_AXLABEL1, mag_axlabel2=M_AXLABEL2, fd_flag=fd_flag, plot_title=plot_title, fn_plot=fn_plot)
+        err1, err2, cleanMag1, cleanMag2, idxGood, fullMag1, fullMag2, haxLabel1, haxLabel2, vaxLabel = get_magnitude_plot_variables(filter_name=filter_name, df=df, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization=realization, tile=tile, mag_axlabel1=M_AXLABEL1, mag_axlabel2=M_AXLABEL2, fd_flag=fd_flag, plot_title=plot_title, fn_plot=fn_plot)
 
 	# Photometry cuts applied to `truthMag`, `matchMag` #
-        truthMag1, matchMag1 = get_magnitude_completeness(df=df, clean_magnitude1=cleanMag1, clean_magnitude2=cleanMag2, full_magnitude1=fullMag1, full_magnitude2=fullMag2, tile_name=tile_name, realization_number=realization_number, filter_name=filter_name, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, error1=err1, error2=err2, fd_completeness_log=fd_completeness_log)[2:]
+        truthMag1, matchMag1 = get_magnitude_completeness(df=df, clean_magnitude1=cleanMag1, clean_magnitude2=cleanMag2, full_magnitude1=fullMag1, full_magnitude2=fullMag2, tile=tile, realization=realization, filter_name=filter_name, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, error1=err1, error2=err2, fd_completeness_log=fd_completeness_log)[2:]
 
 
-	colorCompleteness1, bins1 = get_color_completeness(truth_mag=truthMag1, match_mag=matchMag1, filter_name=filter_name, realization_number=realization_number, tile_name=tile_name, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2)
+	colorCompleteness1, bins1 = get_color_completeness(truth_mag=truthMag1, match_mag=matchMag1, filter_name=filter_name, realization=realization, tile=tile, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2)
 
 
 
-        err1, err2, cleanMag1, cleanMag2, idxGood, fullMag1, fullMag2, haxLabel1, haxLabel2, vaxLabel = get_magnitude_plot_variables(filter_name=filter_name, df=df, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization_number=realization_number, tile_name=tile_name, mag_axlabel1=M_AXLABEL1, mag_axlabel2=M_AXLABEL2, fd_flag=fd_flag, plot_title=plot_title, fn_plot=fn_plot)
+        err1, err2, cleanMag1, cleanMag2, idxGood, fullMag1, fullMag2, haxLabel1, haxLabel2, vaxLabel = get_magnitude_plot_variables(filter_name=filter_name, df=df, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization=realization, tile=tile, mag_axlabel1=M_AXLABEL1, mag_axlabel2=M_AXLABEL2, fd_flag=fd_flag, plot_title=plot_title, fn_plot=fn_plot)
 
-        truthMag2, matchMag2 = get_magnitude_completeness(df=df, clean_magnitude1=cleanMag1, clean_magnitude2=cleanMag2, full_magnitude1=fullMag1, full_magnitude2=fullMag2, tile_name=tile_name, realization_number=realization_number, filter_name=filter_name, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, error1=err1, error2=err2, fd_completeness_log=fd_completeness_log)[2:]
+        truthMag2, matchMag2 = get_magnitude_completeness(df=df, clean_magnitude1=cleanMag1, clean_magnitude2=cleanMag2, full_magnitude1=fullMag1, full_magnitude2=fullMag2, tile=tile, realization=realization, filter_name=filter_name, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, error1=err1, error2=err2, fd_completeness_log=fd_completeness_log)[2:]
 
 
 	writeColor = WRITE_COLORS[filter_name]
@@ -2819,7 +2819,7 @@ def color_completeness_subplotter(filter_name, df, flag_idx, mag_hdr1, mag_hdr2,
 '''
 
 
-def stack_truth_catalogs(cat_type, inj_percent, realization_number, filter_name, inj):
+def stack_truth_catalogs(cat_type, inj_percent, realization, filter_name, inj):
 	"""Stack truth catalogs. This function is called if completeness plots are to be constructed.
 
 	Parameters
@@ -2829,7 +2829,7 @@ def stack_truth_catalogs(cat_type, inj_percent, realization_number, filter_name,
 
 	### Name stacked truth catalog ###
         # Directory for stacked catalog #
-        stack_dir = os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, 'stack', realization_number)
+        stack_dir = os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, 'stack', realization)
 
         # Check directory existence and handle nonexistence #
         if os.path.isdir(stack_dir) is False:
@@ -2854,7 +2854,7 @@ def stack_truth_catalogs(cat_type, inj_percent, realization_number, filter_name,
 		__all_tables = []
 
 		for t in ALL_TILES:
-			__fn = get_catalog_filename(cat_type=cat_type, inj_percent=inj_percent, realization_number=realization_number, tile_name=t, filter_name=filter_name, inj=inj)
+			__fn = get_catalog_filename(cat_type=cat_type, inj_percent=inj_percent, realization=realization, tile=t, filter_name=filter_name, inj=inj)
 			__all_tables.append(Table.read(__fn, format='fits'))
 		
 		__vstack = vstack(__all_tables) 	
@@ -2869,7 +2869,7 @@ def stack_truth_catalogs(cat_type, inj_percent, realization_number, filter_name,
 
 
 #TODO error1 --> mag_err1
-def get_magnitude_completeness(idx_good, df, clean_magnitude1, clean_magnitude2, full_magnitude1, full_magnitude2, tile_name, realization_number, filter_name, mag_hdr1, mag_hdr2, error1, error2, fd_completeness_log, fd_completeness_delta_mag_log, inj_percent): #FIXME inj?
+def get_magnitude_completeness(idx_good, df, clean_magnitude1, clean_magnitude2, full_magnitude1, full_magnitude2, tile, realization, filter_name, mag_hdr1, mag_hdr2, error1, error2, fd_completeness_log, fd_completeness_delta_mag_log, inj_percent): #FIXME inj?
 	"""TODO after function is done
 	Introduce cutoff for bin size.
 	"""
@@ -2892,7 +2892,7 @@ def get_magnitude_completeness(idx_good, df, clean_magnitude1, clean_magnitude2,
 
 	### Read truth catalog which has magnitudes in form (m_g, m_r, m_i, m_z) ###
 	if 'truth' in MATCH_CAT1:
-		fn_truth_cat = get_catalog_filename(cat_type=MATCH_CAT1, inj_percent=inj_percent, realization_number=realization_number, tile_name=tile_name, filter_name=filter_name, inj=INJ1)	
+		fn_truth_cat = get_catalog_filename(cat_type=MATCH_CAT1, inj_percent=inj_percent, realization=realization, tile=tile, filter_name=filter_name, inj=INJ1)	
 		mag_hdr = mag_hdr1
 		# Use error in measured catalogs only #
 		error1 = np.zeros(len(error2))
@@ -2901,7 +2901,7 @@ def get_magnitude_completeness(idx_good, df, clean_magnitude1, clean_magnitude2,
 		cm_flag_hdr = CM_FLAGS_HDR1[:-2] 
 
 	if 'truth' in MATCH_CAT2:
-		fn_truth_cat = get_catalog_filename(cat_type=MATCH_CAT2, inj_percent=inj_percent, realization_number=realization_number, tile_name=tile_name, filter_name=filter_name, inj=INJ2)
+		fn_truth_cat = get_catalog_filename(cat_type=MATCH_CAT2, inj_percent=inj_percent, realization=realization, tile=tile, filter_name=filter_name, inj=INJ2)
 		mag_hdr = mag_hdr2
 		ra_hdr, dec_hdr = RA_HDR2, DEC_HDR2
 		# Use error in measured catalogs only #
@@ -2997,7 +2997,7 @@ def gaussian(x, mu, sig):
 
 
 
-def measure_flux_using_gaussian_aperture(fn_aper, tile_name, realization_number, cm_tdbyte_meas, cm_tdbyte_true, idx_good, filter_name, cm_g_meas, cm_g_1_true, cm_g_2_true, cm_flux_meas, cm_flux_true, fracdev_meas, fracdev_true, box_size_meas, box_size_true, cm_t_meas, cm_t_true, flux_cov_meas, t_thresh=0.001, psf_t=0.05, aper_t=2.25, vb=False, N='all', pixscale=0.263):
+def measure_flux_using_gaussian_aperture(fn_aper, tile, realization, cm_tdbyte_meas, cm_tdbyte_true, idx_good, filter_name, cm_g_meas, cm_g_1_true, cm_g_2_true, cm_flux_meas, cm_flux_true, fracdev_meas, fracdev_true, box_size_meas, box_size_true, cm_t_meas, cm_t_true, flux_cov_meas, t_thresh=0.001, psf_t=0.05, aper_t=2.25, vb=False, N='all', pixscale=0.263):
 	"""Measure flux using a Gaussian aperture. Reference: Spencer Everett.
 
 	Parameters
@@ -3034,9 +3034,9 @@ def measure_flux_using_gaussian_aperture(fn_aper, tile_name, realization_number,
 
 	filter_name (str)
 
-	tile_name (str)
+	tile (str)
 
-        realization_number (int)	
+        realization (int)	
 
 	Returns
 	-------
@@ -3169,7 +3169,7 @@ def measure_flux_using_gaussian_aperture(fn_aper, tile_name, realization_number,
 		with open(fn_aper, 'a') as csvfile:
 			writer = csv.writer(csvfile, delimiter=',')
 			#'TILE', 'REALIZATION', 'FILTER', 'FLUX_MEAS', 'FLUX_TRUE', 'GAUSS_APER_FLUX_MEAS', 'GAUSS_APER_FLUX_TRUE', 'FLUX_ERR_MEAS', 'GAUSS_FLUX_DIFFERENCE/FLUX_ERR'
-			writer.writerow([str(tile_name), str(realization_number), str(filter_name), str(gauss_aper_flux_meas), str(gauss_aper_flux_true), str(cm_flux_meas[i]), str(cm_flux_true[i]), str(__flux_err), str(gauss_aper_flux_diff/__flux_err)])
+			writer.writerow([str(tile), str(realization), str(filter_name), str(gauss_aper_flux_meas), str(gauss_aper_flux_true), str(cm_flux_meas[i]), str(cm_flux_true[i]), str(__flux_err), str(gauss_aper_flux_diff/__flux_err)])
 
 
 	print 'Number of flags from cm_TdByTe==0:', count_none1
@@ -3191,7 +3191,7 @@ def measure_flux_using_gaussian_aperture(fn_aper, tile_name, realization_number,
 
 
 
-def normalized_flux_histogram_subplotter(fn_aper, fn_plot, df, flux_hdr1, flux_hdr2, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, plot_title, tile_name, realization_number):
+def normalized_flux_histogram_subplotter(fn_aper, fn_plot, df, flux_hdr1, flux_hdr2, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, plot_title, tile, realization):
 	"""Create 2x2 plot grid of normalized (area under the curve equals 1) 1D DeltaFlux/SigmaFlux histograms. One subplot is created for each griz band. Each plot includes a standard Gaussian (mean=0, standard_deviation=1) and the best-fit Gaussian to DeltaFlux/SigmaFlux. 
 
 	Parameters
@@ -3252,7 +3252,7 @@ def normalized_flux_histogram_subplotter(fn_aper, fn_plot, df, flux_hdr1, flux_h
 			__cm_flux_meas, __cm_flux_true, __flux_cov_meas = None, None, None
 
 		# Create one subplot #
-		normalized_flux_histogram_plotter(tile_name=tile_name, realization_number=realization_number, filter_name=f, df=df, cm_tdbyte_meas=__cm_tdbyte_meas, cm_tdbyte_true=__cm_tdbyte_true, flux_hdr1=flux_hdr1, flux_hdr2=flux_hdr2, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, plot_title=plot_title, cm_g_meas=__cm_g_meas, cm_g_1_true=__cm_g_1_true, cm_g_2_true=__cm_g_2_true, cm_flux_meas=__cm_flux_meas, cm_flux_true=__cm_flux_true, fracdev_meas=__fracdev_meas, fracdev_true=__fracdev_true, box_size_meas=__box_size_meas, box_size_true=__box_size_true, cm_t_meas=__cm_t_meas, cm_t_true=__cm_t_true, flux_cov_meas=__flux_cov_meas, fn_aper=fn_aper)
+		normalized_flux_histogram_plotter(tile=tile, realization=realization, filter_name=f, df=df, cm_tdbyte_meas=__cm_tdbyte_meas, cm_tdbyte_true=__cm_tdbyte_true, flux_hdr1=flux_hdr1, flux_hdr2=flux_hdr2, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, plot_title=plot_title, cm_g_meas=__cm_g_meas, cm_g_1_true=__cm_g_1_true, cm_g_2_true=__cm_g_2_true, cm_flux_meas=__cm_flux_meas, cm_flux_true=__cm_flux_true, fracdev_meas=__fracdev_meas, fracdev_true=__fracdev_true, box_size_meas=__box_size_meas, box_size_true=__box_size_true, cm_t_meas=__cm_t_meas, cm_t_true=__cm_t_true, flux_cov_meas=__flux_cov_meas, fn_aper=fn_aper)
 		counter_subplot += 1
 
 	plt.suptitle(plot_title, fontweight='bold')
@@ -3269,7 +3269,7 @@ def normalized_flux_histogram_subplotter(fn_aper, fn_plot, df, flux_hdr1, flux_h
 
 
 
-def normalized_flux_histogram_plotter(fn_aper, tile_name, realization_number, filter_name, df, cm_tdbyte_meas, cm_tdbyte_true, flux_hdr1, flux_hdr2, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, plot_title, cm_g_meas, cm_g_1_true, cm_g_2_true, cm_flux_meas, cm_flux_true, fracdev_meas, fracdev_true, box_size_meas, box_size_true, cm_t_meas, cm_t_true, flux_cov_meas):
+def normalized_flux_histogram_plotter(fn_aper, tile, realization, filter_name, df, cm_tdbyte_meas, cm_tdbyte_true, flux_hdr1, flux_hdr2, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, plot_title, cm_g_meas, cm_g_1_true, cm_g_2_true, cm_flux_meas, cm_flux_true, fracdev_meas, fracdev_true, box_size_meas, box_size_true, cm_t_meas, cm_t_true, flux_cov_meas):
 	"""Create a normalized (area under curve equals 1) 1D histogram of DeltaFlux/SigmaFlux for a particular `filter_name`. Plot includes a standard Gaussian (mean=0, standard_deviation=1) and the best-fit Gaussian to DeltaFlux/SigmaFlux.
 
 	Parameters
@@ -3287,7 +3287,7 @@ def normalized_flux_histogram_plotter(fn_aper, tile_name, realization_number, fi
 
 
 	if GAUSS_APER:
-		plotDataGauss, deltaFluxGauss = measure_flux_using_gaussian_aperture(fn_aper=fn_aper, tile_name=tile_name, realization_number=realization_number, idx_good=idxGood, filter_name=filter_name, cm_g_meas=cm_g_meas, cm_g_1_true=cm_g_1_true, cm_g_2_true=cm_g_2_true, cm_flux_meas=cm_flux_meas, cm_flux_true=cm_flux_true, fracdev_meas=fracdev_meas, fracdev_true=fracdev_true, box_size_meas=box_size_meas, box_size_true=box_size_true, cm_t_meas=cm_t_meas, cm_t_true=cm_t_true, flux_cov_meas=flux_cov_meas, cm_tdbyte_meas=cm_tdbyte_meas, cm_tdbyte_true=cm_tdbyte_true)
+		plotDataGauss, deltaFluxGauss = measure_flux_using_gaussian_aperture(fn_aper=fn_aper, tile=tile, realization=realization, idx_good=idxGood, filter_name=filter_name, cm_g_meas=cm_g_meas, cm_g_1_true=cm_g_1_true, cm_g_2_true=cm_g_2_true, cm_flux_meas=cm_flux_meas, cm_flux_true=cm_flux_true, fracdev_meas=fracdev_meas, fracdev_true=fracdev_true, box_size_meas=box_size_meas, box_size_true=box_size_true, cm_t_meas=cm_t_meas, cm_t_true=cm_t_true, flux_cov_meas=flux_cov_meas, cm_tdbyte_meas=cm_tdbyte_meas, cm_tdbyte_true=cm_tdbyte_true)
 		gauss_aper_label = 'Gauss aper'
 
 		if TRIM_FLUX:
@@ -3436,7 +3436,7 @@ def get_flux_histogram_hax_label(mag_hdr1, mag_hdr2, filter_name):
 
 
 
-def color_subplotter(filter_name, df, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, realization_number, tile_name, fd_flag, plot_title, fn_plot, fd_color_plot_log):
+def color_subplotter(filter_name, df, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, realization, tile, fd_flag, plot_title, fn_plot, fd_color_plot_log):
 	"""Plot 2x2 grid of plots. Each plot is a `corner.hist2d` of the color corresponding to different magnitude bins (see `get_color_from_binned_magnitude()` for the magnitude bins used). Get plot labels for the horizontal and vertical axes.
 
 	Parameters
@@ -3460,9 +3460,9 @@ def color_subplotter(filter_name, df, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_
 
 	filter_names (str)
 
-	realization_number (int)
+	realization (int)
 
-	tile_name (str)
+	tile (str)
 
 	Returns
 	-------
@@ -3478,7 +3478,7 @@ def color_subplotter(filter_name, df, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_
 	vaxDeltaColorLabel = get_delta_color_axlabel(label1=axLabel1, label2=axLabel2, filter_name=filter_name)
 
 	### Get plot data ###
-	errMag1, errMag2, cleanMag1, cleanMag2, idxGood, fullMag1, fullMag2, haxMagLabel1, haxMagLabel2, vaxMagLabel = get_magnitude_plot_variables(filter_name=filter_name, df=df, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization_number=realization_number, tile_name=tile_name, mag_axlabel1=M_AXLABEL1, mag_axlabel2=M_AXLABEL2, fd_flag=fd_flag, plot_title=plot_title, fn_plot=fn_plot)
+	errMag1, errMag2, cleanMag1, cleanMag2, idxGood, fullMag1, fullMag2, haxMagLabel1, haxMagLabel2, vaxMagLabel = get_magnitude_plot_variables(filter_name=filter_name, df=df, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization=realization, tile=tile, mag_axlabel1=M_AXLABEL1, mag_axlabel2=M_AXLABEL2, fd_flag=fd_flag, plot_title=plot_title, fn_plot=fn_plot)
 
 	#TODO get_magnitude_error is called twice
 	#TODO get error or simply use corner.hist2d
@@ -3525,7 +3525,7 @@ def color_subplotter(filter_name, df, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_
 
 		# Write to log file with headers 'TILE REALIZATION COLOR MAG_BIN OBJS_IN_MAG_BIN TOTAL_OBJS_FLAGS_INC RUN_TYPE #
 		__write_bin = '['+str(magBins[i])+','+str(magBins[i+1])+')'
-		fd_color_plot_log.write(str(tile_name) + '\t' + str(realization_number) + '\t' + str(writeColor) + '\t' + str(__write_bin) + '\t' + str(len(cleanColor1[i])) + '\t' + str(len(cleanMag1)) + '\t' + str(RUN_TYPE) + '\n')
+		fd_color_plot_log.write(str(tile) + '\t' + str(realization) + '\t' + str(writeColor) + '\t' + str(__write_bin) + '\t' + str(len(cleanColor1[i])) + '\t' + str(len(cleanMag1)) + '\t' + str(RUN_TYPE) + '\n')
 
 		print 'Plotting ', len(cleanColor1[i]), ' objects ... \n'
                 plt.subplot(2, 2, i+1)
@@ -3664,7 +3664,7 @@ def get_flux_plot_variables(filter_name, df, flux_hdr1, flux_hdr2, mag_hdr1, mag
 
 
 
-def get_magnitude_plot_variables(filter_name, df, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, realization_number, tile_name, fd_flag, plot_title, fn_plot, mag_axlabel1, mag_axlabel2):
+def get_magnitude_plot_variables(filter_name, df, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, realization, tile, fd_flag, plot_title, fn_plot, mag_axlabel1, mag_axlabel2):
 	"""Get variables needed for magnitude plots.
 
 	Parameters
@@ -3707,16 +3707,9 @@ def get_magnitude_plot_variables(filter_name, df, mag_hdr1, mag_hdr2, mag_err_hd
         if LOG_FLAGS:
                 for i in np.arange(0, len(FLAG_HDR_LIST), 2):
                         # Bad index #
-                        temp_idx = handle_flags(df=df, filter_name=f, realization_number=realization_number, flag_hdr1=FLAG_HDR_LIST[i], flag_hdr2=FLAG_HDR_LIST[i+1], full_magnitude1=fullMag1, full_magnitude2=fullMag2, tile_name=tile_name, fd_flag=fd_flag)[1]
+                        temp_idx = handle_flags(df=df, filter_name=f, realization=realization, flag_hdr1=FLAG_HDR_LIST[i], flag_hdr2=FLAG_HDR_LIST[i+1], full_magnitude1=fullMag1, full_magnitude2=fullMag2, tile=tile, fd_flag=fd_flag)[1]
                 #flag_idx.append(temp_idx)
                 flag_idx.extend(temp_idx)
-
-
-        ### Print out the type() for each flag ###
-        if SHOW_FLAG_TYPE:
-                get_flag_type(df=df, k=counter_flag_type_printout)
-                counter_flag_type_printout += 1
-
 
 
 	return err1, err2, cleanMag1, cleanMag2, idxGood, fullMag1, fullMag2,  haxLabel1, haxLabel2, vaxLabel
@@ -3845,7 +3838,7 @@ def get_delta_magnitude_axlabel(label1, label2, filter_name):
 
 
 #TODO error-->mag_err? bins-->mag_bins?
-def normalized_delta_magnitude_plotter(mag_hdr1, mag_hdr2, cbar_val, error1, error2, filter_name, clean_magnitude1, full_magnitude1, mag_axlabel1, clean_magnitude2, mag_axlabel2, plot_title, realization_number, tile_name, idx_bins, bins, cbar_axlabel, fn_plot, fd_main_log, fd_mag_bins, vax_label):
+def normalized_delta_magnitude_plotter(mag_hdr1, mag_hdr2, cbar_val, error1, error2, filter_name, clean_magnitude1, full_magnitude1, mag_axlabel1, clean_magnitude2, mag_axlabel2, plot_title, realization, tile, idx_bins, bins, cbar_axlabel, fn_plot, fd_main_log, fd_mag_bins, vax_label):
 	"""Produce a mangitude plot normalized to 1sigma_mag. If specified with `PLOT_68P` and `PLOT_34P_SPLIT` the 68th percentiles of each magnitude bin (see `normalize_plot_maintain_bin_structure()`for bins) are plotted.
 
 	Parameters
@@ -3853,9 +3846,9 @@ def normalized_delta_magnitude_plotter(mag_hdr1, mag_hdr2, cbar_val, error1, err
 
 	filter_name
 
-	tile_name
+	tile
 
-	realization_number (int)
+	realization (int)
 
 	Returns
 	-------
@@ -3866,7 +3859,7 @@ def normalized_delta_magnitude_plotter(mag_hdr1, mag_hdr2, cbar_val, error1, err
 	#TODO PLOT_1SIG --> 1SIG_MAG
 
 	# Args needed to call normalize_plot() #
-	normVaxBins, initialBins, haxBins, errorBinMedian, vaxBinMedian = normalize_plot_maintain_bin_structure(clean_magnitude1=clean_magnitude1, clean_magnitude2=clean_magnitude2, error1=error1, error2=error2, filter_name=filter_name, tile_name=tile_name, realization_number=realization_number, fd_mag_bins=fd_mag_bins, fd_delta_mag_outliers=fd_delta_mag_outliers)
+	normVaxBins, initialBins, haxBins, errorBinMedian, vaxBinMedian = normalize_plot_maintain_bin_structure(clean_magnitude1=clean_magnitude1, clean_magnitude2=clean_magnitude2, error1=error1, error2=error2, filter_name=filter_name, tile=tile, realization=realization, fd_mag_bins=fd_mag_bins, fd_delta_mag_outliers=fd_delta_mag_outliers)
 
 
 	# Percentiles #
@@ -3982,7 +3975,7 @@ def normalized_delta_magnitude_plotter(mag_hdr1, mag_hdr2, cbar_val, error1, err
 	# Logger #
 	plotDeltaMag, plotHaxMag, cleanBins = normalize_plot(norm_delta_mag_bins=normVaxBins, bins=initialBins, hax_mag_bins=haxBins)
 
-	percent_1sig, percentRecoveredFlagsIncluded, percentRecoveredFlagsNotIncluded = logger(vax_mag=plotDeltaMag, filter_name=filter_name, clean_magnitude1=clean_magnitude1, full_magnitude1=full_magnitude1, realization_number=realization_number, tile_name=tile_name, bins=initialBins, hax_mag=plotHaxMag, fd_main_log=fd_main_log, error=errorBinMedian, vax_mag_bin_median=vaxBinMedian)
+	percent_1sig, percentRecoveredFlagsIncluded, percentRecoveredFlagsNotIncluded = logger(vax_mag=plotDeltaMag, filter_name=filter_name, clean_magnitude1=clean_magnitude1, full_magnitude1=full_magnitude1, realization=realization, tile=tile, bins=initialBins, hax_mag=plotHaxMag, fd_main_log=fd_main_log, error=errorBinMedian, vax_mag_bin_median=vaxBinMedian)
 
 	# One colorbar at a time. This error is caught at beginning of script #
         if SCATTER:
@@ -4094,7 +4087,7 @@ def normalized_delta_magnitude_plotter(mag_hdr1, mag_hdr2, cbar_val, error1, err
 
 
 #TODO error-->mag_err, 
-def delta_magnitude_plotter(mag_hdr1, mag_hdr2, cbar_val, error1, error2, filter_name, clean_magnitude1, full_magnitude1, mag_axlabel1, clean_magnitude2, mag_axlabel2, plot_title, realization_number, tile_name, idx_bins, bins, cbar_axlabel, fn_plot, fd_main_log, fd_mag_bins, vax_label, fd_delta_mag_outliers):
+def delta_magnitude_plotter(mag_hdr1, mag_hdr2, cbar_val, error1, error2, filter_name, clean_magnitude1, full_magnitude1, mag_axlabel1, clean_magnitude2, mag_axlabel2, plot_title, realization, tile, idx_bins, bins, cbar_axlabel, fn_plot, fd_main_log, fd_mag_bins, vax_label, fd_delta_mag_outliers):
 	"""Produce a single plot of 'mag1' versus 'mag1'-'mag2'. 
 
 	Parameters
@@ -4128,9 +4121,9 @@ def delta_magnitude_plotter(mag_hdr1, mag_hdr2, cbar_val, error1, error2, filter
 
 	filter_name (str)
 
-	realization_number (str) 
+	realization (str) 
 
-	tile_name (str)
+	tile (str)
 
         Returns
 	-------
@@ -4148,7 +4141,7 @@ def delta_magnitude_plotter(mag_hdr1, mag_hdr2, cbar_val, error1, error2, filter
 
 	### 1sigma_mag curve ###
 	if PLOT_1SIG:
-		haxBinMedian, vaxBinMedian, errorBinMedian, initialBins, haxBins, vaxBins, errorBins, outlierCleanedHaxMag, outlierCleanedVaxMag = bin_and_cut_measured_magnitude_error(error1=error1, error2=error2, clean_magnitude1=clean_magnitude1, clean_magnitude2=clean_magnitude2, filter_name=filter_name, tile_name=tile_name, realization_number=realization_number, fd_mag_bins=fd_mag_bins, fd_delta_mag_outliers=fd_delta_mag_outliers)
+		haxBinMedian, vaxBinMedian, errorBinMedian, initialBins, haxBins, vaxBins, errorBins, outlierCleanedHaxMag, outlierCleanedVaxMag = bin_and_cut_measured_magnitude_error(error1=error1, error2=error2, clean_magnitude1=clean_magnitude1, clean_magnitude2=clean_magnitude2, filter_name=filter_name, tile=tile, realization=realization, fd_mag_bins=fd_mag_bins, fd_delta_mag_outliers=fd_delta_mag_outliers)
 
 		### Remove zeros from x, y, and err (zeros were placeholders for instances in which there were no objects in a particular magnitude bin) ###
 		err = [temp for temp in errorBinMedian if temp is not None]
@@ -4166,7 +4159,7 @@ def delta_magnitude_plotter(mag_hdr1, mag_hdr2, cbar_val, error1, error2, filter
 
 
 	### Write to log files ### 
-	percent_1sig, percentRecoveredFlagsIncluded, percentRecoveredFlagsNotIncluded = logger(vax_mag=outlierCleanedVaxMag, filter_name=filter_name, clean_magnitude1=clean_magnitude1, full_magnitude1=full_magnitude1, realization_number=realization_number, tile_name=tile_name, bins=initialBins, hax_mag=outlierCleanedHaxMag, fd_main_log=fd_main_log, error=errorBinMedian, vax_mag_bin_median=vaxBinMedian)
+	percent_1sig, percentRecoveredFlagsIncluded, percentRecoveredFlagsNotIncluded = logger(vax_mag=outlierCleanedVaxMag, filter_name=filter_name, clean_magnitude1=clean_magnitude1, full_magnitude1=full_magnitude1, realization=realization, tile=tile, bins=initialBins, hax_mag=outlierCleanedHaxMag, fd_main_log=fd_main_log, error=errorBinMedian, vax_mag_bin_median=vaxBinMedian)
 
 
 	if PRINTOUTS:
@@ -4293,7 +4286,7 @@ def delta_magnitude_plotter(mag_hdr1, mag_hdr2, cbar_val, error1, error2, filter
 
 
 #TODO flag_idx?
-def delta_magnitude_subplotter(df, flag_idx, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, fn_plot, plot_title, realization_number, tile_name, fd_flag, fd_main_log, fd_mag_bins,  fd_delta_mag_outliers):
+def delta_magnitude_subplotter(df, flag_idx, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, fn_plot, plot_title, realization, tile, fd_flag, fd_main_log, fd_mag_bins,  fd_delta_mag_outliers):
 	"""Combine four subplots into a single plot with four panels (2-by-2). 
 
 	Parameters
@@ -4308,9 +4301,9 @@ def delta_magnitude_subplotter(df, flag_idx, mag_hdr1, mag_hdr2, mag_err_hdr1, m
 
 	plot_title (str) -- Title for 2-by-2 plot. 
 
-	realization_number (str) -- Allowed values: 0 1 2 None. Refers to Balrog injection and None refers to a one-realization run.
+	realization (str) -- Allowed values: 0 1 2 None. Refers to Balrog injection and None refers to a one-realization run.
 
-	tile_name (str)
+	tile (str)
 
 	fd_flag (file descriptor) -- Log file that collects flags.
 
@@ -4342,7 +4335,7 @@ def delta_magnitude_subplotter(df, flag_idx, mag_hdr1, mag_hdr2, mag_err_hdr1, m
 
 
 		### Define variables ###
-		err1, err2, cleanMag1, cleanMag2, idxGood, fullMag1, fullMag2, haxLabel1, haxLabel2, vaxLabel = get_magnitude_plot_variables(filter_name=f, df=df, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization_number=realization_number, tile_name=tile_name, mag_axlabel1=M_AXLABEL1, mag_axlabel2=M_AXLABEL2, fd_flag=fd_flag, plot_title=plot_title, fn_plot=fn_plot)
+		err1, err2, cleanMag1, cleanMag2, idxGood, fullMag1, fullMag2, haxLabel1, haxLabel2, vaxLabel = get_magnitude_plot_variables(filter_name=f, df=df, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization=realization, tile=tile, mag_axlabel1=M_AXLABEL1, mag_axlabel2=M_AXLABEL2, fd_flag=fd_flag, plot_title=plot_title, fn_plot=fn_plot)
 
 
 		if CM_T_COLORBAR or CM_T_ERR_COLORBAR or CM_T_S2N_COLORBAR:
@@ -4357,10 +4350,10 @@ def delta_magnitude_subplotter(df, flag_idx, mag_hdr1, mag_hdr2, mag_err_hdr1, m
 			plt.subplot(2, 2, counter_subplot)
 
 		if NORMALIZE is False:
-			percentRecoveredWithFlags = delta_magnitude_plotter(mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, cbar_val=cbarData, plot_title=plot_title, error1=err1, error2=err2, filter_name=f, full_magnitude1=fullMag1, clean_magnitude1=cleanMag1, clean_magnitude2=cleanMag2, mag_axlabel1=haxLabel1, mag_axlabel2=haxLabel2, realization_number=realization_number, tile_name=tile_name, idx_bins=cbarIdxBins, bins=cbarBins, cbar_axlabel=cbarLabel, fn_plot=fn_plot, fd_main_log=fd_main_log, fd_mag_bins=fd_mag_bins, vax_label=vaxLabel, fd_delta_mag_outliers=fd_delta_mag_outliers)
+			percentRecoveredWithFlags = delta_magnitude_plotter(mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, cbar_val=cbarData, plot_title=plot_title, error1=err1, error2=err2, filter_name=f, full_magnitude1=fullMag1, clean_magnitude1=cleanMag1, clean_magnitude2=cleanMag2, mag_axlabel1=haxLabel1, mag_axlabel2=haxLabel2, realization=realization, tile=tile, idx_bins=cbarIdxBins, bins=cbarBins, cbar_axlabel=cbarLabel, fn_plot=fn_plot, fd_main_log=fd_main_log, fd_mag_bins=fd_mag_bins, vax_label=vaxLabel, fd_delta_mag_outliers=fd_delta_mag_outliers)
 
 		if NORMALIZE:
-			percentRecoveredWithFlags = normalized_delta_magnitude_plotter(mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, cbar_val=cbarData, plot_title=plot_title, error1=err1, error2=err2, filter_name=f, full_magnitude1=fullMag1, clean_magnitude1=cleanMag1, clean_magnitude2=cleanMag2, mag_axlabel1=haxLabel1, mag_axlabel2=haxLabel2, realization_number=realization_number, tile_name=tile_name, idx_bins=cbarIdxBins, bins=cbarBins, cbar_axlabel=cbarLabel, fn_plot=fn_plot, fd_main_log=fd_main_log, fd_mag_bins=fd_mag_bins, vax_label=vaxLabel, fd_delta_mag_outliers=fd_delta_mag_outliers)
+			percentRecoveredWithFlags = normalized_delta_magnitude_plotter(mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, cbar_val=cbarData, plot_title=plot_title, error1=err1, error2=err2, filter_name=f, full_magnitude1=fullMag1, clean_magnitude1=cleanMag1, clean_magnitude2=cleanMag2, mag_axlabel1=haxLabel1, mag_axlabel2=haxLabel2, realization=realization, tile=tile, idx_bins=cbarIdxBins, bins=cbarBins, cbar_axlabel=cbarLabel, fn_plot=fn_plot, fd_main_log=fd_main_log, fd_mag_bins=fd_mag_bins, vax_label=vaxLabel, fd_delta_mag_outliers=fd_delta_mag_outliers)
 
 		counter_subplot += 1
 
@@ -4397,15 +4390,15 @@ def delta_magnitude_subplotter(df, flag_idx, mag_hdr1, mag_hdr2, mag_err_hdr1, m
 
 
 
-def get_plot_suptitle(realization_number, tile_name, num_stack_real, num_stack_tile):
+def get_plot_suptitle(realization, tile, num_stack_real, num_stack_tile):
 	"""Generate plot title.
 
 	Parameters
 	----------
-	realization_number (str)
+	realization (str)
 
 
-	tile_name (str)
+	tile (str)
 
 	num_stack_real (int) -- Number of catalogs in stacked realization catalog. Can be `None`.
 
@@ -4417,14 +4410,14 @@ def get_plot_suptitle(realization_number, tile_name, num_stack_real, num_stack_t
 	"""
 
 	if STACK_REALIZATIONS:
-		realization_number = 'stacked '+str(num_stack_real)
+		realization = 'stacked '+str(num_stack_real)
 	if STACK_TILES:
-		tile_name = 'stacked ' + str(num_stack_tile)
+		tile = 'stacked ' + str(num_stack_tile)
 
-	title = str(TITLE_PIECE1) + ' & ' + str(TITLE_PIECE2) +'. Tile: ' + str(tile_name) 
+	title = str(TITLE_PIECE1) + ' & ' + str(TITLE_PIECE2) +'. Tile: ' + str(tile) 
 
-	if realizations[0] != 'None': 
-		title = title + '. Realization: ' + str(realization_number) + '.'	
+	if cmd_line_realizations[0] != 'None': 
+		title = title + '. Realization: ' + str(realization) + '.'	
 	
 	if RUN_TYPE == 'ok': 
 		title = title + ' Unchanged FOF groups.'
@@ -4444,16 +4437,16 @@ def get_plot_suptitle(realization_number, tile_name, num_stack_real, num_stack_t
 
 
 
-def get_plot_save_name(realization_number, tile_name):
+def get_plot_save_name(realization, tile):
         """Generate name of the plot that will be used in plt.savefig() if `SAVE_PLOT=True`.
 	Relies on directory structure: /`OUTDIR`/plots/`BALROG_RUN`/`match_type`/{tile}/{realization}/plots/`plot_obs`/ `plot_obs` can be: 'color' 'magnitude' 'flux'.
 	The FOF analysis plots are saved differently: /`OUTDIR`/plots/`BALROG_RUN`/`match_type`/{tile}/{realization}/plots/{plot_obs}/'fof_analysis'/
 
         Parameters
 	----------
-	realization_number (str) 
+	realization (str) 
 
-	tile_name (str)
+	tile (str)
 
         Returns
 	-------
@@ -4470,7 +4463,7 @@ def get_plot_save_name(realization_number, tile_name):
         if PLOT_COMPLETENESS: match_type = MATCH_TYPE.replace('10%_', ''); match_type = match_type.replace('20%_', '')
         if PLOT_COMPLETENESS is False: match_type = MATCH_TYPE
 
-        plot_dir = os.path.join(OUTDIR, 'outputs', BALROG_RUN, match_type, tile_name, realization_number, 'plots', plot_obs)
+        plot_dir = os.path.join(OUTDIR, 'outputs', BALROG_RUN, match_type, tile, realization, 'plots', plot_obs)
 	if RUN_TYPE is not None: plot_dir = os.path.join(plot_dir, 'fof_analysis')
 
 
@@ -4496,9 +4489,9 @@ def get_plot_save_name(realization_number, tile_name):
 
 	# `placehold` will be replaced with {filter(s)/color} when `savefig()` is called within various functions #
 	if RUN_TYPE is None:	
-		endname = '_'.join([tile_name, realization_number, 'placehold', match_type, ylim+'.png'])
+		endname = '_'.join([tile, realization, 'placehold', match_type, ylim+'.png'])
 	if RUN_TYPE is not None:
-		endname = '_'.join([tile_name, realization_number, 'placehold', match_type, RUN_TYPE, ylim+'.png'])
+		endname = '_'.join([tile, realization, 'placehold', match_type, RUN_TYPE, ylim+'.png'])
 	if PLOT_COMPLETENESS:
 		# By construction, completeness plots contain 10% and 20% injected catalogs. Remove this distinction #
                 endname = endname.replace('10%_', ''); endname = endname.replace('20%_', '')
@@ -4679,7 +4672,7 @@ def get_y3_gold_mag(df, mag_hdr):
 
 
 
-def get_catalog_filename(cat_type, inj, inj_percent, realization_number, tile_name, filter_name):
+def get_catalog_filename(cat_type, inj, inj_percent, realization, tile, filter_name):
         """Get catalog to analyze.
 	
         Parameters
@@ -4691,9 +4684,9 @@ def get_catalog_filename(cat_type, inj, inj_percent, realization_number, tile_na
 
 	inj (bool)
 
-	realization_number (str) -- 
+	realization (str) -- 
 
-	tile_name -- 
+	tile -- 
 
 	filter_name (str) -- Only used with coadd catalogs. Ignored if `cat_type` is not 'coadd'. 
 
@@ -4708,76 +4701,76 @@ def get_catalog_filename(cat_type, inj, inj_percent, realization_number, tile_na
 
 	if BALROG_RUN == 'test':
 		if cat_type == 'gal_truth' and inj_percent == 20 and inj:
-                        fn = os.path.join(BASEPATH, tile_name, tile_name+'_0_balrog_truth_cat_gals.fits')
+                        fn = os.path.join(BASEPATH, tile, tile+'_0_balrog_truth_cat_gals.fits')
 		if cat_type == 'sof' and inj_percent == 20 and inj:
-			fn = os.path.join(BASEPATH, tile_name, 'real_0_'+tile_name+'_sof.fits')
+			fn = os.path.join(BASEPATH, tile, 'real_0_'+tile+'_sof.fits')
 		if cat_type == 'mof' and inj_percent == 20 and inj:
-			fn = os.path.join(BASEPATH, tile_name, 'real_0_'+tile_name+'_mof.fits')
+			fn = os.path.join(BASEPATH, tile, 'real_0_'+tile+'_mof.fits')
 
 
 	# TODO GoogleDoc link to Balrog log to see which catalogs can exist within ea `BALROG_RUN` 
 
 	if BALROG_RUN == 'COSMOS': #Jun 18
                 if cat_type == 'gal_truth' and inj_percent == 20 and inj:
-                        fn = os.path.join(BASEPATH, tile_name, tile_name+'_0_balrog_truth_cat_gals.fits')
+                        fn = os.path.join(BASEPATH, tile, tile+'_0_balrog_truth_cat_gals.fits')
                 if cat_type == 'sof' and inj_percent == 20 and inj:
-                        fn = os.path.join(BASEPATH, tile_name, 'real_0_'+tile_name+'_sof.fits')
+                        fn = os.path.join(BASEPATH, tile, 'real_0_'+tile+'_sof.fits')
                 if cat_type == 'mof' and inj_percent == 20 and inj:
-                        fn = os.path.join(BASEPATH, tile_name, 'real_0_'+tile_name+'_mof.fits')
+                        fn = os.path.join(BASEPATH, tile, 'real_0_'+tile+'_mof.fits')
 
 	if BALROG_RUN == 'DES0236+0001_COSMOS':
 		if cat_type == 'gal_truth' and inj_percent == 20 and inj:
-			fn = os.path.join(BASEPATH, tile_name+'_0_balrog_truth_cat_gals.fits')
+			fn = os.path.join(BASEPATH, tile+'_0_balrog_truth_cat_gals.fits')
 		if cat_type == 'sof' and inj_percent == 20 and inj:
-			fn = os.path.join(BASEPATH, 'real_0_'+tile_name+'_sof.fits')
+			fn = os.path.join(BASEPATH, 'real_0_'+tile+'_sof.fits')
 		if cat_type == 'mof' and inj_percent == 20 and inj:
-			fn = os.path.join(BASEPATH, 'real_0_'+tile_name+'_mof.fits')
+			fn = os.path.join(BASEPATH, 'real_0_'+tile+'_mof.fits')
 
 	# TODO As of May 2018 only TAMU_Balrog catalogs have 20% injections
 	if BALROG_RUN == 'TAMU_Balrog':
-		fn = get_tamu_catalog(cat_type=cat_type, inj_percent=inj_percent, realization_number=realization_number, tile_name=tile_name, filter_name=filter_name, inj=inj)
+		fn = get_tamu_catalog(cat_type=cat_type, inj_percent=inj_percent, realization=realization, tile=tile, filter_name=filter_name, inj=inj)
 
 
 	if BALROG_RUN != 'TAMU_Balrog' and 'COSMOS' not in BALROG_RUN and BALROG_RUN != 'test':
 
 		# $/data/des61.a/data/kuropat/blank_test/DES0102-4914/ #
 		if cat_type == 'gal_truth' and inj_percent == 20 and inj:
-			fn = os.path.join(BASEPATH, 'y3v02', 'balrog_images', realization_number, tile_name, tile_name+'_'+realization_number+'_balrog_truth_cat_gals.fits')
+			fn = os.path.join(BASEPATH, 'y3v02', 'balrog_images', realization, tile, tile+'_'+realization+'_balrog_truth_cat_gals.fits')
 		if cat_type == 'mof' and inj_percent == 20 and inj:
-			fn = os.path.join(BASEPATH, 'y3v02', 'balrog_images', realization_number, tile_name, 'mof', tile_name+'_mof.fits')			
+			fn = os.path.join(BASEPATH, 'y3v02', 'balrog_images', realization, tile, 'mof', tile+'_mof.fits')			
 		if cat_type == 'sof' and inj_percent == 20 and inj:
-			fn = os.path.join(BASEPATH, 'y3v02', 'balrog_images', realization_number, tile_name, 'sof', tile_name+'_sof.fits')
+			fn = os.path.join(BASEPATH, 'y3v02', 'balrog_images', realization, tile, 'sof', tile+'_sof.fits')
 
 
 		if cat_type == 'gal_truth' and inj_percent == 10 and inj:
-			fn = os.path.join(BASEPATH, 'y3v02', 'balrog_images', realization_number, tile_name, tile_name+'_'+realization_number+'_balrog_truth_cat_gals.fits')
+			fn = os.path.join(BASEPATH, 'y3v02', 'balrog_images', realization, tile, tile+'_'+realization+'_balrog_truth_cat_gals.fits')
 
 		if cat_type == 'star_truth' and inj_percent == 10 and inj:
-			fn = os.path.join(BASEPATH, 'y3v02', 'balrog_images', realization_number, tile_name, tile_name+'_'+realization_number+'_balrog_truth_cat_stars.fits')
+			fn = os.path.join(BASEPATH, 'y3v02', 'balrog_images', realization, tile, tile+'_'+realization+'_balrog_truth_cat_stars.fits')
 
 		if cat_type == 'sof' and inj_percent == 10 and inj:
-			fn = os.path.join(BASEPATH, 'y3v02', 'balrog_images', realization_number, tile_name, 'sof', tile_name+'_sof.fits')
+			fn = os.path.join(BASEPATH, 'y3v02', 'balrog_images', realization, tile, 'sof', tile+'_sof.fits')
 		if cat_type == 'sof' and inj is False:
-			fn = os.path.join(BASEPATH, 'y3v02', tile_name, 'sof', tile_name+'_sof.fits')
+			fn = os.path.join(BASEPATH, 'y3v02', tile, 'sof', tile+'_sof.fits')
 
 		if cat_type == 'mof' and inj_percent == 10 and inj:
-			fn = os.path.join(BASEPATH, 'y3v02', 'balrog_images', realization_number, tile_name, 'mof', tile_name+'_mof.fits')
+			fn = os.path.join(BASEPATH, 'y3v02', 'balrog_images', realization, tile, 'mof', tile+'_mof.fits')
 		if cat_type == 'mof' and inj is False:
-			fn = os.path.join(BASEPATH, 'y3v02', tile_name, 'mof', tile_name+'_mof.fits')
+			fn = os.path.join(BASEPATH, 'y3v02', tile, 'mof', tile+'_mof.fits')
 
 		if cat_type == 'coadd' and inj_percent == 10 and inj:
-			fn = os.path.join(BASEPATH, 'y3v02', 'balrog_images', realization_number, tile_name, 'coadd', tile_name+'_'+filter_name+'_cat.fits')
+			fn = os.path.join(BASEPATH, 'y3v02', 'balrog_images', realization, tile, 'coadd', tile+'_'+filter_name+'_cat.fits')
 		if cat_type == 'coadd' and inj is False:
-			fn = os.path.join(BASEPATH, 'y3v02', tile_name, 'coadd', tile_name+'_'+filter_name+'_cat.fits')
+			fn = os.path.join(BASEPATH, 'y3v02', tile, 'coadd', tile+'_'+filter_name+'_cat.fits')
 
 
 	# Y3 catalogs cannot be injected #
 	#TODO 'y3_gold_2_0' and 'y3_gold_2_2'
 	if cat_type == 'y3_gold_2_0':
 		# !!!!! User may need to alter path to Y3 Gold catalog #
-		fn = os.path.join('/data/des71.a/data/mspletts/balrog_validation_tests/y3_gold_catalogs/', tile_name+'_y3_gold_2_0.fits')
+		fn = os.path.join('/data/des71.a/data/mspletts/balrog_validation_tests/y3_gold_catalogs/', tile+'_y3_gold_2_0.fits')
 	if cat_type == 'y3_gold_2_2':
-		fn = os.path.join('/data/des71.a/data/mspletts/balrog_validation_tests/y3_gold_catalogs/', tile_name+'_y3_gold_2_2.fits')
+		fn = os.path.join('/data/des71.a/data/mspletts/balrog_validation_tests/y3_gold_catalogs/', tile+'_y3_gold_2_2.fits')
 
         return fn
 
@@ -4789,7 +4782,7 @@ def get_catalog_filename(cat_type, inj, inj_percent, realization_number, tile_na
 
 
 
-def get_tamu_catalog(cat_type, inj, inj_percent, realization_number, tile_name, filter_name):
+def get_tamu_catalog(cat_type, inj, inj_percent, realization, tile, filter_name):
 	"""Get catalog for TAMU runs.
 
 	Parameters
@@ -4800,7 +4793,7 @@ def get_tamu_catalog(cat_type, inj, inj_percent, realization_number, tile_name, 
 
 	cat_type (str) -- Allowed values: mof, sof, gal_truth, star_truth, coadd. Set by `MATCH_CAT1` or `MATCH_CAT2`.
 
-	realization_number (str) --
+	realization (str) --
 
 	filter_name (str)
 
@@ -4812,37 +4805,37 @@ def get_tamu_catalog(cat_type, inj, inj_percent, realization_number, tile_name, 
 	# 20% injection directory #	
 	if inj_percent == 20:
 		if cat_type == 'mof' and inj:
-                        fn = os.path.join(BASEPATH, tile_name + '_20', 'real_' + realization_number + '_' + tile_name + '_mof.fits')
+                        fn = os.path.join(BASEPATH, tile + '_20', 'real_' + realization + '_' + tile + '_mof.fits')
 		if cat_type == 'mof' and inj is False:
-			fn = os.path.join(BASEPATH, tile_name + '_20', 'base_' + tile_name + '_mof.fits')
+			fn = os.path.join(BASEPATH, tile + '_20', 'base_' + tile + '_mof.fits')
 
                 if cat_type == 'sof' and inj:
-                        fn = os.path.join(BASEPATH, tile_name + '_20', 'real_' + realization_number + '_' + tile_name + '_sof.fits')
+                        fn = os.path.join(BASEPATH, tile + '_20', 'real_' + realization + '_' + tile + '_sof.fits')
 		if cat_type == 'sof' and inj is False:
-			fn = os.path.join(BASEPATH, tile_name + '_20', 'base_' + tile_name + '_sof.fits')
+			fn = os.path.join(BASEPATH, tile + '_20', 'base_' + tile + '_sof.fits')
 
                 if cat_type == 'gal_truth':
-                        fn = os.path.join(BASEPATH, tile_name + '_20', tile_name + '_' + realization_number + '_balrog_truth_cat_gals.fits')
+                        fn = os.path.join(BASEPATH, tile + '_20', tile + '_' + realization + '_balrog_truth_cat_gals.fits')
 
 		if cat_type == 'star_truth':
-                        fn = os.path.join(BASEPATH, tile_name + '_20', tile_name + '_' + realization_number + '_balrog_truth_cat_stars.fits')
+                        fn = os.path.join(BASEPATH, tile + '_20', tile + '_' + realization + '_balrog_truth_cat_stars.fits')
 
 	# 10% injection directory #
 	if inj_percent == 10:
 		if cat_type == 'mof' and inj:
-			fn = os.path.join(BASEPATH, tile_name, 'real_' + realization_number + '_' + tile_name + '_mof.fits')
+			fn = os.path.join(BASEPATH, tile, 'real_' + realization + '_' + tile + '_mof.fits')
 		if cat_type == 'mof' and inj is False:
-			fn = os.path.join(BASEPATH, tile_name, 'base_' + tile_name + '_mof.fits')
+			fn = os.path.join(BASEPATH, tile, 'base_' + tile + '_mof.fits')
 
 		if cat_type == 'sof' and inj:
-			fn = os.path.join(BASEPATH, tile_name, 'real_' + realization_number + '_' + tile_name + '_sof.fits') 
+			fn = os.path.join(BASEPATH, tile, 'real_' + realization + '_' + tile + '_sof.fits') 
 		if cat_type == 'sof' and inj is False:
-			fn = os.path.join(BASEPATH, tile_name, 'base_' + tile_name + '_sof.fits')
+			fn = os.path.join(BASEPATH, tile, 'base_' + tile + '_sof.fits')
 
 		if cat_type == 'gal_truth':
-			fn = os.path.join(BASEPATH, tile_name, tile_name + '_' + realization_number + '_balrog_truth_cat_gals.fits')
+			fn = os.path.join(BASEPATH, tile, tile + '_' + realization + '_balrog_truth_cat_gals.fits')
 		if cat_type == 'star_truth':
-			fn = os.path.join(BASEPATH, tile_name, tile_name + '_' + realization_number + '_balrog_truth_cat_stars.fits')
+			fn = os.path.join(BASEPATH, tile, tile + '_' + realization + '_balrog_truth_cat_stars.fits')
 
 	return fn
 
@@ -4854,15 +4847,15 @@ def get_tamu_catalog(cat_type, inj, inj_percent, realization_number, tile_name, 
 
 
 
-def matcher(realization_number, tile_name, filter_name, inj1, inj2, inj1_percent, inj2_percent):
+def matcher(realization, tile, filter_name, inj1, inj2, inj1_percent, inj2_percent):
         """Match two catalogs on RA and DEC with a tolerance of 1 arcsecond via STILTS.
 
         Parameters
 	----------
-	realization_number (str or int) -- Currently allowed values: 0 1 2 3 4 5 6 7 8 9 depending on the basepath.
+	realization (str or int) -- Currently allowed values: 0 1 2 3 4 5 6 7 8 9 depending on the basepath.
 
 
-	tile_name (str) -- Currently allowed values: DES0347-5540  DES2329-5622  DES2357-6456 DES2247-4414 depending on the basepath.
+	tile (str) -- Currently allowed values: DES0347-5540  DES2329-5622  DES2357-6456 DES2247-4414 depending on the basepath.
 
 	filter_name (str)
 
@@ -4880,14 +4873,14 @@ def matcher(realization_number, tile_name, filter_name, inj1, inj2, inj1_percent
 
         # Input catalogs for STILTS #
 	if MATCH_CAT1 is not 'coadd':
-		in1 = get_catalog_filename(cat_type=MATCH_CAT1, inj=inj1, inj_percent=inj1_percent, realization_number=realization_number, tile_name=tile_name, filter_name=filter_name)
+		in1 = get_catalog_filename(cat_type=MATCH_CAT1, inj=inj1, inj_percent=inj1_percent, realization=realization, tile=tile, filter_name=filter_name)
 	if MATCH_CAT1 == 'coadd':
-		in1 =  get_coadd_matcher_catalog(cat_type=MATCH_CAT1, inj_percent=inj1_percent,  realization_number=realization_number, tile_name=tile_name, mag_hdr=M_HDR2, err_hdr=M_ERR_HDR2)
+		in1 =  get_coadd_matcher_catalog(cat_type=MATCH_CAT1, inj_percent=inj1_percent,  realization=realization, tile=tile, mag_hdr=M_HDR2, err_hdr=M_ERR_HDR2)
 
 	if MATCH_CAT2 is not 'coadd':
-		in2 = get_catalog_filename(cat_type=MATCH_CAT2, inj=inj2, inj_percent=inj2_percent, realization_number=realization_number, tile_name=tile_name, filter_name=filter_name)	
+		in2 = get_catalog_filename(cat_type=MATCH_CAT2, inj=inj2, inj_percent=inj2_percent, realization=realization, tile=tile, filter_name=filter_name)	
 	if MATCH_CAT2 == 'coadd':
-		in2 =  get_coadd_matcher_catalog(cat_type=MATCH_CAT2, inj_percent=inj2_percent,  realization_number=realization_number, tile_name=tile_name, mag_hdr=M_HDR2, err_hdr=M_ERR_HDR2, inj=INJ2)
+		in2 =  get_coadd_matcher_catalog(cat_type=MATCH_CAT2, inj_percent=inj2_percent,  realization=realization, tile=tile, mag_hdr=M_HDR2, err_hdr=M_ERR_HDR2, inj=INJ2)
 
 	print 'Matching or already matched:'
 	print '', in1
@@ -4906,7 +4899,7 @@ def matcher(realization_number, tile_name, filter_name, inj1, inj2, inj1_percent
 	if PLOT_COMPLETENESS is False: match_type = MATCH_TYPE
 
         # !!!!! User may wish to edit directory structure. Output catalog name for STILTS #
-	match_dir = os.path.join(OUTDIR, 'outputs', BALROG_RUN, match_type, tile_name, realization_number, 'catalog_compare')	
+	match_dir = os.path.join(OUTDIR, 'outputs', BALROG_RUN, match_type, tile, realization, 'catalog_compare')	
 
 	# Check for directory existence #
 	if os.path.isdir(match_dir) is False:
@@ -4917,9 +4910,9 @@ def matcher(realization_number, tile_name, filter_name, inj1, inj2, inj1_percent
 			os.makedirs(match_dir)
 
 	# Filenames #
-        outname_match = os.path.join(match_dir, tile_name+'_'+realization_number+'_'+str(match_type)+'_match1and2.csv')
-	outname_1not2 = os.path.join(match_dir, tile_name+'_'+realization_number+'_'+str(match_type)+'_match1not2.csv')
-	outname_2not1 = os.path.join(match_dir, tile_name+'_'+realization_number+'_'+str(match_type)+'_match2not1.csv')
+        outname_match = os.path.join(match_dir, tile+'_'+realization+'_'+str(match_type)+'_match1and2.csv')
+	outname_1not2 = os.path.join(match_dir, tile+'_'+realization+'_'+str(match_type)+'_match1not2.csv')
+	outname_2not1 = os.path.join(match_dir, tile+'_'+realization+'_'+str(match_type)+'_match2not1.csv')
 
 	# Overwrite matched catalogs if one already exists? # 
         overwrite = False 
@@ -4942,14 +4935,14 @@ def matcher(realization_number, tile_name, filter_name, inj1, inj2, inj1_percent
 
 
 
-def fof_matcher(realization_number, tile_name):
+def fof_matcher(realization, tile):
         """Get catalogs to analyze. Return FOF-analysed catalogs.
 
         Parameters
 	----------
-	realization_number (str) 
+	realization (str) 
 
-	tile_name (str) 
+	tile (str) 
 
         Returns
 	-------
@@ -4963,37 +4956,37 @@ def fof_matcher(realization_number, tile_name):
         ### Filenames for input catalogs used in ms_fof_matcher ###
         # MOF or SOF #
         if MOF:
-                mof = os.path.join(BASEPATH, 'y3v02', tile_name, 'mof', tile_name+'_mof.fits')
-                inj_mof = os.path.join(BASEPATH, 'y3v02', 'balrog_images', realization_number, tile_name, 'mof', tile_name+'_mof.fits')
-                fof = os.path.join(BASEPATH, 'y3v02', tile_name, 'mof', tile_name+'_fofslist.fits')
-                inj_fof = os.path.join(BASEPATH, 'y3v02', 'balrog_images', realization_number, tile_name, 'mof', tile_name+'_fofslist.fits')
+                mof = os.path.join(BASEPATH, 'y3v02', tile, 'mof', tile+'_mof.fits')
+                inj_mof = os.path.join(BASEPATH, 'y3v02', 'balrog_images', realization, tile, 'mof', tile+'_mof.fits')
+                fof = os.path.join(BASEPATH, 'y3v02', tile, 'mof', tile+'_fofslist.fits')
+                inj_fof = os.path.join(BASEPATH, 'y3v02', 'balrog_images', realization, tile, 'mof', tile+'_fofslist.fits')
         if MOF is False:
-                mof = os.path.join(BASEPATH, 'y3v02', tile_name, 'sof', tile_name+'_sof.fits')
-                inj_mof = os.path.join(BASEPATH, 'y3v02', 'balrog_images', realization_number, tile_name, 'sof', tile_name+'_sof.fits')
-                fof = os.path.join(BASEPATH, 'y3v02', tile_name, 'sof', tile_name+'_fofslist.fits')
-                inj_fof = os.path.join(BASEPATH, 'y3v02', 'balrog_images', realization_number, tile_name, 'sof', tile_name+'_fofslist.fits')
+                mof = os.path.join(BASEPATH, 'y3v02', tile, 'sof', tile+'_sof.fits')
+                inj_mof = os.path.join(BASEPATH, 'y3v02', 'balrog_images', realization, tile, 'sof', tile+'_sof.fits')
+                fof = os.path.join(BASEPATH, 'y3v02', tile, 'sof', tile+'_fofslist.fits')
+                inj_fof = os.path.join(BASEPATH, 'y3v02', 'balrog_images', realization, tile, 'sof', tile+'_fofslist.fits')
         # Coadds. Using i-band #
-        coadd = os.path.join(BASEPATH, 'y3v02', tile_name, 'coadd', tile_name+'_i_cat.fits')
-        inj_coadd = os.path.join(BASEPATH, 'y3v02', 'balrog_images', realization_number, tile_name, 'coadd', tile_name+'_i_cat.fits')
+        coadd = os.path.join(BASEPATH, 'y3v02', tile, 'coadd', tile+'_i_cat.fits')
+        inj_coadd = os.path.join(BASEPATH, 'y3v02', 'balrog_images', realization, tile, 'coadd', tile+'_i_cat.fits')
 
 
         ### Filenames for outputs of fof_matcher ###
-	os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, tile_name, realization_number, 'fof_analysis_catalog_compare')
+	os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, tile, realization, 'fof_analysis_catalog_compare')
         # Repeated #
-        inj_outdir = os.path.join(outdir, tile_name, realization_number)
-        inj_outname = tile_name + '_' + realization_number
+        inj_outdir = os.path.join(outdir, tile, realization)
+        inj_outname = tile + '_' + realization
 
 
         ### Check directory existence. Make directories if not present. ###
         if os.path.isdir(inj_outdir) is False:
                 os.makedirs(inj_outdir)
-        if os.path.isdir(os.path.join(outdir, tile_name)) is False:
-                os.makedirs(os.path.join(outdir, tile_name))
+        if os.path.isdir(os.path.join(outdir, tile)) is False:
+                os.makedirs(os.path.join(outdir, tile))
 
 
 	### Create filenames for output catalogs created by ms_fof_matcher ###
-        fofcoadd = os.path.join(outdir, tile_name, tile_name+ '_num-match_fof_coadd.csv')
-        fofgroups = os.path.join(outdir, tile_name, tile_name+ 'fofgroups.csv')
+        fofcoadd = os.path.join(outdir, tile, tile+ '_num-match_fof_coadd.csv')
+        fofgroups = os.path.join(outdir, tile, tile+ 'fofgroups.csv')
 	inj_fofcoadd = os.path.join(inj_outdir, inj_outname + '_num-match_inj_fof_inj_coadd.csv')
         inj_fofgroups = os.path.join(inj_outdir, inj_outname + '_inj_fofgroups.csv')
         origfof_injfof = os.path.join(inj_outdir, inj_outname + '_inj_fofgroup_fofgroup_match1and2.csv')
@@ -5040,12 +5033,12 @@ def fof_matcher(realization_number, tile_name):
 
 
 
-def stack_tiles(realization_number):
+def stack_tiles(realization):
 	"""Concatenate catalogs with multiple tiles and fixed realization.
 	
 	Parameters
 	----------
-	realization_number (str)
+	realization (str)
 
 	Returns
 	-------
@@ -5059,7 +5052,7 @@ def stack_tiles(realization_number):
 	"""
 
 	# Directory for stacked catalog #
-	stack_dir = os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, 'stack', realization_number)
+	stack_dir = os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, 'stack', realization)
 
 	# Check directory existence and handle nonexistence #
 	if os.path.isdir(stack_dir) is False:
@@ -5070,13 +5063,13 @@ def stack_tiles(realization_number):
 			os.makedirs(stack_dir)
 
 	# Filename for stacked catalogs #
-	fn_end_1and2 = '_'.join(['stacked', realization_number, MATCH_TYPE, 'match1and2.csv'])
+	fn_end_1and2 = '_'.join(['stacked', realization, MATCH_TYPE, 'match1and2.csv'])
 	fn_stack_match = os.path.join(stack_dir, fn_end_1and2)
 
-	fn_end_1not2 = '_'.join(['stacked', realization_number, MATCH_TYPE, 'match1not2.csv'])
+	fn_end_1not2 = '_'.join(['stacked', realization, MATCH_TYPE, 'match1not2.csv'])
 	fn_stack_1not2 = os.path.join(stack_dir, fn_end_1not2)
 
-	fn_end_2not1 = '_'.join(['stacked', realization_number, MATCH_TYPE, 'match2not1.csv'])
+	fn_end_2not1 = '_'.join(['stacked', realization, MATCH_TYPE, 'match2not1.csv'])
 	fn_stack_2not1 = os.path.join(stack_dir, fn_end_2not1)
 
 	# Check if stacked tile catalog already exists #
@@ -5096,10 +5089,10 @@ def stack_tiles(realization_number):
 		for t in ALL_TILES:
 
 			if RUN_TYPE is None:
-				fn_match, fn_1not2, fn_2not1 = matcher(realization_number=realization_number, tile_name=t, filter_name=None, inj1=INJ1, inj2=INJ2, inj1_percent=INJ1_PERCENT, inj2_percent=INJ2_PERCENT)
+				fn_match, fn_1not2, fn_2not1 = matcher(realization=realization, tile=t, filter_name=None, inj1=INJ1, inj2=INJ2, inj1_percent=INJ1_PERCENT, inj2_percent=INJ2_PERCENT)
 
 			if RUN_TYPE is not None:
-				fn_match, fn_1not2, fn_2not1 = fof_matcher(realization_number=realization_number, tile_name=t) #TODO update with inj?
+				fn_match, fn_1not2, fn_2not1 = fof_matcher(realization=realization, tile=t) #TODO update with inj?
 
 			all_fn_match.append(fn_match); all_fn_1not2.append(fn_1not2); all_fn_2not1.append(fn_2not1)
 
@@ -5128,12 +5121,12 @@ def stack_tiles(realization_number):
 
 
 
-def stack_realizations(tile_name):
+def stack_realizations(tile):
 	"""Concatenate catalogs with multiple realizations and fixed tile.
 
 	Parameters
 	----------
-	tile_name (str) -- One stacked realization catalog created per tile.
+	tile (str) -- One stacked realization catalog created per tile.
 
 	Returns
 	-------
@@ -5147,7 +5140,7 @@ def stack_realizations(tile_name):
 	"""
 
 	# Directory for stacked catalog #
-	stack_dir = os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, tile_name, 'stack')
+	stack_dir = os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, tile, 'stack')
 
 	# Check directory existence and handle nonexistence #
 	if os.path.isdir(stack_dir) is False:
@@ -5158,9 +5151,9 @@ def stack_realizations(tile_name):
 			os.makedirs(stack_dir)
 
 	# Filename for stacked catalogs #
-	fn_stack_match = os.path.join(stack_dir, tile_name+'_stacked_'+str(MATCH_TYPE)+'_match1and2.csv')
-	fn_stack_1not2 = os.path.join(stack_dir, tile_name+'_stacked_'+str(MATCH_TYPE)+'_match1not2.csv')
-	fn_stack_2not1 = os.path.join(stack_dir, tile_name+'_stacked_'+str(MATCH_TYPE)+'_match2not1.csv')
+	fn_stack_match = os.path.join(stack_dir, tile+'_stacked_'+str(MATCH_TYPE)+'_match1and2.csv')
+	fn_stack_1not2 = os.path.join(stack_dir, tile+'_stacked_'+str(MATCH_TYPE)+'_match1not2.csv')
+	fn_stack_2not1 = os.path.join(stack_dir, tile+'_stacked_'+str(MATCH_TYPE)+'_match2not1.csv')
 
 	# Check if stacked realization catalog already exists #
 	overwrite = False
@@ -5180,10 +5173,10 @@ def stack_realizations(tile_name):
 		for r in ALL_REALIZATIONS:
 
 			if RUN_TYPE is None:
-				fn_match, fn_1not2, fn_2not1 = matcher(realization_number=r, tile_name=tile_name, filter_name=None, inj1=INJ1, inj2=INJ2, inj1_percent=INJ1_PERCENT, inj2_percent=INJ2_PERCENT)
+				fn_match, fn_1not2, fn_2not1 = matcher(realization=r, tile=tile, filter_name=None, inj1=INJ1, inj2=INJ2, inj1_percent=INJ1_PERCENT, inj2_percent=INJ2_PERCENT)
 
 			if RUN_TYPE is not None:
-				fn_match, fn_1not2, fn_2not1 = fof_matcher(realization_number=r, tile_name=tile_name) #FIXME
+				fn_match, fn_1not2, fn_2not1 = fof_matcher(realization=r, tile=tile) #FIXME
 
 			all_fn_match.append(fn_match); all_fn_1not2.append(fn_1not2); all_fn_2not1.append(fn_2not1)
 
@@ -5205,7 +5198,7 @@ def stack_realizations(tile_name):
 
 
 
-def get_percent_recovered(full_magnitude, clean_magnitude, inj_percent, tile_name, filter_name, realization_number):
+def get_percent_recovered(full_magnitude, clean_magnitude, inj_percent, tile, filter_name, realization):
 	"""TODO"""
 
 	# Number of injections in a single truth catalog #
@@ -5226,12 +5219,12 @@ def get_percent_recovered(full_magnitude, clean_magnitude, inj_percent, tile_nam
 	### Remove flags* from truth catalog ###
 	# Get filename for truth catalog #
 	if 'truth' in MATCH_CAT1:
-		fn_truth_catalog = get_catalog_filename(cat_type=MATCH_CAT1, inj=INJ1, inj_percent=INJ1_PERCENT, realization_number=realization_number, tile_name=tile_name, filter_name=filter_name) 
+		fn_truth_catalog = get_catalog_filename(cat_type=MATCH_CAT1, inj=INJ1, inj_percent=INJ1_PERCENT, realization=realization, tile=tile, filter_name=filter_name) 
 		__mag_hdr = M_HDR1[:-2]
 		__flag_hdr = FLAGS_HDR1[:-2]
 		__cm_flag_hdr = CM_FLAGS_HDR1[:-2] 
 	if 'truth' in MATCH_CAT2:
-		fn_truth_catalog = get_catalog_filename(cat_type=MATCH_CAT2, inj=INJ2, inj_percent=INJ2_PERCENT, realization_number=realization_number, tile_name=tile_name, filter_name=filter_name)
+		fn_truth_catalog = get_catalog_filename(cat_type=MATCH_CAT2, inj=INJ2, inj_percent=INJ2_PERCENT, realization=realization, tile=tile, filter_name=filter_name)
 		__mag_hdr = M_HDR2[:-2]
 		__flag_hdr = FLAGS_HDR2[:-2]
                 __cm_flag_hdr = CM_FLAGS_HDR2[:-2]
@@ -5263,7 +5256,7 @@ def get_percent_recovered(full_magnitude, clean_magnitude, inj_percent, tile_nam
 
 
 
-def get_df(realization_number, tile_name, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, inj1, inj2, inj1_percent, inj2_percent):
+def get_df(realization, tile, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, inj1, inj2, inj1_percent, inj2_percent):
 	"""Get pandas DataFrame and read it.
 
 	Parameters
@@ -5276,9 +5269,9 @@ def get_df(realization_number, tile_name, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_
 
 	mag_hdr1, mag_hdr2 (str)
 
-	realization_number (int)
+	realization (int)
 
-	tile_name (str)
+	tile (str)
 
 	Returns
 	-------
@@ -5297,14 +5290,14 @@ def get_df(realization_number, tile_name, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_
 		### Stack tiles ###
 		for r in ALL_REALIZATIONS:
 			if STACK_TILES and STACK_REALIZATIONS is False: 
-				fn_stack_match, fn_stack_1not2, fn_stack_2not1, num_stack_tile = stack_tiles(realization_number=r)
+				fn_stack_match, fn_stack_1not2, fn_stack_2not1, num_stack_tile = stack_tiles(realization=r)
 				num_stack_real = None
 
 
 		### Stack realizations ###
 		for t in ALL_TILES:
 			if STACK_REALIZATIONS and STACK_TILES is False:
-				fn_stack_match, fn_stack_1not2, fn_stack_2not1, num_stack_real = stack_realizations(tile_name=t)
+				fn_stack_match, fn_stack_1not2, fn_stack_2not1, num_stack_real = stack_realizations(tile=t)
 				num_stack_tile = None
 
 		### Read stacked catalog ###
@@ -5320,9 +5313,9 @@ def get_df(realization_number, tile_name, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_
 		num_stack_tile, num_stack_real = None, None
 		# Filenames for catalogs #
 		if RUN_TYPE is None:
-			fn_match, fn_1not2, fn_2not1 = matcher(realization_number=realization_number, tile_name=tile_name, filter_name=None, inj1=inj1, inj2=inj2, inj1_percent=inj1_percent, inj2_percent=inj2_percent)
+			fn_match, fn_1not2, fn_2not1 = matcher(realization=realization, tile=tile, filter_name=None, inj1=inj1, inj2=inj2, inj1_percent=inj1_percent, inj2_percent=inj2_percent)
 		if RUN_TYPE is not None:
-			fn_match, fn_1not2, fn_2not1 = fof_matcher(realization_number=realization_number, tile_name=tile_name) #FIXME
+			fn_match, fn_1not2, fn_2not1 = fof_matcher(realization=realization, tile=tile) #FIXME
 
 		# Get DataFrame #
 		df1and2 = pd.read_csv(fn_match)
@@ -5414,49 +5407,49 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 
 			# Stacked completeness plots do NOT use stacked tile catalog ... #
 			if PLOT_COMPLETENESS is False: 
-				df1and2, df1not2, df2not1, magHdr1, magHdr2, magErrHdr1, magErrHdr2, numStackTile, numStackReal = get_df(realization_number=r, tile_name=t, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, inj1=INJ1, inj2=INJ2, inj1_percent=INJ1_PERCENT, inj2_percent=INJ2_PERCENT)
+				df1and2, df1not2, df2not1, magHdr1, magHdr2, magErrHdr1, magErrHdr2, numStackTile, numStackReal = get_df(realization=r, tile=t, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, inj1=INJ1, inj2=INJ2, inj1_percent=INJ1_PERCENT, inj2_percent=INJ2_PERCENT)
 
 			#if PLOT_COMPLETENESS:
 			#TODO remove last two outputs from get_df
 			numStackTile, numStackReal = len(ALL_TILES), len(ALL_REALIZATIONS)
 
-			fn_flag, fn_mag_bins, fn_main_log, __fn_color_plot_log, __fn_mag_outliers, fnCompletenessLog, fnMagCompletenessDeltaMagLog, fnAper = get_log_file_names(tile_name=t, realization_number=r)
+			fn_flag, fn_mag_bins, fn_main_log, __fn_color_plot_log, __fn_mag_outliers, fnCompletenessLog, fnMagCompletenessDeltaMagLog, fnAper = get_log_file_names(tile=t, realization=r)
                         # Write headers #
                         fd_main_log, fd_mag_bins, fd_flag, __fd_color_plot_log, fdDeltaMagOutliers, fdCompletenessLog, fdMagCompletenessDeltaMagLog = fd_first_write(fn_main_log=fn_main_log, fn_mag_bins=fn_mag_bins, fn_flag=fn_flag, fn_color_plot_log=__fn_color_plot_log, fn_delta_mag_outliers=__fn_mag_outliers, fn_completeness_log=fnCompletenessLog, fn_mag_completeness_delta_mag=fnMagCompletenessDeltaMagLog)
 
 			# Name for plt.savefig() #
-                        fn = get_plot_save_name(realization_number=r, tile_name=t)
+                        fn = get_plot_save_name(realization=r, tile=t)
 
-			title = get_plot_suptitle(realization_number=r, tile_name=t, num_stack_real=numStackReal, num_stack_tile=numStackTile)
+			title = get_plot_suptitle(realization=r, tile=t, num_stack_real=numStackReal, num_stack_tile=numStackTile)
 
 			### Region files ###
 			#TODO PLOT_COMPLETENESS df1and2 created in another function --> cannot call make_region_files()
 			if PLOT_COMPLETENESS is False:
-				if MAKE_REG: make_region_files(df_match=df1and2, df_1not2=df1not2, df_2not1=df2not1, realization_number=r, tile_name=t)	
+				if MAKE_REG: make_region_files(df_match=df1and2, df_1not2=df1not2, df_2not1=df2not1, realization=r, tile=t)	
 
 
 			### Call plotting functions ###	
 			if PLOT_MAG and PLOT_COMPLETENESS is False:
-				delta_magnitude_subplotter(df=df1and2, flag_idx=flag_idx, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, fn_plot=fn, plot_title=title, realization_number=r, tile_name=t, fd_mag_bins=fd_mag_bins, fd_main_log=fd_main_log, fd_flag=fd_flag, fd_delta_mag_outliers=fdDeltaMagOutliers) 
+				delta_magnitude_subplotter(df=df1and2, flag_idx=flag_idx, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, fn_plot=fn, plot_title=title, realization=r, tile=t, fd_mag_bins=fd_mag_bins, fd_main_log=fd_main_log, fd_flag=fd_flag, fd_delta_mag_outliers=fdDeltaMagOutliers) 
 
 			if PLOT_COLOR and PLOT_COMPLETENESS is False:
 				for f in ALL_FILTERS[:-1]:
-					color_subplotter(filter_name=f, df=df1and2, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization_number=r, tile_name=t, fd_flag=fd_flag, plot_title=title, fn_plot=fn, fd_color_plot_log=__fd_color_plot_log)
+					color_subplotter(filter_name=f, df=df1and2, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization=r, tile=t, fd_flag=fd_flag, plot_title=title, fn_plot=fn, fd_color_plot_log=__fd_color_plot_log)
 
 			### Completeness plots (for truth catalogs vs injected {mof/sof/coadd/...}) ###
 			if ('truth' in MATCH_CAT1 or 'truth' in MATCH_CAT2) and (INJ1 and INJ2) and PLOT_COMPLETENESS:
 				if PLOT_MAG and STACK_TILES is False:
-					magnitude_completeness_subplotter(mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization_number=r, tile_name=t, plot_title=title, fn_plot=fn, fd_flag=fd_flag, flag_idx=[], fd_completeness_log=fdCompletenessLog, fd_completeness_delta_mag_log=fdMagCompletenessDeltaMagLog)#TODO change flag_idx?
+					magnitude_completeness_subplotter(mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization=r, tile=t, plot_title=title, fn_plot=fn, fd_flag=fd_flag, flag_idx=[], fd_completeness_log=fdCompletenessLog, fd_completeness_delta_mag_log=fdMagCompletenessDeltaMagLog)#TODO change flag_idx?
 				if PLOT_MAG and STACK_TILES:
-					stacked_magnitude_completeness_subplotter(mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization_number=r, plot_title=title, fn_plot=fn, fd_flag=fd_flag, flag_idx=[], fd_completeness_log=fdCompletenessLog, fd_completeness_delta_mag_log=fdMagCompletenessDeltaMagLog)
+					stacked_magnitude_completeness_subplotter(mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization=r, plot_title=title, fn_plot=fn, fd_flag=fd_flag, flag_idx=[], fd_completeness_log=fdCompletenessLog, fd_completeness_delta_mag_log=fdMagCompletenessDeltaMagLog)
 
 				if PLOT_COLOR:
 					for f in ALL_FILTERS[:-1]: 
-						color_completeness_subplotter(filter_name=f, df=df1and2, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization_number=r, tile_name=t, plot_title=title, fn_plot=fn, fd_flag=fd_flag, flag_idx=[], fd_completeness_log=fdCompletenessLog)
+						color_completeness_subplotter(filter_name=f, df=df1and2, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization=r, tile=t, plot_title=title, fn_plot=fn, fd_flag=fd_flag, flag_idx=[], fd_completeness_log=fdCompletenessLog)
 
 
 			if PLOT_FLUX:
-				normalized_flux_histogram_subplotter(df=df1and2, flux_hdr1=CM_FLUX_HDR1, flux_hdr2=CM_FLUX_HDR2, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, plot_title=title, fn_plot=fn, tile_name=t, realization_number=r, fn_aper=fnAper)
+				normalized_flux_histogram_subplotter(df=df1and2, flux_hdr1=CM_FLUX_HDR1, flux_hdr2=CM_FLUX_HDR2, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, plot_title=title, fn_plot=fn, tile=t, realization=r, fn_aper=fnAper)
 
 			### Close log files after each iteration over a realization ###
 			fd_flag.close(); fd_mag_bins.close(); fd_main_log.close(); fdMagCompletenessDeltaMagLog.close(); fdCompletenessLog.close() 
@@ -5470,7 +5463,7 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 
 
 #TODO err_hdr--> mag_err_hdr
-def get_coadd_matcher_catalog(cat_type, inj_percent, inj, realization_number, mag_hdr, err_hdr, tile_name):
+def get_coadd_matcher_catalog(cat_type, inj_percent, inj, realization, mag_hdr, err_hdr, tile):
 	"""Make FITS file that includes a column of form '(m_g, m_r, m_i, m_z)' where m is magnitude. Column will be added to '..._i_cat.fits'. This will be used in matcher(). Relies on directory structure /`OUTDIR`/outputs/`BALROG_RUN`/`MATCH_TYPE`/{tile}/{realization}/catalog_compare/
 
 	Parameters
@@ -5484,7 +5477,7 @@ def get_coadd_matcher_catalog(cat_type, inj_percent, inj, realization_number, ma
 	inj_percent (int)
 		Injection percent? Currently '10' and '20' are allowed values referring to 5,000 and 10,000 injected objects, respectively.
 
-	realization_number (str)
+	realization (str)
 
 	mag_hdr (str)
 		Header for magnitude. Headers refer to columns in the matched catalog.
@@ -5492,7 +5485,7 @@ def get_coadd_matcher_catalog(cat_type, inj_percent, inj, realization_number, ma
 	err_hdr (str)
 		Header for magnitude #FIXME error. Headers refer to columns in the matched catalog.
 
-	tile_name (str)
+	tile (str)
 
 	Returns
 	-------
@@ -5500,14 +5493,14 @@ def get_coadd_matcher_catalog(cat_type, inj_percent, inj, realization_number, ma
 		Complete filename for catalog with added column. Is a FITS file.
 	"""
 
-	dir_new = os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, tile_name, realization_number, 'catalog_compare')
+	dir_new = os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, tile, realization, 'catalog_compare')
 	if os.path.isdir(dir_new) is False:
 		if NO_DIR_MAKE is False:
 			sys.exit('Directory ' + str(dir_new) + ' does not exist...')
 		if NO_DIR_MAKE:
 			os.makedirs(dir_new)
 
-	fn_new = os.path.join(dir_new, str(tile_name) + '_i_cat_combo.fits')
+	fn_new = os.path.join(dir_new, str(tile) + '_i_cat_combo.fits')
 
 	# Check if new coadd catalog has already been created #
 	if os.path.isfile(fn_new):
@@ -5520,7 +5513,7 @@ def get_coadd_matcher_catalog(cat_type, inj_percent, inj, realization_number, ma
 		# Get list of filenames #
 		fn_griz = []
 		for f in ALL_FILTERS:
-			fn_griz.append(cat_type=cat_type, inj=inj, inj_percent=inj_percent, realization_number=realization_number, tile_name=tile_name, filter_name=filter_name)
+			fn_griz.append(cat_type=cat_type, inj=inj, inj_percent=inj_percent, realization=realization, tile=tile, filter_name=filter_name)
 		fn_g, fn_r, fn_i, fn_z = fn_griz
 
 		# Get coadd magnitude (mag_c) and magnitude error to be of form '(m_g, m_r, m_i, m_z)'. Recall that this is a string #
@@ -5550,7 +5543,7 @@ def get_coadd_matcher_catalog(cat_type, inj_percent, inj, realization_number, ma
 
 #TODO accept idx_good as input param? Will only be used for df_match. 
 #df_match--> 1and2
-def make_region_files(df_match, df_1not2, df_2not1, realization_number, tile_name):
+def make_region_files(df_match, df_1not2, df_2not1, realization, tile):
 	"""Make DS9 region files for catalogs matched via join=1and2, join=1not2, and join=2not1 (join type is STILTS parameter set in ms_matcher or ms_fof_matcher).
 
 	Parameters
@@ -5564,9 +5557,9 @@ def make_region_files(df_match, df_1not2, df_2not1, realization_number, tile_nam
 	df_2not1 (pandas DataFrame)
 		Catalog for matches via join=2not1 between `MATCH_CAT1` and `MATCH_CAT2`.
 
-	realization_number (str)
+	realization (str)
 
-	tile_name (str)
+	tile (str)
 
 	Returns
 	-------
@@ -5581,7 +5574,7 @@ def make_region_files(df_match, df_1not2, df_2not1, realization_number, tile_nam
 	"""
 
 	### Get filenames and open files ###
-	fn_match, fn_1not2, fn_2not1 = get_reg_names(tile_name=tile_name, realization_number=realization_number)
+	fn_match, fn_1not2, fn_2not1 = get_reg_names(tile=tile, realization=realization)
 
 	overwrite = False
 	
