@@ -35,7 +35,7 @@ Parameter(s) | Type | Description & _allowed values_ (if Type not bool)
 :---: | :---: | ---
 |`MATCH_CAT1` `MATCH_CAT2` | str | Type of catalogs to analyse. _Allowed values_:  `mof` `sof` `star_truth` `gal_truth` `y3_gold` `coadd`
 | `INJ1` `INJ2` | bool | If `True` then `MATCH_CAT1` `MATCH_CAT2` are Balrog-injected. If `False` then `MATCH_CAT1` `MATCH_CAT2` are base catalogs.
-|`INJ1_PERCENT` `INJ2_PERCENT` | int | Injection percent for `MATCH_CAT1` `MATCH_CAT2`. It is important to specify these parameters even in the case of `INJ1=False` `INJ2=False` because this parameters impacts directory structure.
+|`INJ1_PERCENT` `INJ2_PERCENT` | int | Injection percent for `MATCH_CAT1` `MATCH_CAT2`. It is important to specify these parameters even in the case of `INJ1=False` `INJ2=False` because these parameters impact directory structure.
 | `PLOT_MAG` | bool | If `True` plots of g-, r-, i-, and z-band magnitude are created.
 | `PLOT_COLOR` | bool | If `True` colors g-r, r-i, and i-z are plotted. Creates a 2x2 grid with subplots corresponding to different magnitude bins (currently \[20,21), \[21,22), \[22,23), and \[23,24)). Magnitudes are binned according to values in `MATCH_CAT1` for the leading filter (g for g-r, etc).
 | `PLOT_FLUX` | bool | If `True` a 1D histogram of Delta_Flux/Sigma_Flux is plotted along with a standard Gaussian (mean=0, standard_deviation=1) and a fit to the 1D histogram. Delta_Flux is computed as truth_flux minus {SOF/MOF/coadd}\_flux. Sigma_Flux is computed using only the measured catalog (SOF/MOF/coadd).
