@@ -27,9 +27,9 @@ After the above command is issued, a prompt will appear so that the user can con
 User sets plot attributes and catalog attributes within `ms_plotter.py`. A table of user-set attributes is below.
 
 
-# Table of Parameters
+# Table of Constants
 
-These parameters are set within `ms_plotter.py`.
+These constants are set within `ms_plotter.py`. Docstrings describe parameters but a [Table of Function Parameters](https://docs.google.com/spreadsheets/d/1utJdA9SpigrbDTsmtHcqcECP9sARHeFNUXdp47nyyro/edit?usp=sharing) is also available.
 
 Parameter(s) | Type | Description & _allowed values_ (if Type not bool)
 :---: | :---: | ---
@@ -134,8 +134,8 @@ Matching is performed first, then catalogs are stacked.
 ___
 
 
-# `Flags*`
-Docstrings in `ms_plotter.py` frequently make reference to `flags*` which refers to specific flag cuts that are employed in `ms_plotter.get_good_index_using_primary_flags()` but described below for clarity.
+# `flagged* objects`
+Docstrings in `ms_plotter.py` frequently make reference to `flagged* objects` which refer to specific flag cuts employed in `ms_plotter.get_good_index_using_primary_flags()` but described below for clarity.
 
 In general, the following catalog headers are considered: 'flags' and 'cm_flags'. Exceptions are listed below. 
 
