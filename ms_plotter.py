@@ -7,9 +7,16 @@ Example: $python ms_plotter.py /data/des71.a/data/kuropat/des2247-4414_sof/ /Use
 Relies on ms_matcher. User may need to replace `/data/des71.a/data/mspletts/balrog_validation_tests/scripts/BalVal/ms_matcher` with the correct path to ms_matcher.
 FOF analysis relies on ms_fof_matcher. User may need to replace `/data/des71.a/data/mspletts/balrog_validation_tests/scripts/BalVal/ms_fof_matcher` with the correct path to ms_fof_matcher.
 
-Plot attributes are specified with constants (many of them booleans) at the beginning of this script. See 'Table of Parameters' in README.md for descriptions of these constants. 
+Plot attributes are specified with constants (many of them booleans) at the beginning of this script.
+See 'Table of Constants' in README.md for descriptions of these constants. 
+Docstrings describe function parameters and function returns, but a GoogleSheet is also availabe: https://docs.google.com/spreadsheets/d/1utJdA9SpigrbDTsmtHcqcECP9sARHeFNUXdp47nyyro/edit?usp=sharing
 
-# Comments are ABOVE the code they correspond to (with the exception of FIXMEs and TODOs). In general, function parameters are named_with_underscores, variables defined within functions (and that should only be accessed by said function) are __named_with_leading_underscores, and variable namesWithoutSpaces are defined by a function via nameWithoutSpace = function(param1=x). # 
+# Comments are ABOVE the code they correspond to (with the exception of FIXMEs and TODOs) #
+In general, function input parameters are `named_with_underscores`. 
+Variables defined within functions (and that should only be accessed by said function) are `__named_with_leading_underscores`.
+Variable `namesWithoutSpaces` are defined by another function via `nameWithoutSpace = function(param1=x)` 
+
+Note that `None` is typically used as a flag value throughout this script.
 
 Megan Splettstoesser mspletts@fnal.gov"""
 
@@ -82,8 +89,8 @@ INJ1, INJ2 = True, True
 INJ1_PERCENT, INJ2_PERCENT = 20, 20
 
 # Observable #
-PLOT_MAG = True 
-PLOT_COLOR = False
+PLOT_MAG = False
+PLOT_COLOR = True
 PLOT_FLUX = False
 GAUSS_APER = True
 TRIM_FLUX = True
@@ -101,7 +108,9 @@ CM_T_ERR_COLORBAR = False
 CM_T_COLORBAR = False
 
 # For magnitude plots #
-NORMALIZE = True
+NORMALIZE = False
+PLOT_68P = True
+PLOT_34P_SPLIT = True
 PLOT_MAG_ERR = True 
 CENTER_ERR_ABT_ZERO = False
 
@@ -1329,7 +1338,7 @@ def calculate_measured_magnitude_error_from_flux(flux_cov_hdr, df_1and2, band, f
 	if PRINTOUTS:
 		print 'Calculated the magnitude error for band: ', band
 		print ' Number of negative cm_flux_cov: ', counter_neg, ' / ', len(flux), '\n'
-
+	#TODO do not compute __mag_err_from_flux as above if truth cat
 	if 'truth' in match_cat: __mag_err_from_flux = None
 
 	return __mag_err_from_flux 
@@ -1338,7 +1347,7 @@ def calculate_measured_magnitude_error_from_flux(flux_cov_hdr, df_1and2, band, f
 
 
 #TODO mag_bins, rename func get_68percentile_of_magnitude_difference....
-def get_68percentile_of_normalized_magnitude_difference(binned_norm_mag_diff, mag_bins, binned_hax_mag):
+def get_68percentile_of_normalized_magnitude_difference(binned_norm_mag_diff, mag_bins_for_mag_err, binned_hax_mag):
 	"""Calculate the point on the normalized vertical axis corresponding to the 68th percentile of each bin used in the error calculation. This percentile can be calculated in several ways: centered about zero, centered about the median of each bin, calculated using the absolute value of the data, calculated by examining the 34th percentile of the positive and negative portions of the data separately. 
 
 	Parameters
@@ -1352,27 +1361,27 @@ def get_68percentile_of_normalized_magnitude_difference(binned_norm_mag_diff, ma
 
 	Returns
 	-------
-	__vax_mag_68p (list of floats)
+	__norm_mag_diff_68p (list of floats)
 		Point on the vertical axis (vax) corresponding to 68 percentile. Each element in the list corresponds to a different bin.
 
 	bins (list of floats)
 		Bins used in error calculation.
 
-	__neg_vax_mag_34p (list of floats)
+	__neg_norm_mag_diff_34p (list of floats)
 
-	__pos_vax_mag_34p (list of floats)
+	__pos_norm_mag_diff_34p (list of floats)
 
 	"""
 
-	__vax_mag_68p, __neg_vax_mag_34p, __pos_vax_mag_34p = [], [], []
+	__norm_mag_diff_68p, __neg_norm_mag_diff_34p, __pos_norm_mag_diff_34p = [], [], []
 
 	# Loop through bins (b) #
 	for b in np.arange(0, len(binned_norm_mag_diff)):
 
 		if binned_norm_mag_diff[b] is None:
-			__vax_mag_68p.append(None)
-			__neg_vax_mag_34p.append(None)
-			__pos_vax_mag_34p.append(None)
+			__norm_mag_diff_68p.append(None)
+			__neg_norm_mag_diff_34p.append(None)
+			__pos_norm_mag_diff_34p.append(None)
 
 		if binned_norm_mag_diff[b] is not None:
 
@@ -1382,7 +1391,7 @@ def get_68percentile_of_normalized_magnitude_difference(binned_norm_mag_diff, ma
 			# Take absolute value of each point in bin #
 			abs_vax_mag_bins_icb = [abs(elmt) for elmt in vax_mag_bins_icb]
 			# Percentile sorts the data #
-			__vax_mag_68p.append(np.percentile(abs_vax_mag_bins_icb, 68, interpolation='lower'))	
+			__norm_mag_diff_68p.append(np.percentile(abs_vax_mag_bins_icb, 68, interpolation='lower'))	
 
 			if PRINTOUTS_MINOR:
 				# Check the percentile because interpolation='lower' was used #
@@ -1406,13 +1415,13 @@ def get_68percentile_of_normalized_magnitude_difference(binned_norm_mag_diff, ma
 
 			# Check if lists are populated #
 			if counter_neg > 0: 
-				__neg_vax_mag_34p.append(np.percentile(neg_vax, 34, interpolation='lower'))
+				__neg_norm_mag_diff_34p.append(np.percentile(neg_vax, 34, interpolation='lower'))
 			if counter_pos > 0:
-				__pos_vax_mag_34p.append(np.percentile(pos_vax, 34, interpolation='lower'))
+				__pos_norm_mag_diff_34p.append(np.percentile(pos_vax, 34, interpolation='lower'))
 			if counter_neg  == 0:
-				__neg_vax_mag_34p.append(None)
+				__neg_norm_mag_diff_34p.append(None)
 			if counter_pos  == 0:
-				__pos_vax_mag_34p.append(None)
+				__pos_norm_mag_diff_34p.append(None)
 
 
 			plot_hist = False
@@ -1421,13 +1430,13 @@ def get_68percentile_of_normalized_magnitude_difference(binned_norm_mag_diff, ma
                                 plt.figure()
                                 norm_dm = [abs(elmt) for elmt in binned_norm_mag_diff[b]]
                                 plt.hist(norm_dm)
-                                plt.title('Bin LHS: ' + str(mag_bins[b]))
+                                plt.title('Bin LHS: ' + str(mag_bins_for_mag_err[b]))
                                 plt.xlabel(r'$\Delta M$')
                                 plt.axvline(x=0, color='black', linestyle=':', linewidth=0.5)
                                 plt.show()
 
 
-	return __vax_mag_68p, mag_bins, __neg_vax_mag_34p, __pos_vax_mag_34p
+	return __norm_mag_diff_68p, mag_bins_for_mag_err, __neg_norm_mag_diff_34p, __pos_norm_mag_diff_34p
 
 
 
@@ -1459,19 +1468,14 @@ def bin_and_cut_measured_magnitude_error(clean_mag1, clean_mag2, mag_err1, mag_e
         """
 
 	### !!!!! Comment this block out if errors are to be computed using both catalogs regardless of origin (measured catalog or truth catalog) ###
-	if 'meas' in AXLABEL1 and 'meas' not in AXLABEL2:
-		mag_err2 = np.zeros(len(mag_err1))
-		if PRINTOUTS:
+	if 'meas' in AXLABEL1 and 'meas' not in AXLABEL2 and PRINTOUTS:
 			print 'Using measured catalog (', MATCH_CAT1, ') for error calculation ... '
 
-	if 'meas' in AXLABEL2 and 'meas' not in AXLABEL1:
-		mag_err1 = np.zeros(len(mag_err2))
-		if PRINTOUTS:
+	if 'meas' in AXLABEL2 and 'meas' not in AXLABEL1 and PRINTOUTS:
 			print 'Using measured catalog (', MATCH_CAT2, ') for error calculation ... '
 
-	if 'meas' in AXLABEL1 and 'meas' in AXLABEL2:
-		if PRINTOUTS:
-			print 'Using measured catalogs (', MATCH_CAT1, '&', MATCH_CAT2, ') for error calculation ... '
+	if 'meas' in AXLABEL1 and 'meas' in AXLABEL2 and PRINTOUTS:
+		print 'Using measured catalogs (', MATCH_CAT1, '&', MATCH_CAT2, ') for error calculation ... '
 
 	if 'true' in AXLABEL1 and 'true' in AXLABEL2:
 		sys.exit('Errors are to be computed using the measured catalog(s), not the truth catalog(s).')
@@ -1496,13 +1500,13 @@ def bin_and_cut_measured_magnitude_error(clean_mag1, clean_mag2, mag_err1, mag_e
                 print ' Forcing magnitudes to be binned with max ', __lim_high, '...'
 
 	# Include endpoint #
-        __mag_bins = np.arange(__lim_low, __lim_high+(__step*0.1), __step)
+        __mag_bins_for_mag_err = np.arange(__lim_low, __lim_high+(__step*0.1), __step)
 
 
 	# Stores median of values in each bin #
-	__hax_mag_bin_medians, __vax_mag_bin_medians, __mag_err_bin_medians = [], [], []
+	__hax_mag_bin_medians, __mag_diff_bin_medians, __mag_err_bin_medians = [], [], []
 	# List of lists. Stores all values in each bin #
-	__binned_hax_mag, __binned_vax_mag, __binned_mag_err = [], [], []
+	__binned_hax_mag, __binned_mag_diff, __binned_mag_err = [], [], []
 	# Counter for empty bins and bins with a small number of objects #
         __counter_empty_bin = 0
 
@@ -1514,9 +1518,10 @@ def bin_and_cut_measured_magnitude_error(clean_mag1, clean_mag2, mag_err1, mag_e
                 __hax_mag = clean_mag1
 
 	# Magnitude on the vertical axis (vax) #
+	# __vax_mag --> __mag_diff
 	__vax_mag = np.array(clean_mag1) - np.array(clean_mag2)
 
-	__clean_vax_mag, __clean_hax_mag = [], []
+	__clean_mag_diff, __clean_hax_mag = [], []
 
 
 	__cutoff_mag_diff = 3
@@ -1524,7 +1529,7 @@ def bin_and_cut_measured_magnitude_error(clean_mag1, clean_mag2, mag_err1, mag_e
 	__counter_mag_diff_geq1 = 0
 
 	### Populate each bin ###
-	for b in __mag_bins: 
+	for b in __mag_bins_for_mag_err: 
 
 		__hax_mag_in_bin, __vax_mag_in_bin, __err_mag_in_bin = [], [], []
 		__counter = 0
@@ -1539,12 +1544,16 @@ def bin_and_cut_measured_magnitude_error(clean_mag1, clean_mag2, mag_err1, mag_e
 					# TILE, REALIZATION, BAND, MAG1, MAG2, MAG_DIFF #
 					writer.writerow([str(tile), str(realization), str(band), str(clean_mag1[i]), str(clean_mag2[i]), str(__vax_mag[i])])
 
-                        # Do not calculate errors using outlier magnitudes (chosen to be |Delta-M| > 3). Bin magnitude errors according to the magnitude on the horizontal axis of the plot #
+                        # Do not calculate errors using outlier magnitudes (given by `__cutoff_mag_diff`). Bin magnitude errors according to the magnitude on the horizontal axis of the plot #
+			#TODO is is necessary to do this comparison to b and b+__step?
                         if __hax_mag[i] >= b and __hax_mag[i] < b+__step and abs(__vax_mag[i]) < __cutoff_mag_diff: 
-				__err_mag_in_bin.append((mag_err1[i]**2 + mag_err2[i]**2)**0.5)
+				###__err_mag_in_bin.append((mag_err1[i]**2 + mag_err2[i]**2)**0.5)
+				if mag_err1 is None: __err_mag_in_bin.append(abs(mag_err2[i]))
+				if mag_err2 is None: __err_mag_in_bin.append(abs(mag_err1[i])) 
+				if mag_err1 is not None and mag_err2 is not None: __err_mag_in_bin.append((mag_err1[i]**2 + mag_err2[i]**2)**0.5)
 				__vax_mag_in_bin.append(__vax_mag[i])
 				__hax_mag_in_bin.append(__hax_mag[i])
-				__clean_vax_mag.append(__vax_mag[i])
+				__clean_mag_diff.append(__vax_mag[i])
 				__clean_hax_mag.append(__hax_mag[i])
                                 __counter += 1
 
@@ -1564,28 +1573,28 @@ def bin_and_cut_measured_magnitude_error(clean_mag1, clean_mag2, mag_err1, mag_e
 
 
                 ### Tame error calculation and normalization by adding `None` to empty bins and bins with a small number of points ###
-		# Define 'small' #
-		if STACK_REALIZATIONS: CONST = 30
-		if STACK_REALIZATIONS is False: CONST = 10 
+		# Define minimum bin population # 
+		if STACK_REALIZATIONS: __min_bin_pop = 30
+		if STACK_REALIZATIONS is False: __min_bin_pop = 10 
 
-		if __counter <= CONST:
+		if __counter <= __min_bin_pop:
                         __counter_empty_bin += 1
                         __mag_err_bin_medians.append(None)
                         __hax_mag_bin_medians.append(None)
-                        __vax_mag_bin_medians.append(None)
+                        __mag_diff_bin_medians.append(None)
 			# Add to list of lists to keep bin structure #
 			__binned_mag_err.append(None)
                         __binned_hax_mag.append(None)
-                        __binned_vax_mag.append(None)		
+                        __binned_mag_diff.append(None)		
 
-                if __counter > CONST:
+                if __counter > __min_bin_pop:
                         __mag_err_bin_medians.append(np.median(__err_mag_in_bin))
                         __hax_mag_bin_medians.append(np.median(__hax_mag_in_bin))
-                        __vax_mag_bin_medians.append(np.median(__vax_mag_in_bin))
+                        __mag_diff_bin_medians.append(np.median(__vax_mag_in_bin))
 			# Add to list of lists to keep bin structure #	
 			__binned_mag_err.append(__err_mag_in_bin)
                         __binned_hax_mag.append(__hax_mag_in_bin)
-                        __binned_vax_mag.append(__vax_mag_in_bin)
+                        __binned_mag_diff.append(__vax_mag_in_bin)
 
 
 	if PRINTOUTS:
@@ -1594,15 +1603,16 @@ def bin_and_cut_measured_magnitude_error(clean_mag1, clean_mag2, mag_err1, mag_e
 		if SWAP_HAX is False:
                         print ' Binned clean_mag1 (from', MATCH_CAT1, ') with step size: ', __step, ', and minimum: ', __lim_low, ', and maximum: ', __lim_high, '...'
 		print ' Calculated magnitude error using objects where |DeltaM| <', __cutoff_mag_diff, ' ... '
-		print ' Excluded ', __counter_empty_bin, ' bins with less than ', CONST, ' objects ... \n'
+		print ' Excluded ', __counter_empty_bin, ' bins with less than ', __min_bin_pop, ' objects ... \n'
 		print ' Number of objects with |DeltaM| > ', __cutoff_mag_diff_for_log, ' : ', __counter_mag_diff_geq1, ' / ', str(len(clean_mag1)), ' ...\n'
 
-        return __hax_mag_bin_medians, __vax_mag_bin_medians, __mag_err_bin_medians, __mag_bins, __binned_hax_mag, __binned_vax_mag, __binned_mag_err, __clean_hax_mag, __clean_vax_mag
+        return __hax_mag_bin_medians, __mag_diff_bin_medians, __mag_err_bin_medians, __mag_bins_for_mag_err, __binned_hax_mag, __binned_mag_diff, __clean_hax_mag, __clean_mag_diff
 
 
 
 
-#TODO rename func... normalize to err?
+#TODO rename func... normalize to err? must this be a magnitude difference?
+# must be a magnitude difference bc mag diff from bin_and_cut...()
 def normalize_magnitude_plot_maintain_bin_structure(clean_mag1, clean_mag2, mag_err1, mag_err2, band, tile, realization, fn_mag_err_log, fn_mag_diff_outliers_log):
 	"""Normalize the vertical axis using 1sigma_mag and preserve the bin structure of the horizontal axis. 
 
@@ -1621,12 +1631,12 @@ def normalize_magnitude_plot_maintain_bin_structure(clean_mag1, clean_mag2, mag_
 	"""
 
 	# List of lists. Stores all values in each bin #
-	__binned_norm_vax_mag, __binned_hax_mag = [], []
+	__binned_norm_mag_diff, __binned_hax_mag = [], []
 	# Stores the median of each bin #
-	__norm_vax_mag_bin_medians = []
+	__norm_mag_diff_bin_medians = []
 
 	#__mag_err_bin_medians
-	haxBinMedian, vaxBinMedian, magErrBinMedians, magBins, haxBins, vaxBins, errorBins, hax, vax = bin_and_cut_measured_magnitude_error(clean_mag1=clean_mag1, clean_mag2=clean_mag2, mag_err1=mag_err1, mag_err2=mag_err2, band=band, tile=tile, realization=realization, fn_mag_err_log=fn_mag_err_log, fn_mag_diff_outliers_log=fn_mag_diff_outliers_log)
+	haxBinMedian, vaxBinMedian, magErrBinMedians, magBinsForMagErr, haxBins, vaxBins, hax, vax = bin_and_cut_measured_magnitude_error(clean_mag1=clean_mag1, clean_mag2=clean_mag2, mag_err1=mag_err1, mag_err2=mag_err2, band=band, tile=tile, realization=realization, fn_mag_err_log=fn_mag_err_log, fn_mag_diff_outliers_log=fn_mag_diff_outliers_log)
  
 
 	# Loop through bins (b) #
@@ -1637,9 +1647,9 @@ def normalize_magnitude_plot_maintain_bin_structure(clean_mag1, clean_mag2, mag_
 
 		# 0 is a placeholder for empty bins and bins with few objects #
 		if magErrBinMedians[b] is None:
-			__binned_norm_vax_mag.append(None)
+			__binned_norm_mag_diff.append(None)
 			__binned_hax_mag.append(None)
-			__norm_vax_mag_bin_medians.append(None)
+			__norm_mag_diff_bin_medians.append(None)
 
 		#if vax_mag_icb != 0:
 		if magErrBinMedians[b] is not None:
@@ -1648,17 +1658,16 @@ def normalize_magnitude_plot_maintain_bin_structure(clean_mag1, clean_mag2, mag_
 				__hax_in_bin.append(haxBins[b][i])
 
 			# List of lists to keep bin structure #
-			__binned_norm_vax_mag.append(__norm_vax_in_bin)
+			__binned_norm_mag_diff.append(__norm_vax_in_bin)
 			__binned_hax_mag.append(__hax_in_bin)
-			__norm_vax_mag_bin_medians.append(np.median(__norm_vax_in_bin))
+			__norm_mag_diff_bin_medians.append(np.median(__norm_vax_in_bin))
 
-	return __binned_norm_vax_mag, magBins, __binned_hax_mag, magErrBinMedians, __norm_vax_mag_bin_medians
-
-
+	return __binned_norm_mag_diff, magBinsForMagErr, __binned_hax_mag, magErrBinMedians, __norm_mag_diff_bin_medians
 
 
-#TODO bins-->mag_bins. are these nested lists?
-def normalize_magnitude_difference_plot(binned_norm_mag_diff, mag_bins, binned_hax_mag):
+
+
+def normalize_magnitude_difference_plot(binned_norm_mag_diff, mag_bins_for_mag_err, binned_hax_mag):
 	"""Normalize plot to 1sigma_mag curve using tame magnitude errors
 
 	Parameters
@@ -1666,7 +1675,7 @@ def normalize_magnitude_difference_plot(binned_norm_mag_diff, mag_bins, binned_h
 	norm_dm_bins (list of list of floats)
 		Normalized delta magnitudes in each bin. 
 
-	mag_bins(list of floats)
+	mag_bins_for_mag_err (list of floats)
 		Magnitude bins used in error calculation.
 
 	hax_mag_bins (list of list of floats)
@@ -1680,30 +1689,30 @@ def normalize_magnitude_difference_plot(binned_norm_mag_diff, mag_bins, binned_h
         hax_mag (list of floats)
 		Magnitude to be plotted on the horizontal axis.
 	"""
-	print 'len(mag_bins)', len(mag_bins)
+	print 'len(mag_bins_for_mag_err)', len(mag_bins_for_mag_err)
 	### Remove `None` so that lists can be flattened. `None` is a placeholder for missing lists due to empty or small bin. ###
 	__idx_no_none = []
         for i in np.arange(0, len(binned_norm_mag_diff)):
                 if binned_norm_mag_diff[i] is not None:
                         __idx_no_none.append(i)
 
-	__mag_bins_no_none, __binned_norm_vax_mag, __binned_hax_mag = np.array(mag_bins)[__idx_no_none], np.array(binned_norm_mag_diff)[__idx_no_none], np.array(binned_hax_mag)[__idx_no_none] 
+	__mag_bins_for_err_no_none, __binned_norm_mag_diff, __binned_hax_mag = np.array(mag_bins_for_mag_err)[__idx_no_none], np.array(binned_norm_mag_diff)[__idx_no_none], np.array(binned_hax_mag)[__idx_no_none] 
 
 	### Flatten lists ###
 	__hax_mag = [item for sublist in __binned_hax_mag for item in sublist]
-	__norm_vax_mag = [item for sublist in __binned_norm_vax_mag for item in sublist]
+	__norm_mag_diff = [item for sublist in __binned_norm_mag_diff for item in sublist]
 
 	# Get __idx_relevant #	
-	__idx_relevant = np.where((__hax_mag >= min(mag_bins)) & (__hax_mag < max(mag_bins)))[0]
-	__hax_mag, __norm_vax_mag = np.array(__hax_mag)[__idx_relevant], np.array(__norm_vax_mag)[__idx_relevant]
+	__idx_relevant = np.where((__hax_mag >= min(mag_bins_for_mag_err)) & (__hax_mag < max(mag_bins_for_mag_err)))[0]
+	__hax_mag, __norm_mag_diff = np.array(__hax_mag)[__idx_relevant], np.array(__norm_mag_diff)[__idx_relevant]
 
-	return __norm_vax_mag, __hax_mag, __mag_bins_no_none 
+	return __norm_mag_diff, __hax_mag, __mag_bins_for_err_no_none 
 
 
 
 
 #TODO bins--> mag_bins, are any of these lists of lists?
-def one_sigma_magnitude_counter(mag_diff, clean_mag1, mag_bins, hax_mag, binned_mag_err, vax_mag_bin_medians):
+def one_sigma_magnitude_counter(mag_diff, clean_mag1, mag_bins_for_mag_err, hax_mag, binned_mag_err, vax_mag_bin_medians):
 	"""Find the number of objects within 1sigma_mag. This function is called if `NORMALIZE` is False.
 
 	Parameters
@@ -1717,8 +1726,8 @@ def one_sigma_magnitude_counter(mag_diff, clean_mag1, mag_bins, hax_mag, binned_
 		Number of objects within 1sigma_mag curve.
         """
 
-	if len(mag_bins) != len(binned_mag_err):
-                sys.exit('len(mag_bins) not equal to len(error)') #TODO
+	if len(mag_bins_for_mag_err) != len(binned_mag_err):
+                sys.exit('len(mag_bins_for_mag_err) not equal to len(error)') #TODO
 
 	tot = len(mag_diff)
 	__num_1sigma_mag = 0; counter_objs_considered = 0
@@ -1730,18 +1739,18 @@ def one_sigma_magnitude_counter(mag_diff, clean_mag1, mag_bins, hax_mag, binned_
 	for i in np.arange(0, len(binned_mag_err)):
 		if binned_mag_err[i] is not None:
 			idx_good.append(i)
-	mag_bins, binned_mag_err, vax_mag_bin_medians= np.array(mag_bins)[idx_good], np.array(binned_mag_err)[idx_good], np.array(vax_mag_bin_medians)[idx_good]
+	mag_bins_for_mag_err, binned_mag_err, vax_mag_bin_medians= np.array(mag_bins_for_mag_err)[idx_good], np.array(binned_mag_err)[idx_good], np.array(vax_mag_bin_medians)[idx_good]
 
 	# Examine objects within the relevant bin bounds #
-	__idx_relevant = np.where((hax_mag >= min(mag_bins)) & (hax_mag < max(mag_bins)))[0]
+	__idx_relevant = np.where((hax_mag >= min(mag_bins_for_mag_err)) & (hax_mag < max(mag_bins_for_mag_err)))[0]
 	hax_mag, mag_diff = np.array(hax_mag)[__idx_relevant], np.array(mag_diff)[__idx_relevant]
 
 
 	if CENTER_ERR_ABT_ZERO:
-		for b in np.arange(0, len(mag_bins)-1):
+		for b in np.arange(0, len(mag_bins_for_mag_err)-1):
 			if binned_mag_err[b] is not None: 
 				for i in np.arange(0, len(hax_mag)):
-					if hax_mag[i] >= mag_bins[b] and hax_mag[i] < mag_bins[b+1]:
+					if hax_mag[i] >= mag_bins_for_mag_err[b] and hax_mag[i] < mag_bins_for_mag_err[b+1]:
 						counter_objs_considered += 1
 						if abs(mag_diff[i]) < binned_mag_err[b]:
 							__num_1sigma_mag += 1
@@ -1750,11 +1759,11 @@ def one_sigma_magnitude_counter(mag_diff, clean_mag1, mag_bins, hax_mag, binned_
 	# Center normalization about the median (of vertical axis) of each bin #
 	if CENTER_ERR_ABT_ZERO is False:
 		print 'Centering 1sigma_mag about vax median of each bin... \n'
-		for b in np.arange(0, len(mag_bins)-1):
+		for b in np.arange(0, len(mag_bins_for_mag_err)-1):
                         if binned_mag_err[b] is not None:
-				print ' Considering objects with magnitudes (on the horizontal axis) in [', mag_bins[b], ',', mag_bins[b+1], ')'
+				print ' Considering objects with magnitudes (on the horizontal axis) in [', mag_bins_for_mag_err[b], ',', mag_bins_for_mag_err[b+1], ')'
                                 for i in np.arange(0, len(hax_mag)):
-                                        if hax_mag[i] >= mag_bins[b] and hax_mag[i] < mag_bins[b+1]:
+                                        if hax_mag[i] >= mag_bins_for_mag_err[b] and hax_mag[i] < mag_bins_for_mag_err[b+1]:
 						counter_objs_considered += 1
 						if mag_diff[i] < binned_mag_err[b] + vax_mag_bin_medians[b] and mag_diff[i] >= -1.0*binned_mag_err[b] + vax_mag_bin_medians[b]: 
 							__num_1sigma_mag += 1
@@ -1771,7 +1780,7 @@ def one_sigma_magnitude_counter(mag_diff, clean_mag1, mag_bins, hax_mag, binned_
 
 
 #TODO better name for this function, bins-->mag_bins, which of these are lists of lists?
-def one_sigma_magnitude_counter_for_normalized_magnitude_difference(norm_mag_diff, clean_mag1, mag_bins, hax_mag, mag_err_bin_medians, norm_vax_mag_bin_medians):
+def one_sigma_magnitude_counter_for_normalized_magnitude_difference(norm_mag_diff, clean_mag1, mag_bins_for_mag_err, hax_mag, mag_err_bin_medians, norm_vax_mag_bin_medians):
 	"""Find the number of objects within 1sigma_mag using the normalized (to error) DeltaMagnitude. This function is only called if `NORMALIZE` is True.
 
 	Parameters
@@ -1784,7 +1793,7 @@ def one_sigma_magnitude_counter_for_normalized_magnitude_difference(norm_mag_dif
 
 	mag_err_bin_medians (list) confirmed Jul 3 FIXME
 
-	mag_bins (list of floats)
+	mag_bins_for_mag_err (list of floats)
 		Magnitude bins
 
         Returns
@@ -1804,11 +1813,11 @@ def one_sigma_magnitude_counter_for_normalized_magnitude_difference(norm_mag_dif
                 if mag_err_bin_medians[i] is not None:
                         idx_good.append(i)
         # Binned values #
-        mag_err_bin_medians, mag_bins = np.array(mag_err_bin_medians)[idx_good], np.array(mag_bins)[idx_good]
+        mag_err_bin_medians, mag_bins_for_mag_err = np.array(mag_err_bin_medians)[idx_good], np.array(mag_bins_for_mag_err)[idx_good]
 	norm_vax_median = np.array(norm_vax_mag_bin_medians)[idx_good]
 
         # Examine objects within the relevant bin bounds #
-        __idx_relevant = np.where((hax_mag >= min(mag_bins)) & (hax_mag < max(mag_bins)))[0]
+        __idx_relevant = np.where((hax_mag >= min(mag_bins_for_mag_err)) & (hax_mag < max(mag_bins_for_mag_err)))[0]
         hax_mag, norm_mag_diff = np.array(hax_mag)[__idx_relevant], np.array(norm_mag_diff)[__idx_relevant]
 
 
@@ -1822,11 +1831,11 @@ def one_sigma_magnitude_counter_for_normalized_magnitude_difference(norm_mag_dif
 
 	if CENTER_ERR_ABT_ZERO is False:
 		print 'Centering 1sigma_mag about vax median of each bin... \n'
-		for b in np.arange(0, len(mag_bins)-1):
+		for b in np.arange(0, len(mag_bins_for_mag_err)-1):
 			if mag_err_bin_medians[b] is not None:
-				print ' Considering objects with magnitudes (on the horizontal axis) in [', mag_bins[b], ',', mag_bins[b+1], ')'
+				print ' Considering objects with magnitudes (on the horizontal axis) in [', mag_bins_for_mag_err[b], ',', mag_bins_for_mag_err[b+1], ')'
                                 for i in np.arange(0, len(hax_mag)):
-                                        if hax_mag[i] >= mag_bins[b] and hax_mag[i] < mag_bins[b+1]:
+                                        if hax_mag[i] >= mag_bins_for_mag_err[b] and hax_mag[i] < mag_bins_for_mag_err[b+1]:
                                                 counter_objs_considered += 1
                                                 if norm_mag_diff[i] < 1 + norm_vax_median[b] and norm_mag_diff[i] >= -1.0 + norm_vax_median[b]: 
 							__num_1sigma_mag_norm += 1
@@ -1843,7 +1852,7 @@ def one_sigma_magnitude_counter_for_normalized_magnitude_difference(norm_mag_dif
 
 
 #TODO bins-->mag_bins, error-->mag_err?
-def main_logger(vax_mag_bin_medians, tile, band, realization, clean_mag1, full_mag1, mag_bins, hax_mag, fn_main_log, mag_err_bin_medians, vax_mag):
+def main_logger(vax_mag_bin_medians, tile, band, realization, clean_mag1, full_mag1, mag_bins_for_mag_err, hax_mag, fn_main_log, mag_err_bin_medians, vax_mag):
 	"""Write to various (but not all) log files. Records the number of objects matched, the number of objects flagged, the number of objects within 1sigma_mag, etc.
 
 	Parameters
@@ -1887,9 +1896,9 @@ def main_logger(vax_mag_bin_medians, tile, band, realization, clean_mag1, full_m
 	"""
 
 	if NORMALIZE:
-		num_1sig = one_sigma_magnitude_counter_for_normalized_magnitude_difference(norm_mag_diff=vax_mag, clean_mag1=clean_mag1, mag_bins=mag_bins, hax_mag=hax_mag, mag_err_bin_medians=mag_err_bin_medians, norm_vax_mag_bin_medians=vax_mag_bin_medians)
+		num_1sig = one_sigma_magnitude_counter_for_normalized_magnitude_difference(norm_mag_diff=vax_mag, clean_mag1=clean_mag1, mag_bins_for_mag_err=mag_bins_for_mag_err, hax_mag=hax_mag, mag_err_bin_medians=mag_err_bin_medians, norm_vax_mag_bin_medians=vax_mag_bin_medians)
 	if NORMALIZE is False:
-		num_1sig = one_sigma_magnitude_counter(mag_diff=vax_mag, clean_mag1=clean_mag1, mag_bins=mag_bins, hax_mag=hax_mag, binned_mag_err=mag_err_bin_medians, vax_mag_bin_medians=vax_mag_bin_medians) #was nsmedian 
+		num_1sig = one_sigma_magnitude_counter(mag_diff=vax_mag, clean_mag1=clean_mag1, mag_bins_for_mag_err=mag_bins_for_mag_err, hax_mag=hax_mag, binned_mag_err=mag_err_bin_medians, vax_mag_bin_medians=vax_mag_bin_medians) #was nsmedian 
 
 	num_flags = len(full_mag1)-len(clean_mag1)
 
@@ -2034,8 +2043,7 @@ def get_magnitude_error(mag_err_hdr, flux_hdr, flux_cov_hdr, df_1and2, band, idx
 			__mag_error = np.array(__mag_error)[idx_good]
 
         if PLOT_MAG_ERR is False or 'truth' in match_cat:
-		#__mag_error = None
-		__mag_error = np.zeros(len(idx_good))
+		__mag_error = None
 
 	return __mag_error 
 
@@ -2285,7 +2293,7 @@ def stacked_magnitude_completeness_subplotter(mag_hdr1, mag_hdr2, mag_err_hdr1, 
 			for j in np.arange(0, len(ALL_BANDS)):
 				b = ALL_BANDS[j]
 
-                                magErr1, magErr2, cleanMag1, cleanMag2, idxGood, fullMag1, fullMag2, haxMagLabel1, axMagLabel1, vaxMagLabel= get_magnitude_plot_variables(band=b, df_1and2=__df1, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization=realization, tile=t, mag_axlabel1=M_AXLABEL1, mag_axlabel2=M_AXLABEL2, fn_flag_log=fn_flag_log, plot_title=plot_title, fn_plot=fn_plot) #TODO this does not have inj_% parameter so axlabel is wrong
+                                magErr1, magErr2, cleanMag1, cleanMag2, idxGood, fullMag1, fullMag2, magAxLabel1, magAxLabel2, magVaxLabel= get_magnitude_plot_variables(band=b, df_1and2=__df1, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization=realization, tile=t, mag_axlabel1=M_AXLABEL1, mag_axlabel2=M_AXLABEL2, fn_flag_log=fn_flag_log, plot_title=plot_title, fn_plot=fn_plot) #TODO this does not have inj_% parameter so axlabel is wrong
 
                                 completenessFraction1 = get_magnitude_completeness(inj_percent=10, idx_good=idxGood, df_1and2=__df1, clean_mag1=cleanMag1, clean_mag2=cleanMag2, full_mag1=fullMag1, full_mag2=fullMag2, tile=t, realization=realization, band=b, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err1=magErr1, mag_err2=magErr2, fn_mag_completeness_log=fn_mag_completeness_log)[0]
 			
@@ -2301,7 +2309,7 @@ def stacked_magnitude_completeness_subplotter(mag_hdr1, mag_hdr2, mag_err_hdr1, 
 		for j in np.arange(0, len(ALL_BANDS)):
 			b = ALL_BANDS[j]
 
-                        magErr1, magErr2, cleanMag1, cleanMag2, idxGood, fullMag1, fullMag2, haxMagLabel1, axMagLabel1, vaxMagLabel= get_magnitude_plot_variables(band=b, df_1and2=__df2, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization=realization, tile=t, mag_axlabel1=M_AXLABEL1, mag_axlabel2=M_AXLABEL2, fn_flag_log=fn_flag_log, plot_title=plot_title, fn_plot=fn_plot) #TODO this does not have inj_% parameter so axlabel is wrong
+                        magErr1, magErr2, cleanMag1, cleanMag2, idxGood, fullMag1, fullMag2, magAxLabel1, magAxLabel2, magVaxLabel= get_magnitude_plot_variables(band=b, df_1and2=__df2, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization=realization, tile=t, mag_axlabel1=M_AXLABEL1, mag_axlabel2=M_AXLABEL2, fn_flag_log=fn_flag_log, plot_title=plot_title, fn_plot=fn_plot) #TODO this does not have inj_% parameter so axlabel is wrong
 
                         completenessFraction2 = get_magnitude_completeness(inj_percent=20, idx_good=idxGood, df_1and2=__df2, clean_mag1=cleanMag1, clean_mag2=cleanMag2, full_mag1=fullMag1, full_mag2=fullMag2, tile=t, realization=realization, band=b, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err1=magErr1, mag_err2=magErr2, fn_mag_completeness_log=fn_mag_completeness_log)[0]
 
@@ -2376,7 +2384,7 @@ def magnitude_completeness_subplotter(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_
 		__df1 = get_dataframe(realization=realization, tile=tile, inj1=True, inj2=True, inj1_percent=10, inj2_percent=10, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2)[0]
 
 		for b in ALL_BANDS:
-			magErr1, magErr2, cleanMag1, cleanMag2, idxGood, fullMag1, fullMag2, haxMagLabel1, axMagLabel1, vaxMagLabel = get_magnitude_plot_variables(band=b, df_1and2=__df1, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization=realization, tile=tile, mag_axlabel1=M_AXLABEL1, mag_axlabel2=M_AXLABEL2, fn_flag_log=fn_flag_log, plot_title=plot_title, fn_plot=fn_plot) #TODO this does not have inj_% parameter so axlabel is wrong
+			magErr1, magErr2, cleanMag1, cleanMag2, idxGood, fullMag1, fullMag2, magAxLabel1, magAxLabel2, magVaxLabel = get_magnitude_plot_variables(band=b, df_1and2=__df1, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization=realization, tile=tile, mag_axlabel1=M_AXLABEL1, mag_axlabel2=M_AXLABEL2, fn_flag_log=fn_flag_log, plot_title=plot_title, fn_plot=fn_plot) #TODO this does not have inj_% parameter so axlabel is wrong
 
 			completenessFraction1 = get_magnitude_completeness(inj_percent=10, idx_good=idxGood, df_1and2=__df1, clean_mag1=cleanMag1, clean_mag2=cleanMag2, full_mag1=fullMag1, full_mag2=fullMag2, tile=tile, realization=realization, band=b, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err1=magErr1, mag_err2=magErr2, fn_mag_completeness_log=fn_mag_completeness_log)[0]
 
@@ -2387,7 +2395,7 @@ def magnitude_completeness_subplotter(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_
 	__df2 = get_dataframe(realization=realization, tile=tile, inj1=True, inj2=True, inj1_percent=20, inj2_percent=20, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2)[0]
 
 	for b in ALL_BANDS:
-		magErr1, magErr2, cleanMag1, cleanMag2, idxGood, fullMag1, fullMag2, haxMagLabel1, axMagLabel1, vaxMagLabel = get_magnitude_plot_variables(band=b, df_1and2=__df2, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization=realization, tile=tile, mag_axlabel1=M_AXLABEL1, mag_axlabel2=M_AXLABEL2, fn_flag_log=fn_flag_log, plot_title=plot_title, fn_plot=fn_plot)
+		magErr1, magErr2, cleanMag1, cleanMag2, idxGood, fullMag1, fullMag2, magAxLabel1, magAxLabel2, magVaxLabel = get_magnitude_plot_variables(band=b, df_1and2=__df2, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization=realization, tile=tile, mag_axlabel1=M_AXLABEL1, mag_axlabel2=M_AXLABEL2, fn_flag_log=fn_flag_log, plot_title=plot_title, fn_plot=fn_plot)
 
 		completenessFraction2 = get_magnitude_completeness(inj_percent=20, df_1and2=__df2, idx_good=idxGood, clean_mag1=cleanMag1, clean_mag2=cleanMag2, full_mag1=fullMag1, full_mag2=fullMag2, tile=tile, realization=realization, band=b, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err1=magErr1, mag_err2=magErr2, fn_mag_completeness_log=fn_mag_completeness_log)[0]
 
@@ -2519,7 +2527,7 @@ def color_completeness_subplotter(band, df, mag_hdr1, mag_hdr2, mag_err_hdr1, ma
 	### Force order ###
 
 
-        err1, err2, cleanMag1, cleanMag2, idxGood, fullMag1, fullMag2, haxMagLabel1, haxLabel2, vaxLabel = get_magnitude_plot_variables(band=band, df=df, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization=realization, tile=tile, mag_axlabel1=M_AXLABEL1, mag_axlabel2=M_AXLABEL2, fd_flag_log=fd_flag_log, plot_title=plot_title, fn_plot=fn_plot)
+        err1, err2, cleanMag1, cleanMag2, idxGood, fullMag1, fullMag2, magAxLabel1, haxLabel2, vaxLabel = get_magnitude_plot_variables(band=band, df=df, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization=realization, tile=tile, mag_axlabel1=M_AXLABEL1, mag_axlabel2=M_AXLABEL2, fd_flag_log=fd_flag_log, plot_title=plot_title, fn_plot=fn_plot)
 
 	# Photometry cuts applied to `truthMag`, `matchMag` #
         truthMag1, matchMag1 = get_magnitude_completeness(df=df, clean_mag1=cleanMag1, clean_mag2=cleanMag2, full_mag1=fullMag1, full_mag2=fullMag2, tile=tile, realization=realization, band=band, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, error1=err1, error2=err2, fd_mag_completeness_log=fd_mag_completeness_log)[2:]
@@ -2529,7 +2537,7 @@ def color_completeness_subplotter(band, df, mag_hdr1, mag_hdr2, mag_err_hdr1, ma
 
 
 
-        err1, err2, cleanMag1, cleanMag2, idxGood, fullMag1, fullMag2, haxMagLabel1, haxLabel2, vaxLabel = get_magnitude_plot_variables(band=band, df=df, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization=realization, tile=tile, mag_axlabel1=M_AXLABEL1, mag_axlabel2=M_AXLABEL2, fd_flag_log=fd_flag_log, plot_title=plot_title, fn_plot=fn_plot)
+        err1, err2, cleanMag1, cleanMag2, idxGood, fullMag1, fullMag2, magAxLabel1, haxLabel2, vaxLabel = get_magnitude_plot_variables(band=band, df=df, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization=realization, tile=tile, mag_axlabel1=M_AXLABEL1, mag_axlabel2=M_AXLABEL2, fd_flag_log=fd_flag_log, plot_title=plot_title, fn_plot=fn_plot)
 
         truthMag2, matchMag2 = get_magnitude_completeness(df=df, clean_mag1=cleanMag1, clean_mag2=cleanMag2, full_mag1=fullMag1, full_mag2=fullMag2, tile=tile, realization=realization, band=band, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, error1=err1, error2=err2, fd_mag_completeness_log=fd_mag_completeness_log)[2:]
 
@@ -2571,6 +2579,7 @@ def get_magnitude_completeness(idx_good, df_1and2, clean_mag1, clean_mag2, full_
 		fn_truth_cat = get_catalog_filename(cat_type=MATCH_CAT1, inj_percent=inj_percent, realization=realization, tile=tile, band=band, inj=INJ1)	
 		mag_hdr = mag_hdr1
 		# Use error in measured catalogs only #
+		#TODO use None?
 		mag_err1 = np.zeros(len(mag_err2))
 		# Note: [:-2] to get rid of the suffix '_1' or '_2' added by STILTS because truth catalogs have not been matched #
 		flag_hdr = FLAGS_HDR1[:-2]
@@ -2856,16 +2865,16 @@ def measure_flux_using_gaussian_aperture(fn_gauss_aper_log, tile, realization, c
 
 	# Get rid of flagged points #
 	__clean_gauss_aper_norm_flux_diff = []
-	__clean_flux_diff = []
+	__clean_gauss_aper_flux_diff = []
 	for j in all_gauss_aper_flux_chi:
 		if j is not None:
 			__clean_gauss_aper_norm_flux_diff.append(j)
 	for k in all_gauss_aper_flux_diff:
 		if k is not None:
-			__clean_flux_diff.append(k)
+			__clean_gauss_aper_flux_diff.append(k)
 
 
-	return __clean_gauss_aper_norm_flux_diff, __clean_flux_diff 
+	return __clean_gauss_aper_norm_flux_diff, __clean_gauss_aper_flux_diff 
 
 
 
@@ -2966,6 +2975,7 @@ def normalized_flux_histogram_plotter(fn_gauss_aper_log, tile, realization, band
 
 
 	if GAUSS_APER:
+		#plotData --> more descriptive because this is not arbitrary. normFluxDiff, fluxDiff = ...
 		plotDataGauss, fluxDiffGaussAper = measure_flux_using_gaussian_aperture(fn_gauss_aper_log=fn_gauss_aper_log, tile=tile, realization=realization, idx_good=idxGood, band=band, cm_g_meas=cm_g_meas, cm_g_1_true=cm_g_1_true, cm_g_2_true=cm_g_2_true, cm_flux_meas=cm_flux_meas, cm_flux_true=cm_flux_true, fracdev_meas=fracdev_meas, fracdev_true=fracdev_true, box_size_meas=box_size_meas, box_size_true=box_size_true, cm_t_meas=cm_t_meas, cm_t_true=cm_t_true, flux_cov_meas=flux_cov_meas, cm_tdbyte_meas=cm_tdbyte_meas, cm_tdbyte_true=cm_tdbyte_true)
 		gauss_aper_label = 'Gauss aper'
 
@@ -3152,7 +3162,7 @@ def color_subplotter(band, df_1and2, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_h
 	vaxDeltaColorLabel = get_color_difference_axlabel(color_haxlabel1=axLabel1, color_haxlabel2=axLabel2, band=band)
 
 	### Get plot data ###
-	errMag1, errMag2, cleanMag1, cleanMag2, idxGood, fullMag1, fullMag2, haxMagLabel1, axMagLabel1, vaxMagLabel = get_magnitude_plot_variables(band=band, df_1and2=df_1and2, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization=realization, tile=tile, mag_axlabel1=M_AXLABEL1, mag_axlabel2=M_AXLABEL2, fn_flag_log=fn_flag_log, plot_title=plot_title, fn_plot=fn_plot)
+	errMag1, errMag2, cleanMag1, cleanMag2, idxGood, fullMag1, fullMag2, magAxLabel1, magAxLabel2, magVaxLabel = get_magnitude_plot_variables(band=band, df_1and2=df_1and2, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization=realization, tile=tile, mag_axlabel1=M_AXLABEL1, mag_axlabel2=M_AXLABEL2, fn_flag_log=fn_flag_log, plot_title=plot_title, fn_plot=fn_plot)
 
 	#TODO get_magnitude_error is called twice
 	#TODO get error or simply use corner.hist2d
@@ -3164,7 +3174,7 @@ def color_subplotter(band, df_1and2, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_h
 	'''
 
 	if band != 'z':
-		cleanColor1, cleanColor2, magBins = get_color_from_binned_magnitude(df_1and2=df_1and2, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, band=band, idx_good=idxGood, clean_mag1_band1=cleanMag1, clean_mag2_band1=cleanMag2)
+		cleanColor1, cleanColor2, magBinsForColor = get_color_from_binned_magnitude(df_1and2=df_1and2, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, band=band, idx_good=idxGood, clean_mag1_band1=cleanMag1, clean_mag2_band1=cleanMag2)
 
 
 	if PLOT_DIFF_ON_VAX is False:
@@ -3174,11 +3184,11 @@ def color_subplotter(band, df_1and2, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_h
         if SWAP_HAX is False:
                 __hax_label = axLabel1 
 		__vax_label = axLabel2
-		__subtitle_pref = haxMagLabel1
+		__subtitle_pref = magAxLabel1
         if SWAP_HAX:
                 __hax_label = axLabel2 
 		__vax_label = axLabel1
-		__subtitle_pref = axMagLabel1
+		__subtitle_pref = magAxLabel2
 
 	if PLOT_DIFF_ON_VAX:
                 __vax_color = np.array(cleanColor1) - np.array(cleanColor2)
@@ -3198,7 +3208,7 @@ def color_subplotter(band, df_1and2, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_h
         for i in np.arange(0, len(cleanColor1)):
 
 		# Write to log file with headers 'TILE REALIZATION COLOR MAG_BIN OBJS_IN_MAG_BIN TOTAL_OBJS_FLAGS_INC RUN_TYPE #
-		__write_bin = '['+str(magBins[i])+','+str(magBins[i+1])+')'
+		__write_bin = '['+str(magBinsForColor[i])+','+str(magBinsForColor[i+1])+')'
 		# Append to csv #
 		with open(fn_color_log, 'a') as csvfile:
 			writer = csv.writer(csvfile, delimiter=',')
@@ -3353,9 +3363,9 @@ def get_magnitude_plot_variables(band, df_1and2, mag_hdr1, mag_hdr2, mag_err_hdr
 	"""
 
 	### Axes labels ###
-        haxMagLabel1 = get_magnitude_axlabel(inj_percent=INJ1_PERCENT, inj=INJ1, mag_hdr=mag_hdr1, meas_or_true_cat=AXLABEL1, match_cat=MATCH_CAT1, band=band)
-        axMagLabel1= get_magnitude_axlabel(inj_percent=INJ2_PERCENT, inj=INJ2, mag_hdr=mag_hdr2, meas_or_true_cat=AXLABEL2, match_cat=MATCH_CAT2, band=band)
-        vaxMagLabel = get_magnitude_difference_axlabel(mag_haxlabel1=haxMagLabel1, mag_haxlabel2=axMagLabel1, band=band)
+        magAxLabel1 = get_magnitude_axlabel(inj_percent=INJ1_PERCENT, inj=INJ1, mag_hdr=mag_hdr1, meas_or_true_cat=AXLABEL1, match_cat=MATCH_CAT1, band=band)
+        magAxLabel2= get_magnitude_axlabel(inj_percent=INJ2_PERCENT, inj=INJ2, mag_hdr=mag_hdr2, meas_or_true_cat=AXLABEL2, match_cat=MATCH_CAT2, band=band)
+        magVaxLabel = get_magnitude_difference_axlabel(mag_haxlabel1=magAxLabel1, mag_haxlabel2=magAxLabel2, band=band)
 
 
         # Magnitudes with no flags* removed # 
@@ -3384,7 +3394,7 @@ def get_magnitude_plot_variables(band, df_1and2, mag_hdr1, mag_hdr2, mag_err_hdr
                 FLAG_IDX.extend(temp_idx)
 
 	#TODO err--> magErr
-	return magErr1, magErr2, cleanMag1, cleanMag2, idxGood, fullMag1, fullMag2, haxMagLabel1, axMagLabel1, vaxMagLabel 
+	return magErr1, magErr2, cleanMag1, cleanMag2, idxGood, fullMag1, fullMag2, magAxLabel1, magAxLabel2, magVaxLabel 
 
 
 
@@ -3533,7 +3543,6 @@ def normalized_magnitude_difference_plotter(mag_hdr1, mag_hdr2, cbar_data, mag_e
 
 
 	# Percentiles #
-	PLOT_68P, PLOT_34P_SPLIT = True, True
 
 	if PLOT_MAG_ERR and CORNER_HIST_2D is False:
 
@@ -3569,15 +3578,18 @@ def normalized_magnitude_difference_plotter(mag_hdr1, mag_hdr2, cbar_data, mag_e
 						plt.plot(x_vbound1, y_vbound, color=color0, linewidth=lw, linestyle=':')
 						plt.plot(x_vbound2, y_vbound, color=color0, linewidth=lw, linestyle=':')
 
+
+
+		### Percentiles ###
+		if PLOT_68P or PLOT_34P_SPLIT:
+			vax_68percentile_bins, percentileBins, neg_vax_34percentile, pos_vax_34percentile = get_68percentile_of_normalized_magnitude_difference(binned_norm_mag_diff=normVaxBins, mag_bins_for_mag_err=initialBins, binned_hax_mag=haxBins)
+
 		### Plot +/-34 percentile of each bin ###
 
 		# Line width for top and sides of bins #
 		lwt = 1.1; lws = 0.7
 
 		if PLOT_34P_SPLIT:
-			### Plot the 68th percentile calculated from np.percentile() ###
-			#TODO posVax34P =...
-			vax_68percentile_bins, percentileBins, neg_vax_34percentile, pos_vax_34percentile = get_68percentile_of_normalized_magnitude_difference(binned_norm_mag_diff=normVaxBins, mag_bins=initialBins, binned_hax_mag=haxBins)
 			counter_legend1 = 0; color1 = 'cyan'
 
 			for b in np.arange(0, len(neg_vax_34percentile)-1):
@@ -3613,7 +3625,7 @@ def normalized_magnitude_difference_plotter(mag_hdr1, mag_hdr2, cbar_data, mag_e
 					plt.plot(x_vbound2, y_vbound, color=color1, linewidth=lws, linestyle=':')
 
 
-        ### Plot 68 percentile of each bin ###
+		### Plot 68 percentile of each bin ###
 		if PLOT_68P:
 
 			counter_legend2 = 0; color2 = 'fuchsia'
@@ -3644,9 +3656,9 @@ def normalized_magnitude_difference_plotter(mag_hdr1, mag_hdr2, cbar_data, mag_e
 
 
 	# Logger #
-	plotDeltaMag, plotHaxMag, cleanBins = normalize_magnitude_difference_plot(binned_norm_mag_diff=normVaxBins, mag_bins=initialBins, binned_hax_mag=haxBins)
+	plotDeltaMag, plotHaxMag, cleanBins = normalize_magnitude_difference_plot(binned_norm_mag_diff=normVaxBins, mag_bins_for_mag_err=initialBins, binned_hax_mag=haxBins)
 
-	percent_1sig, percentRecoveredFlagsIncluded, percentRecoveredFlagsNotIncluded = main_logger(vax_mag=plotDeltaMag, band=band, clean_mag1=clean_mag1, full_mag1=full_mag1, realization=realization, tile=tile, mag_bins=initialBins, hax_mag=plotHaxMag, fn_main_log=fn_main_log, mag_err_bin_medians=magErrBinMedians, vax_mag_bin_medians=vaxBinMedian)
+	percent_1sig, percentRecoveredFlagsIncluded, percentRecoveredFlagsNotIncluded = main_logger(vax_mag=plotDeltaMag, band=band, clean_mag1=clean_mag1, full_mag1=full_mag1, realization=realization, tile=tile, mag_bins_for_mag_err=initialBins, hax_mag=plotHaxMag, fn_main_log=fn_main_log, mag_err_bin_medians=magErrBinMedians, vax_mag_bin_medians=vaxBinMedian)
 
 	# One colorbar at a time. This error is caught at beginning of script #
         if SCATTER:
@@ -3792,7 +3804,7 @@ def magnitude_difference_plotter(mag_hdr1, mag_hdr2, cbar_data, mag_err1, mag_er
 
 	### 1sigma_mag curve ###
 	if PLOT_MAG_ERR:
-		haxBinMedian, vaxBinMedian, magErrBinMedians, initialBins, haxBins, vaxBins, errorBins, outlierCleanedHaxMag, outlierCleanedVaxMag = bin_and_cut_measured_magnitude_error(mag_err1=mag_err1, mag_err2=mag_err2, clean_mag1=clean_mag1, clean_mag2=clean_mag2, band=band, tile=tile, realization=realization, fn_mag_err_log=fn_mag_err_log, fn_mag_diff_outliers_log=fn_mag_diff_outliers_log)
+		haxBinMedian, vaxBinMedian, magErrBinMedians, initialBins, haxBins, vaxBins, outlierCleanedHaxMag, outlierCleanedVaxMag = bin_and_cut_measured_magnitude_error(mag_err1=mag_err1, mag_err2=mag_err2, clean_mag1=clean_mag1, clean_mag2=clean_mag2, band=band, tile=tile, realization=realization, fn_mag_err_log=fn_mag_err_log, fn_mag_diff_outliers_log=fn_mag_diff_outliers_log)
 
 		### Remove zeros from x, y, and err (zeros were placeholders for instances in which there were no objects in a particular magnitude bin) ###
 		err = [temp for temp in magErrBinMedians if temp is not None]
@@ -3810,7 +3822,7 @@ def magnitude_difference_plotter(mag_hdr1, mag_hdr2, cbar_data, mag_err1, mag_er
 
 
 	### Write to log files ### 
-	percent_1sig, percentRecoveredFlagsIncluded, percentRecoveredFlagsNotIncluded = main_logger(vax_mag=outlierCleanedVaxMag, band=band, clean_mag1=clean_mag1, full_mag1=full_mag1, realization=realization, tile=tile, mag_bins=initialBins, hax_mag=outlierCleanedHaxMag, fn_main_log=fn_main_log, mag_err_bin_medians=magErrBinMedians, vax_mag_bin_medians=vaxBinMedian)
+	percent_1sig, percentRecoveredFlagsIncluded, percentRecoveredFlagsNotIncluded = main_logger(vax_mag=outlierCleanedVaxMag, band=band, clean_mag1=clean_mag1, full_mag1=full_mag1, realization=realization, tile=tile, mag_bins_for_mag_err=initialBins, hax_mag=outlierCleanedHaxMag, fn_main_log=fn_main_log, mag_err_bin_medians=magErrBinMedians, vax_mag_bin_medians=vaxBinMedian)
 
 
 	if PRINTOUTS:
@@ -3957,7 +3969,7 @@ def magnitude_difference_subplotter(df_1and2, mag_hdr1, mag_hdr2, mag_err_hdr1, 
 
 
 		### Define variables ###
-		magErr1, magErr2, cleanMag1, cleanMag2, idxGood, fullMag1, fullMag2, haxMagLabel1, axMagLabel1, vaxMagLabel = get_magnitude_plot_variables(band=b, df_1and2=df_1and2, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization=realization, tile=tile, mag_axlabel1=M_AXLABEL1, mag_axlabel2=M_AXLABEL2, fn_flag_log=fn_flag_log, plot_title=plot_title, fn_plot=fn_plot)
+		magErr1, magErr2, cleanMag1, cleanMag2, idxGood, fullMag1, fullMag2, magAxLabel1, magAxLabel2, magVaxLabel = get_magnitude_plot_variables(band=b, df_1and2=df_1and2, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization=realization, tile=tile, mag_axlabel1=M_AXLABEL1, mag_axlabel2=M_AXLABEL2, fn_flag_log=fn_flag_log, plot_title=plot_title, fn_plot=fn_plot)
 
 
 		if CM_T_COLORBAR or CM_T_ERR_COLORBAR:
@@ -3972,10 +3984,10 @@ def magnitude_difference_subplotter(df_1and2, mag_hdr1, mag_hdr2, mag_err_hdr1, 
 			plt.subplot(2, 2, counter_subplot)
 
 		if NORMALIZE is False:
-			percentRecoveredWithFlags = magnitude_difference_plotter(mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, cbar_data=cbarData, plot_title=plot_title, mag_err1=magErr1, mag_err2=magErr2, band=b, full_mag1=fullMag1, clean_mag1=cleanMag1, clean_mag2=cleanMag2, mag_axlabel1=haxMagLabel1, mag_axlabel2=axMagLabel1, realization=realization, tile=tile, cbar_label=cbarLabel, fn_plot=fn_plot, fn_main_log=fn_main_log, fn_mag_err_log=fn_mag_err_log, vax_label=vaxMagLabel, fn_mag_diff_outliers_log=fn_mag_diff_outliers_log)
+			percentRecoveredWithFlags = magnitude_difference_plotter(mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, cbar_data=cbarData, plot_title=plot_title, mag_err1=magErr1, mag_err2=magErr2, band=b, full_mag1=fullMag1, clean_mag1=cleanMag1, clean_mag2=cleanMag2, mag_axlabel1=magAxLabel1, mag_axlabel2=magAxLabel2, realization=realization, tile=tile, cbar_label=cbarLabel, fn_plot=fn_plot, fn_main_log=fn_main_log, fn_mag_err_log=fn_mag_err_log, vax_label=magVaxLabel, fn_mag_diff_outliers_log=fn_mag_diff_outliers_log)
 
 		if NORMALIZE:
-			percentRecoveredWithFlags = normalized_magnitude_difference_plotter(mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, cbar_data=cbarData, plot_title=plot_title, mag_err1=magErr1, mag_err2=magErr2, band=b, full_mag1=fullMag1, clean_mag1=cleanMag1, clean_mag2=cleanMag2, mag_axlabel1=haxMagLabel1, mag_axlabel2=axMagLabel1, realization=realization, tile=tile, cbar_label=cbarLabel, fn_plot=fn_plot, fn_main_log=fn_main_log, fn_mag_err_log=fn_mag_err_log, vax_label=vaxMagLabel, fn_mag_diff_outliers_log=fn_mag_diff_outliers_log)
+			percentRecoveredWithFlags = normalized_magnitude_difference_plotter(mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, cbar_data=cbarData, plot_title=plot_title, mag_err1=magErr1, mag_err2=magErr2, band=b, full_mag1=fullMag1, clean_mag1=cleanMag1, clean_mag2=cleanMag2, mag_axlabel1=magAxLabel1, mag_axlabel2=magAxLabel2, realization=realization, tile=tile, cbar_label=cbarLabel, fn_plot=fn_plot, fn_main_log=fn_main_log, fn_mag_err_log=fn_mag_err_log, vax_label=magVaxLabel, fn_mag_diff_outliers_log=fn_mag_diff_outliers_log)
 
 		counter_subplot += 1
 
@@ -4211,6 +4223,7 @@ def get_star_truth_catalog_magnitude(df_1and2, suf):
 
 
 
+#TODO mag_hdr --> y3_gold_mag_hdr? Similarly for star_truth and coadd
 def get_y3_gold_catalog_magnitude(df_1and2, mag_hdr):
 	"""Creates a list of magnitudes of form '(mag_g, mag_r, mag_i, mag_z)'. Solely for use with Y3 Gold catalogs.
 
@@ -5235,5 +5248,3 @@ if RUN_TYPE_LOOP:
 		RUN_TYPE = run_type
 		make_plots(mag_hdr1=M_HDR1, mag_hdr2=M_HDR2, mag_err_hdr1=M_ERR_HDR1, mag_err_hdr2=M_ERR_HDR2)
 
-
-# Close files #
