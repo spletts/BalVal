@@ -109,6 +109,50 @@ Log files for `ok` and `rerun` FOF groups are saved in: `/{OUTDIR}/outputs/{BALR
 
 **Plots**
 
+```
+{OUTDIR}
+|    
++-- outputs
+  |  
+  +-- {BALROG_RUN}
+    |  
+    +-- {match_type}
+      |
+      +-- {tile}
+        |
+        +-- {realization}
+          |
+          +-- catalog_compare
+          | + ...
+          | |
+          | +-- fof_analysis
+          |
+          +-- log_files
+          | |
+          | +-- fof_analysis
+          |
+          +-- plots
+          |   |
+          |   +-- color
+          |   |
+          |   +-- flux
+          |   |
+          |   +-- magnitude
+          |   |
+          |   +-- fof_analysis
+          |     |
+          |     +-- color
+          |     |
+          |     +-- flux
+          |     |
+          |     +-- magnitude
+          |
+          +-- region_files
+            |
+            +-- fof_analysis
+            └───
+```
+
 Plots are saved in: `/{OUTDIR}/outputs/{BALROG_RUN}/{match_type}/{tile}/{realization}/plots/{plot_obs}/` where `plot_obs` is `color` `flux` or `magnitude`. Plot names are prefaced with the plot type (for example, 'scatter_' if `SCATTER=True`).
 
 Plots for `ok` and `rerun` FOF groups are saved in: `/{OUTDIR}/outputs/{BALROG_RUN}/{MATCH_TYPE}/{tile}/{realization}/plots/fof_analysis/{plot_obs}/`
