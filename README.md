@@ -123,19 +123,32 @@ Log files for `ok` and `rerun` FOF groups are saved in: `/{OUTDIR}/outputs/{BALR
         +-- {realization}
           |
           +-- catalog_compare
-          | + ...
+          | + {tile}_{realization}_{match_type}_match1and2.csv
+          | + {tile}_{realization}_{match_type}_match1not2.csv
+          | + {tile}_{realization}_{match_type}_match2not1.csv
           | |
           | +-- fof_analysis
+          | + {tile}_{realization}_{match_type}_
+          | + _ok_inj_mof_ok_mof_match1and2.csv
+          | + _ok_inj_mof_ok_mof_match1not2.csv
+          | + _ok_inj_mof_ok_mof_match2not1.csv
+          | + _rerun_inj_mof_rerun_mof_match1and2.csv
+          | + _rerun_inj_mof_rerun_mof_match1not2.csv
+          | + _rerun_inj_mof_rerun_mof_match2not1.csv
           |
           +-- log_files
+          | + ...match_log.csv
+          | + ...{}
           | |
           | +-- fof_analysis
           |
           +-- plots
           |   |
           |   +-- color
+          |   + ...
           |   |
           |   +-- flux
+          |   +...similar to above "
           |   |
           |   +-- magnitude
           |   |
@@ -148,26 +161,21 @@ Log files for `ok` and `rerun` FOF groups are saved in: `/{OUTDIR}/outputs/{BALR
           |     +-- magnitude
           |
           +-- region_files
+            +...1and2.reg
+            +...1not2.reg
+            +...2not1.reg
             |
             +-- fof_analysis
             └───
 ```
+`{realization}` and `{tile}` can be `stack`.
+Directories have a `+--` branch and files have a `+` branch.
 
-Plots are saved in: `/{OUTDIR}/outputs/{BALROG_RUN}/{match_type}/{tile}/{realization}/plots/{plot_obs}/` where `plot_obs` is `color` `flux` or `magnitude`. Plot names are prefaced with the plot type (for example, 'scatter_' if `SCATTER=True`).
 
-Plots for `ok` and `rerun` FOF groups are saved in: `/{OUTDIR}/outputs/{BALROG_RUN}/{MATCH_TYPE}/{tile}/{realization}/plots/fof_analysis/{plot_obs}/`
+Plot names are prefaced with the plot type (for example, 'scatter_' if `SCATTER=True`).
 
-Allowed values for `{realization}`: `0` `1` ... `stack`.
-
-Allowed values for `{tile}`: ... `stack`.
 
 `match_type` is `MATCH_TYPE` unless `PLOT_COMPLETENESS=True` in which case both 10% and 20% Balrog-injected matched catalogs are plotted in the same window, so `match_type` removes the percent injected from `MATCH_TYPE`. That is, `MATCH_TYPE=10%_inj_gal_truth_cat_10%_inj_sof_cat` results in `match_type=inj_gal_truth_cat_inj_sof_cat`.
-
-**Region files**
-
-Region files are saved in: `/{OUTDIR}/outputs/{BALROG_RUN}/{MATCH_TYPE}/{tile}/{realization}/region_files/`
-
-Region files for `ok` and `rerun` FOF groups are saved in: `/{OUTDIR}/outputs/{BALROG_RUN}/{MATCH_TYPE}/{tile}/{realization}/region_files/fof_analysis/`
 
 ___
 
