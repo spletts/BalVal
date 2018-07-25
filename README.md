@@ -77,22 +77,9 @@ User may need to replace `/data/des71.a/data/mspletts/balrog_validation_tests/sc
 
 ---
 
-# Directory structure
+# Condensed directory structure
 
-If `NO_DIR_MAKE=True` the directories below will be created if they do not already exist.
-
-If `NO_DIR_MAKE=False` the script will exit when a nonexistent directory is encountered to remind the user to change the directory structure to their preference. User can change directory structure in `ms_plotter.py`; search for `User may wish to edit directory structure`. 
-
-Directory stucture depends on `OUTDIR` `BALROG_RUN` `MATCH_TYPE`, which are defined below.
-
-`OUTDIR` is supplied at the command line.
-
-`BALROG_RUN` `MATCH_TYPE` are defined in `ms_plotter.py` as follows:
-
-If `/data/des71.a/data/kuropat/des2247-4414_sof/` is issued at the command line, `BALROG_RUN=des2247-4414_sof`.
-
-If `MATCH_CAT1, MATCH_CAT2, INJ1, INJ2, INJ1_PERCENT, INJ2_PERCENT = 'gal_truth', 'sof', True, True`, `10`, `10` then `MATCH_TYPE=10%_inj_gal_truth_cat_10%_inj_sof_cat`. Note that `MATCH_TYPE` reflects the order in which the catalogs were matched in `ms_matcher`.
-
+Below are solely the directories and not the files that will be created within them.
 
 ```
 {OUTDIR}
@@ -108,28 +95,91 @@ If `MATCH_CAT1, MATCH_CAT2, INJ1, INJ2, INJ1_PERCENT, INJ2_PERCENT = 'gal_truth'
                 +---- {realization}
                     |
                     +---- catalog_compare
-                    |       {tile}_{realization}_{match_type}_match1and2.csv
-                    |       {tile}_{realization}_{match_type}_match1not2.csv
-                    |       {tile}_{realization}_{match_type}_match2not1.csv
+                    |   |
+                    |   +---- fof_analysis
                     |
-                    +---- fof_analysis
-                    |       {tile}_num_match_fof_coadd.csv
-                    |       {tile}_fofgroups.csv
-                    |       {tile}_{realization}_num_match_inj_fof_inj_coadd.csv
-                    |       {tile}_{realization}_inj_fofgroups.csv
-                    |       {tile}_{realization}_inj_fofgroup_fofgroup_match1and2.csv
-                    |       {tile}_{realization}.ok
-                    |       {tile}_{realization}.rerun
-                    |       {tile}_{realization}_ok_inj_mof.csv
-                    |       {tile}_{realization}_rerun_inj_mof.csv
-                    |       {tile}_{realization}_ok_mof.csv
-                    |       {tile}_{realization}_rerun_mof.csv
-                    |       {tile}_{realization}_ok_inj_mof_ok_mof_match1and2.csv
-                    |       {tile}_{realization}_ok_inj_mof_ok_mof_match1not2.csv
-                    |       {tile}_{realization}_ok_inj_mof_ok_mof_match2not1.csv
-                    |       {tile}_{realization}_rerun_inj_mof_rerun_mof_match1and2.csv
-                    |       {tile}_{realization}_rerun_inj_mof_rerun_mof_match1not2.csv
-                    |       {tile}_{realization}_rerun_inj_mof_rerun_mof_match2not1.csv
+                    +---- log_files
+                    |   |
+                    |   +---- fof_analysis
+                    |
+                    +---- plots
+                    |   |
+                    |   +---- color
+                    |   |
+                    |   +---- flux
+                    |   |
+                    |   +---- magnitude
+                    |   |   |
+                    |   |   +---- normalized
+                    |   |
+                    |   +---- fof_analysis
+                    |       |
+                    |       +---- color
+                    |       |
+                    |       +---- flux
+                    |       |
+                    |       +---- magnitude
+                    |           |
+                    |           +---- normalized
+                    |
+                    +---- region_files
+                        |
+                        +---- fof_analysis
+
+```
+
+If `NO_DIR_MAKE=True` the directories below will be created if they do not already exist.
+
+If `NO_DIR_MAKE=False` the script will exit when a nonexistent directory is encountered to remind the user to change the directory structure to their preference. User can change directory structure in `ms_plotter.py`; search for `User may wish to edit directory structure`. 
+
+Directory stucture depends on `OUTDIR` `BALROG_RUN` `MATCH_TYPE`, which are defined below.
+
+`OUTDIR` is supplied at the command line.
+
+`BALROG_RUN` `MATCH_TYPE` are defined in `ms_plotter.py` as follows:
+
+If `/data/des71.a/data/kuropat/des2247-4414_sof/` is issued at the command line, `BALROG_RUN=des2247-4414_sof`.
+
+If `MATCH_CAT1, MATCH_CAT2, INJ1, INJ2, INJ1_PERCENT, INJ2_PERCENT = 'gal_truth', 'sof', True, True`, `10`, `10` then `MATCH_TYPE=10%_inj_gal_truth_cat_10%_inj_sof_cat`. Note that `MATCH_TYPE` reflects the order in which the catalogs were matched in `ms_matcher`.
+
+# Full directory structure 
+
+```
+{OUTDIR}
+|    
++---- outputs
+    |  
+    +---- {BALROG_RUN}
+        |  
+        +---- {match_type}
+            |
+            +---- {tile}
+                |
+                +---- {realization}
+                    |
+                    +---- catalog_compare
+                    |   |   {tile}_{realization}_{match_type}_match1and2.csv
+                    |   |   {tile}_{realization}_{match_type}_match1not2.csv
+                    |   |   {tile}_{realization}_{match_type}_match2not1.csv
+                    |   |
+                    |   +---- fof_analysis
+                    |           {tile}_num_match_fof_coadd.csv
+                    |           {tile}_fofgroups.csv
+                    |           {tile}_{realization}_num_match_inj_fof_inj_coadd.csv
+                    |           {tile}_{realization}_inj_fofgroups.csv
+                    |           {tile}_{realization}_inj_fofgroup_fofgroup_match1and2.csv
+                    |           {tile}_{realization}.ok
+                    |           {tile}_{realization}.rerun
+                    |           {tile}_{realization}_ok_inj_mof.csv
+                    |           {tile}_{realization}_rerun_inj_mof.csv
+                    |           {tile}_{realization}_ok_mof.csv
+                    |           {tile}_{realization}_rerun_mof.csv
+                    |           {tile}_{realization}_ok_inj_mof_ok_mof_match1and2.csv
+                    |           {tile}_{realization}_ok_inj_mof_ok_mof_match1not2.csv
+                    |           {tile}_{realization}_ok_inj_mof_ok_mof_match2not1.csv
+                    |           {tile}_{realization}_rerun_inj_mof_rerun_mof_match1and2.csv
+                    |           {tile}_{realization}_rerun_inj_mof_rerun_mof_match1not2.csv
+                    |           {tile}_{realization}_rerun_inj_mof_rerun_mof_match2not1.csv
                     |
                     +---- log_files
                     |   |   {tile}_{realization}_{MATCH_TYPE}_color_from_mag.log
@@ -186,6 +236,8 @@ If `MATCH_CAT1, MATCH_CAT2, INJ1, INJ2, INJ1_PERCENT, INJ2_PERCENT = 'gal_truth'
                     |       +---- flux
                     |       |
                     |       +---- magnitude
+                    |           |
+                    |           +---- normalized
                     |
                     +---- region_files
                         |   {tile}_{realization}_{MATCH_TYPE}_match1and2.reg
