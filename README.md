@@ -112,67 +112,113 @@ Log files for `ok` and `rerun` FOF groups are saved in: `/{OUTDIR}/outputs/{BALR
 ```
 {OUTDIR}
 |    
-+-- outputs
-  |  
-  +-- {BALROG_RUN}
++---- outputs
     |  
-    +-- {match_type}
-      |
-      +-- {tile}
+    +---- {BALROG_RUN}
+        |  
+        +---- {match_type}
         |
-        +-- {realization}
-          |
-          +-- catalog_compare
-          | + {tile}_{realization}_{match_type}_match1and2.csv
-          | + {tile}_{realization}_{match_type}_match1not2.csv
-          | + {tile}_{realization}_{match_type}_match2not1.csv
-          | |
-          | +-- fof_analysis
-          | + {tile}_{realization}_{match_type}_
-          | + _ok_inj_mof_ok_mof_match1and2.csv
-          | + _ok_inj_mof_ok_mof_match1not2.csv
-          | + _ok_inj_mof_ok_mof_match2not1.csv
-          | + _rerun_inj_mof_rerun_mof_match1and2.csv
-          | + _rerun_inj_mof_rerun_mof_match1not2.csv
-          | + _rerun_inj_mof_rerun_mof_match2not1.csv
-          |
-          +-- log_files
-          | + ...match_log.csv
-          | + ...{}
-          | |
-          | +-- fof_analysis
-          |
-          +-- plots
-          |   |
-          |   +-- color
-          |   + ...
-          |   |
-          |   +-- flux
-          |   +...similar to above "
-          |   |
-          |   +-- magnitude
-          |   |
-          |   +-- fof_analysis
-          |     |
-          |     +-- color
-          |     |
-          |     +-- flux
-          |     |
-          |     +-- magnitude
-          |
-          +-- region_files
-            +...1and2.reg
-            +...1not2.reg
-            +...2not1.reg
+        +---- {tile}
+        |
+        +---- {realization}
             |
-            +-- fof_analysis
-            └───
+            +---- catalog_compare
+            |       {tile}_{realization}_{match_type}_match1and2.csv
+            |       {tile}_{realization}_{match_type}_match1not2.csv
+            |       {tile}_{realization}_{match_type}_match2not1.csv
+            |
+            +---- fof_analysis
+            |       {tile}_num_match_fof_coadd.csv
+            |       {tile}_fofgroups.csv
+            |       {tile}_{realization}_num_match_inj_fof_inj_coadd.csv
+            |       {tile}_{realization}_inj_fofgroups.csv
+            |       {tile}_{realization}_inj_fofgroup_fofgroup_match1and2.csv
+            |       {tile}_{realization}.ok
+            |       {tile}_{realization}.rerun
+            |       {tile}_{realization}_ok_inj_mof.csv
+            |       {tile}_{realization}_rerun_inj_mof.csv
+            |       {tile}_{realization}_ok_mof.csv
+            |       {tile}_{realization}_rerun_mof.csv
+            |       {tile}_{realization}_ok_inj_mof_ok_mof_match1and2.csv
+            |       {tile}_{realization}_ok_inj_mof_ok_mof_match1not2.csv
+            |       {tile}_{realization}_ok_inj_mof_ok_mof_match2not1.csv
+            |       {tile}_{realization}_rerun_inj_mof_rerun_mof_match1and2.csv
+            |       {tile}_{realization}_rerun_inj_mof_rerun_mof_match1not2.csv
+            |       {tile}_{realization}_rerun_inj_mof_rerun_mof_match2not1.csv
+            |
+            +---- log_files
+            |   |   {tile}_{realization}_{MATCH_TYPE}_color_from_mag.log
+            |   |   {tile}_{realization}_{MATCH_TYPE}_flags.log
+            |   |   {tile}_{realization}_{MATCH_TYPE}_flux_from_gaussian_aperture.log
+            |   |   {tile}_{realization}_{modified_match_type}_mag_completeness.log
+            |   |   {tile}_{realization}_{MATCH_TYPE}_mag_error_computation.log
+            |   |   {tile}_{realization}_{MATCH_TYPE}_matched_catalogs.log
+            |   |   {tile}_{realization}_{MATCH_TYPE}_main.log
+            |   |   {tile}_{realization}_{MATCH_TYPE}_outlier_mag_diffs.log
+            |   |   {tile}_{realization}_{MATCH_TYPE}_sigma_clip_flux.log
+            |   |
+            |   +---- fof_analysis
+            |           {tile}_{realization}_{MATCH_TYPE}_{RUN_TYPE}_color_from_mag.log
+            |           {tile}_{realization}_{MATCH_TYPE}_{RUN_TYPE}_flags.log
+            |           {tile}_{realization}_{MATCH_TYPE}_{RUN_TYPE}_flux_from_gaussian_aperture.log
+            |           {tile}_{realization}_{mod_match_type}_{RUN_TYPE}_mag_completeness.log
+            |           {tile}_{realization}_{MATCH_TYPE}_{RUN_TYPE}_mag_error_computation.log
+            |           {tile}_{realization}_{MATCH_TYPE}_{RUN_TYPE}_matched_catalogs.log
+            |           {tile}_{realization}_{MATCH_TYPE}_{RUN_TYPE}_main.log
+            |           {tile}_{realization}_{MATCH_TYPE}_{RUN_TYPE}_outlier_mag_diffs.log
+            |           {tile}_{realization}_{MATCH_TYPE}_{RUN_TYPE}_sigma_clip_flux.log
+            |
+            +---- plots
+            |   |
+            |   +---- color
+            |   |       {tile}_{realization}_{match_type}_{color}_{plot_type}_{ylim}.png
+            |   |       {tile}_{realization}_{match_type}_{color}_corner2dhist_.png
+            |   |
+            |   +---- flux
+            |   |       {tile}_{realization}_{match_type}_griz_{plot_type}_.png
+            |   |       {tile}_{realization}_{match_type}_griz_norm_flux_diff_histogram_.png
+            |   |       {tile}_{realization}_{match_type}_griz_gauss_aper_norm_flux_diff_histogram_.png
+            |   |       {tile}_{realization}_{match_type}_griz_{N}sigma_clip_norm_flux_diff_histogram_.png
+            |   |       {tile}_{realization}_{match_type}_griz_{N}sigma_clip_gauss_aper_norm_flux_diff_histogram_.png
+            |   |
+            |   +---- magnitude
+            |   |   |   {tile}_{realization}_{match_type}_{band(s)}_{plot_type}_{ylim}.png
+            |   |   |   {tile}_{realization}_{match_type}_{band(s)}_cbar_cm_t_{ylim}.png
+            |   |   |   {tile}_{realization}_{match_type}_{band(s)}_cbar_cm_t_err_{ylim}.png
+            |   |   |   {tile}_{realization}_{match_type}_{band(s)}_completeness_{ylim}.png
+            |   |   |   {tile}_{realization}_{match_type}_{band(s)}_cornerhist2d_{ylim}.png
+            |   |   |   {tile}_{realization}_{match_type}_{band(s)}_hexbin_{ylim}.png
+            |   |   |   {tile}_{realization}_{match_type}_{band(s)}_hist2d_{ylim}.png
+            |   |   |   {tile}_{realization}_{match_type}_{band(s)}_scatter_{ylim}.png
+            |   |   |
+            |   |   +---- normalized
+            |   |           norm_"
+            |   |
+            |   +---- fof_analysis
+            |       |
+            |       +---- color
+            |       |
+            |       +---- flux
+            |       |
+            |       +---- magnitude
+            |
+            +---- region_files
+                |   {tile}_{realization}_{MATCH_TYPE}_match1and2.reg
+                |   {tile}_{realization}_{MATCH_TYPE}_match1not2.reg
+                |   {tile}_{realization}_{MATCH_TYPE}_match2not1.reg
+                |
+                +---- fof_analysis
+                      {tile}_{realization}_{MATCH_TYPE}_{RUN_TYPE}_match1and2.reg
+                      {tile}_{realization}_{MATCH_TYPE}_{RUN_TYPE}_match1not2.reg
+                      {tile}_{realization}_{MATCH_TYPE}_{RUN_TYPE}_match2not1.reg
+                
 ```
 `{realization}` and `{tile}` can be `stack`.
-Directories have a `+--` branch and files have a `+` branch.
 
 
-Plot names are prefaced with the plot type (for example, 'scatter_' if `SCATTER=True`).
+Log files are CSVs. Not all log files will be written to; for example, if `PLOT_MAG=False`, 'mag_completeness.log' will not be created and an empty 'dummy.log' will replace it.
+
+Plot names are prefaced with the plot type (for example, 'scatter_' if `SCATTER=True`). Plot save names ending with '\_.png' have default axes.
 
 
 `match_type` is `MATCH_TYPE` unless `PLOT_COMPLETENESS=True` in which case both 10% and 20% Balrog-injected matched catalogs are plotted in the same window, so `match_type` removes the percent injected from `MATCH_TYPE`. That is, `MATCH_TYPE=10%_inj_gal_truth_cat_10%_inj_sof_cat` results in `match_type=inj_gal_truth_cat_inj_sof_cat`.
