@@ -93,21 +93,6 @@ If `/data/des71.a/data/kuropat/des2247-4414_sof/` is issued at the command line,
 
 If `MATCH_CAT1, MATCH_CAT2, INJ1, INJ2, INJ1_PERCENT, INJ2_PERCENT = 'gal_truth', 'sof', True, True`, `10`, `10` then `MATCH_TYPE=10%_inj_gal_truth_cat_10%_inj_sof_cat`. Note that `MATCH_TYPE` reflects the order in which the catalogs were matched in `ms_matcher`.
 
-**Matched catalogs**
-
-Matched catalogs are saved in: `/{OUTDIR}/outputs/{BALROG_RUN}/{MATCH_TYPE}/{tile}/{realization}/catalog_compare/`
-
-Matched catalogs used for FOF analysis are saved in: `/{OUTDIR}/outputs/{BALROG_RUN}/{MATCH_TYPE}/{tile}/{realization}/fof_analysis_catalog_compare/`
-
-
-**Log files**
-
-Log files are saved in: `/{OUTDIR}/outputs/{BALROG_RUN}/{MATCH_TYPE}/{tile}/{realization}/log_files/`
-
-Log files for `ok` and `rerun` FOF groups are saved in: `/{OUTDIR}/outputs/{BALROG_RUN}/{MATCH_TYPE}/{tile}/{realization}/log_files/fof_analysis/`
-
-
-**Plots**
 
 ```
 {OUTDIR}
@@ -218,8 +203,7 @@ Log files for `ok` and `rerun` FOF groups are saved in: `/{OUTDIR}/outputs/{BALR
 
 Log files are CSVs. Not all log files will be written to; for example, if `PLOT_MAG=False`, 'mag_completeness.log' will not be created and an empty 'dummy.log' will replace it.
 
-Plot names are prefaced with the plot type (for example, 'scatter_' if `SCATTER=True`). Plot save names ending with '\_.png' have default axes.
-
+Plot save names ending with '\_.png' have default axes.
 
 `match_type` is `MATCH_TYPE` unless `PLOT_COMPLETENESS=True` in which case both 10% and 20% Balrog-injected matched catalogs are plotted in the same window, so `match_type` removes the percent injected from `MATCH_TYPE`. That is, `MATCH_TYPE=10%_inj_gal_truth_cat_10%_inj_sof_cat` results in `match_type=inj_gal_truth_cat_inj_sof_cat`.
 
