@@ -16,11 +16,11 @@ ___
 
 # Running BalVal
 
-General: `$python ms_plotter.py base_path_to_catalogs output_directory realizations tiles`
+General: `$python ms_plotter.py {base_path_to_catalogs} {output_directory} {realization(s)} {tile(s)}`
 
 Ex: `$python ms_plotter.py /data/des71.a/data/kuropat/des2247-4414_sof/ /BalVal/ 0,1 DES2247-4414`
 
-`None` is an allowed value for `cmd_line_realizations`. One can list realizations at the command line with commas and _no_ spaces separating the realizations (similarly for tiles).
+`None` is an allowed value for `cmd_line_realizations` (`{realization(s)}` as represented above). One can list realizations at the command line with commas and _no_ spaces separating the realizations (similarly for tiles).
 
 After the above command is issued, a prompt will appear so that the user can confirm plot attributes. This is to prevent plots from being overwritten when testing new additions to the script. User can comment `NOTICE` to remove prompt. 
 
@@ -48,9 +48,9 @@ except:
 
 These constants are set within `ms_plotter.py`. Docstrings describe parameters but a [Table of Function Parameters](https://docs.google.com/spreadsheets/d/1utJdA9SpigrbDTsmtHcqcECP9sARHeFNUXdp47nyyro/edit?usp=sharing) is also available.
 
-Parameter(s) | Type | Description & _allowed values_ (if Type not bool)
+Parameter(s) | Type | Description <br> _Allowed values_ (if Type not bool)
 :---: | :---: | ---
-|`MATCH_CAT1` `MATCH_CAT2` | str | Type of catalogs to analyse. _Allowed values_:  `coadd` `gal_truth` `mof` `sof` `star_truth` `y3_gold_2_0` `y3_gold_2_2`
+|`MATCH_CAT1` `MATCH_CAT2` | str | Type of catalogs to analyse. <br> _Allowed values_:  `coadd` `gal_truth` `mof` `sof` `star_truth` `y3_gold_2_0` `y3_gold_2_2`
 | `INJ1` `INJ2` | bool | If `True` then `MATCH_CAT1` `MATCH_CAT2` are Balrog-injected. If `False` then `MATCH_CAT1` `MATCH_CAT2` are base catalogs.
 |`INJ1_PERCENT` `INJ2_PERCENT` | int | Injection percent for `MATCH_CAT1` `MATCH_CAT2`. It is important to specify these parameters even in the case of `INJ1=False` `INJ2=False` because these parameters impact directory structure.
 | `PLOT_MAG` | bool | If `True` plots of g-, r-, i-, and z-band magnitude are created.
@@ -99,6 +99,15 @@ Log files, matched catalogs, and plot names are printed with a proceeding `-----
 **Warnings**
 
 User may need to replace `/data/des71.a/data/mspletts/balrog_validation_tests/scripts/BalVal/ms_matcher` (in `ms_plotter.matcher()`) with the correct path to `ms_matcher`. Similarly for `ms_fof_matcher`.
+
+**Note about Y3 Gold catalogs**
+
+The following is relevant if `MATCH_CAT1` or `MATCH_CAT2` is a Y3 Gold catalog.
+
+By default, `ms_plotter.py` tries to access Y3 Gold catalogs saved in `/data/des71.a/data/mspletts/balrog_validation_tests/y3_gold_catalogs/`. 
+
+If the user has access to FNAL DES machines, and a necessary Y3 Gold catalog is not already in the directory above, user will need to download the Y3 Gold catalog with the headers found in: `/data/des71.a/data/mspletts/balrog_validation_tests/y3_gold_catalogs/y3_gold_general_column_query.sql` and edit `ms_plotter.get_catalog_filename()` with the correct path to the Y3 Gold catalog.
+
 
 ---
 
