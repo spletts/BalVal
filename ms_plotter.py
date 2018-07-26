@@ -1229,6 +1229,12 @@ def get_good_indices_using_primary_flags(df_1and2, full_mag1, full_mag2, cm_flag
 	if 'y3_gold_se_flag' not in locals(): y3_gold_se_flag = np.zeros(len(df_1and2.index))
 	if 'y3_gold_imaflag' not in locals(): y3_gold_imaflag = np.zeros(len(df_1and2.index)) 
 	if 'y3_gold_mof_cm_flag' not in locals(): y3_gold_mof_cm_flag = np.zeros(len(df_1and2.index)) 
+
+	if GAUSS_APER:
+		gap_flag1 = df_1and2[GAUSS_APER_FLAGS_HDR+'_1']
+		gap_flag2 = df_1and2[GAUSS_APER_FLAGS_HDR+'_2']
+	if GAUSS_APER is False:
+		gap_flag1, gap_flag2 = np.zeros(len(df_1and2.index)), np.zeros(len(df_1and2.index))
 	
 
 	# Make arrays to take absolute value in next step #
@@ -1236,7 +1242,7 @@ def get_good_indices_using_primary_flags(df_1and2, full_mag1, full_mag2, cm_flag
 
 
 	#  Get rid of these objects; 37.5 corresponds to a negative flux #
-	__idx_good = np.where( (abs(full_mag1) != 9999.0) & (abs(full_mag1) != 99.0) & (abs(full_mag1) != 37.5) & (abs(full_mag2) != 9999.0) & (abs(full_mag2) != 99.0) & (abs(full_mag2) != 9999.0) & (abs(full_mag2) != 99.0) & (abs(full_mag2) != 37.5) & (flag1 == 0) & (flag2 == 0) & (cm_flag1 == 0) & (cm_flag2 == 0) & (base_flag1 == 0) & (base_flag2 == 0) & (y3_gold_se_flag == 0) & (y3_gold_imaflag == 0) & (y3_gold_mof_cm_flag == 0) )[0]
+	__idx_good = np.where( (abs(full_mag1) != 9999.0) & (abs(full_mag1) != 99.0) & (abs(full_mag1) != 37.5) & (abs(full_mag2) != 9999.0) & (abs(full_mag2) != 99.0) & (abs(full_mag2) != 9999.0) & (abs(full_mag2) != 99.0) & (abs(full_mag2) != 37.5) & (flag1 == 0) & (flag2 == 0) & (cm_flag1 == 0) & (cm_flag2 == 0) & (base_flag1 == 0) & (base_flag2 == 0) & (y3_gold_se_flag == 0) & (y3_gold_imaflag == 0) & (y3_gold_mof_cm_flag == 0) & (gap_flag1 == 0) & (gap_flag2 == 0) )[0]
 
 
 	if PLOT_FLAGGED_OBJS:
@@ -2914,7 +2920,7 @@ def add_gaussian_aperture_flux_measurements_to_catalog(fn_fits, tile, realizatio
 
 
 
-def normalized_flux_difference_histogram_subplotter(fn_gauss_aper_log, fn_plot, df_1and2, flux_hdr1, flux_hdr2, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, plot_title, tile, realization, fn_flux_sigma_clip_log):
+def normalized_flux_difference_histogram_subplotter(fn_gauss_aper_log, fn_plot, df_1and2, flux_hdr1, flux_hdr2, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, plot_title, tile, realization, fn_flux_sigma_clip_log, gap_flux_hdr1, gap_flux_hdr2):
 	"""Create 2x2 plot grid of normalized (area under the curve equals 1) 1D DeltaFlux/SigmaFlux histograms. One subplot is created for each griz band. Each plot includes a standard Gaussian (mean=0, standard_deviation=1) and the best-fit Gaussian to DeltaFlux/SigmaFlux. 
 
 	Parameters
@@ -2943,22 +2949,13 @@ def normalized_flux_difference_histogram_subplotter(fn_gauss_aper_log, fn_plot, 
         plt.figure(figsize=(12, 10))
 
 
-	### Measure g-, r-, i-, and z-band flux of the FULL (not matched) catalogs using Gaussian aperture. Note that `ngmixer.gaussap.get_gauss_aper_flux_cat()` accepts `ngmixer` catalogs for `cat` (matched catalog will not work) ###
-		
-
-	if GAUSS_APER is False:
-		#FIXME get rid of this
-		__gap_flux_griz_1, __gap_flux_griz_2 = None, None
-
-
         ### Create one subplot for each griz band ###
         for b in ALL_BANDS:
 		plt.subplot(2, 2, counter_subplot)
 
 		# Create one subplot #
-		normalized_flux_difference_histogram_plotter(tile=tile, realization=realization, band=b, df_1and2=df_1and2, flux_hdr1=flux_hdr1, flux_hdr2=flux_hdr2, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, plot_title=plot_title, fn_flux_sigma_clip_log=fn_flux_sigma_clip_log)
+		normalized_flux_difference_histogram_plotter(tile=tile, realization=realization, band=b, df_1and2=df_1and2, flux_hdr1=flux_hdr1, flux_hdr2=flux_hdr2, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, plot_title=plot_title, fn_flux_sigma_clip_log=fn_flux_sigma_clip_log, gap_flux_hdr1=gap_flux_hdr1, gap_flux_hdr2=gap_flux_hdr2)
 
-		#normalized_flux_difference_histogram_plotter(tile=tile, realization=realization, band=b, df_1and2=df_1and2, flux_hdr1=flux_hdr1, flux_hdr2=flux_hdr2, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, plot_title=plot_title, fn_flux_sigma_clip_log=fn_flux_sigma_clip_log, gap_flux_hdr1=, gap_flux_hdr2=)
 
 		counter_subplot += 1
 
@@ -2975,7 +2972,7 @@ def normalized_flux_difference_histogram_subplotter(fn_gauss_aper_log, fn_plot, 
 
 
 
-def normalized_flux_difference_histogram_plotter(tile, realization, band, df_1and2, flux_hdr1, flux_hdr2, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, plot_title, fn_flux_sigma_clip_log):
+def normalized_flux_difference_histogram_plotter(tile, realization, band, df_1and2, flux_hdr1, flux_hdr2, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, plot_title, fn_flux_sigma_clip_log, gap_flux_hdr1, gap_flux_hdr2):
 	"""Create a normalized (area under curve equals 1) 1D histogram of DeltaFlux/SigmaFlux for a particular `band`. Plot includes a standard Gaussian (mean=0, standard_deviation=1) and the best-fit Gaussian to DeltaFlux/SigmaFlux.
 
 	Parameters
@@ -2993,7 +2990,7 @@ def normalized_flux_difference_histogram_plotter(tile, realization, band, df_1an
 	print 'Plotting', len(idxGood), 'points for', band, '-band...'
 
 	if GAUSS_APER:
-		normGApFluxDiff = get_flux_plot_variables(band=band, df_1and2=df_1and2, flux_hdr1=GAUSS_APER_FLUX_GRIZ_HDR+'_1', flux_hdr2=GAUSS_APER_FLUX_GRIZ_HDR+'_2', mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2)[0] 
+		normGApFluxDiff = get_flux_plot_variables(band=band, df_1and2=df_1and2, flux_hdr1=gap_flux_hdr1, flux_hdr2=gap_flux_hdr2, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2)[0] 
 
 
 		if RAW_NORM_FLUX_DIFF:
@@ -3104,7 +3101,6 @@ def normalized_flux_difference_histogram_plotter(tile, realization, band, df_1an
                 plt.ylabel('Count')
         plt.legend(fontsize=10).draggable()
 	#FIXME change back
-	plt.xlim([-40, 40])
 
 	### Get median of data. Get x-value corresponding to peak of data distribution ###
 	__bin_size, __bin_edges = np.histogram(normFluxDiff, __flux_hist_bins, density=NORMALIZE_NORM_FLUX_DIFF_VIA_DENSITY)
@@ -4778,7 +4774,6 @@ def matcher(realization, tile, inj1, inj2, inj1_percent, inj2_percent):
 		in2 =  get_coadd_catalog_for_matcher(cat_type=MATCH_CAT2, inj_percent=inj2_percent,  realization=realization, tile=tile, mag_hdr=M_HDR2, mag_err_hdr=M_ERR_HDR2, inj=INJ2, flux_hdr='FLUX_AUTO', flux_err_hdr='FLUXERR_AUTO')
 
 
-
 	print 'Matching or already matched:'
 	print '', in1
 	print '', in2
@@ -4820,6 +4815,15 @@ def matcher(realization, tile, inj1, inj2, inj1_percent, inj2_percent):
 
 	### Make catalog compatible for Gaussian aperture catalog ###
         if GAUSS_APER:
+		# Will need to rematch this catalog if Gaussian aperture columns are not present #
+		if os.path.isfile(__fn_match_1and2):
+			try:
+				df = pd.read_csv(__fn_match_1and2)
+				temp = df[GAUSS_APER_FLUX_HDR+'_1']
+			except:
+				overwrite = True
+				print 'Forcing overwrite to add Gaussian aperture flux measurements...'
+	
 		if os.path.isfile(__fn_match_1and2) is False or overwrite:
 			if VERBOSE: print 'Adding Gaussian aperture measured flux to both catalogs...'
 			# Delete these files after the matched catalog is created #
@@ -5397,12 +5401,7 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 
 
 			if PLOT_FLUX:
-				''':
-				if GAUSS_APER:
-					print 'Using Gaussian aperture to measure flux...'
-					normalized_flux_difference_histogram_subplotter(df_1and2=df1and2, flux_hdr1=GAUSS_APER_FLUX_GRIZ_HDR+'_1', flux_hdr2=GAUSS_APER_FLUX_GRIZ_HDR+'_2', mag_hdr1=magHdr1, mag_hdr2=magHdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, plot_title=title, fn_plot=fnPlot, tile=t, realization=r, fn_gauss_aper_log=fnGaussAperLog, fn_flux_sigma_clip_log=fnFluxSigmaClipLog)
-				'''
-				normalized_flux_difference_histogram_subplotter(df_1and2=df1and2, flux_hdr1=fluxHdr1, flux_hdr2=fluxHdr2, mag_hdr1=magHdr1, mag_hdr2=magHdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, plot_title=title, fn_plot=fnPlot, tile=t, realization=r, fn_gauss_aper_log=fnGaussAperLog, fn_flux_sigma_clip_log=fnFluxSigmaClipLog)
+				normalized_flux_difference_histogram_subplotter(df_1and2=df1and2, flux_hdr1=fluxHdr1, flux_hdr2=fluxHdr2, mag_hdr1=magHdr1, mag_hdr2=magHdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, plot_title=title, fn_plot=fnPlot, tile=t, realization=r, fn_gauss_aper_log=fnGaussAperLog, fn_flux_sigma_clip_log=fnFluxSigmaClipLog, gap_flux_hdr1=GAUSS_APER_FLUX_GRIZ_HDR+'_1', gap_flux_hdr2=GAUSS_APER_FLUX_GRIZ_HDR+'_2')
 
 
 	return 0
