@@ -26,6 +26,20 @@ After the above command is issued, a prompt will appear so that the user can con
 
 User sets plot attributes and catalog attributes within `ms_plotter.py`. A table of user-set attributes is below.
 
+**Dependencies**
+`ms_plotter.py` requires [`ngmixer`](https://github.com/esheldon/ngmixer) to measure fluxes using a Gaussian aperture. If user has access to DES machines at FNAL, user must ssh to `@des70` or `@des71` (for `matplotlib v2.2.2`) and run the following setup script: `$source /home/s1/mspletts/setup_ngmixer_gaussap.sh`.
+Note that `/home/s1/mspletts/setup_ngmixer_gaussap.sh` points to `ngmixer` as installed in `/home/s1/mspletts`. Minor changes have been made to `ngmixer.gaussap.get_gauss_aper_flux_cat()`. Namely,
+~~`output['id']=cat['id']`~~
+has been replaced with
+```
+try:
+    output['id']=cat['id']
+except:
+    output['id']=cat['coadd_objects_id']
+```
+to handle various truth catalog formats.
+
+
 
 # Table of Constants
 
@@ -287,3 +301,5 @@ Star truth catalogs (`star_truth`) do not contain any flags.
 Coadd catalogs (`coadd`) have a 'FLAGS' header but do not have a 'cm_flags' header (or equivalent), so only 'FLAGS' is used.
 
 Y3 catalogs (`y3_gold`) are checked for 'FLAGS_GOLD' (replaced 'flags') and '{sof/mof}\_cm_flags' replaces 'cm_flags'. In addition, the additional flags are examined: 'SEXTRACTOR_FLAGS_{GRIZ}', 'IMAFLAGS_ISO_{GRIZ}', and, if a Y3 catalog is compared to a MOF catalog, 'MOF_CM_MOF_FLAGS'.
+
+`ngmixer.gaussap.get_gauss_aper_flux_cat()` gives flags for the Gaussian aperture flux measurement. If `PLOT_FLUX=True` and `GAUSS_APER=True`, objects with these Gaussian aperture flags are removed.
