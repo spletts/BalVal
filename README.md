@@ -70,10 +70,13 @@ Parameter(s) | Type | Description & _allowed values_ (if Type not bool)
 | `NO_DIR_MAKE` | bool| If `True` nonexistent directories will be created. If `False`, `sys.exit()` is invoked when nonexistent directories are encountered.
 | `SWAP_HAX` | bool | If `False` (default) `MATCH_CAT1` values are plotted on the horizontal axis. If `True` `MATCH_CAT2` values are plotted on the horizontal axis.
 | `RUN_TYPE` | str | _Allowed values_: `None` `'ok'` `'rerun'`. `'ok'`: FOF groups *un*changed after Balrog-injection. `'rerun'`: FOF groups changed after Balrog-injection. `None`: FOF analysis not conducted. If `RUN_TYPE='rerun'` or `RUN_TYPE='ok'` then `MATCH_CAT1` `MATCH_CAT2` `INJ1` and `INJ2` will be overwritten.
-| `VERBOSE` | bool | If `True` progress will print to screen. 
+| `VERBOSE_ING` | bool | If `True` status and progress of script will print to screen. For example, 'Plotting...', 'calculating...', 'overwriting...', etc.
+| `VERBOSE_ED` | bool | If `True` results will print to screen. For example, 'got...', 'flagged...', 'checked...', etc. Note that many of these printouts are also saved in a log file.
 
 The following functions contain `__overwrite`: `get_coadd_catalog_for_matcher()`, `make_ngmixer_gaussap_compatible_catalog()`, `get_and_reformat_base_catalog()`, `matcher()`, `fof_matcher()`, `stack_tiles()`, `stack_realizations()`, `get_coadd_catalog_for_matcher()`, `write_to_region_files()`. 
 If `__overwrite=True` a `raw_input()` prompt will appear to ensure that files are to be overwritten. In these instances, press 'Enter' to continue and 'Control+c' to stop the process.
+
+Log files, matched catalogs, and plot names are printed with a proceeding `----->` for ease of finding and opening these files.
 
 
 **Warnings**
@@ -146,6 +149,7 @@ Directory stucture depends on `OUTDIR` `BALROG_RUN` `MATCH_TYPE`, which are defi
 If `/data/des71.a/data/kuropat/des2247-4414_sof/` is issued at the command line, `BALROG_RUN=des2247-4414_sof`.
 
 If `MATCH_CAT1, MATCH_CAT2, INJ1, INJ2, INJ1_PERCENT, INJ2_PERCENT = 'gal_truth', 'sof', True, True`, `10`, `10` then `MATCH_TYPE=10%_inj_gal_truth_cat_10%_inj_sof_cat`. Note that `MATCH_TYPE` reflects the order in which the catalogs were matched in `ms_matcher`.
+
 
 # Full directory structure 
 
