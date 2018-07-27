@@ -10,9 +10,9 @@ __Table of Contents__
 
 [Directory Structure](https://github.com/spletts/BalVal/blob/master/README.md#directory-structure)
 
-  - [Condensed Directory Structure](https://github.com/spletts/BalVal/blob/master/README.md##condensed-directory-structure)
+  - [Condensed Directory Structure](https://github.com/spletts/BalVal/blob/master/README.md#condensed-directory-structure)
 
-  - [Full Directory Structure](https://github.com/spletts/BalVal/blob/master/README.md##full-directory-structure)
+  - [Full Directory Structure](https://github.com/spletts/BalVal/blob/master/README.md#full-directory-structure)
 
 
 ___
