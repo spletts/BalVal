@@ -49,14 +49,10 @@ If user has access to the DES machines at FNAL:
   - `ssh {user}@des71.fnal.gov`
 2. `$source /home/s1/mspletts/setup_ngmixer_gaussap.sh`
 
-Note that `/home/s1/mspletts/setup_ngmixer_gaussap.sh` points to `ngmixer` as installed in `/home/s1/mspletts/`, where minor changes have been made to `ngmixer.gaussap.get_gauss_aper_flux_cat()`, as follows:
-
-~~`output['id']=cat['id']`~~
-```
-try:
-    output['id']=cat['id']
-except:
-    output['id']=cat['coadd_objects_id']
+Note that `/home/s1/mspletts/setup_ngmixer_gaussap.sh` points to `ngmixer` as installed in `/home/s1/mspletts/`, where minor changes have been made to `ngmixer.gaussap.get_gauss_aper_flux_cat()`, as indicated by code between 
+```### MS ### 
+{modified code} 
+### - ###
 ```
 
 
