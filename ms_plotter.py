@@ -22,13 +22,11 @@ Megan Splettstoesser mspletts@fnal.gov"""
 
 #TODO Update docstrings
 
-# `astropy` is needed only if analyzing a coadd catalog or making a completeness plot #
 from astropy.io import fits
 from astropy.stats import sigma_clip
 from astropy.table import Table, vstack, Column
 from ngmix import gmix
 from scipy import stats
-# For Python environment with `corner` run: $source activate des18a #
 import corner
 import csv
 import decimal
@@ -39,7 +37,9 @@ import math
 import matplotlib
 import matplotlib.pyplot as plt
 import ngmix
-# ssh {user}@des70.fnal.gov & $source /home/s1/mspletts/setup_ngmixer_gaussap.sh # 
+### To use`ngmixer` ###
+# Need `matplotlib v2.2.2`. @des70 and @des71 meet this requirement #
+# Run this setup script: $source /home/s1/mspletts/setup_ngmixer_gaussap.sh # 
 import ngmixer
 import numpy as np
 import os
@@ -56,13 +56,13 @@ import tarfile
 if len(sys.argv) != 5:
         sys.exit("Args: basepath (location of Balrog catalogs), output directory, realizations (can be a list of form: real1,real2,...), tiles (can be a filename.dat, or a list of form: tile1,tile2,...) \n")
 # Convert `realizations` and `tiles` into lists (may be one-element list). Note 'None' entered at command line is interpreted as a str #
-BASEPATH, OUTDIR, cmd_line_realizations, cmd_line_tiles = sys.argv[1], sys.argv[2], sys.argv[3].split(','), sys.argv[4].split(',')
+BASE_PATH_TO_CATS, OUTPUT_DIRECTORY, cmd_line_realizations, cmd_line_tiles = sys.argv[1], sys.argv[2], sys.argv[3].split(','), sys.argv[4].split(',')
 
 
 ### For directory structure ###
-if BASEPATH[-1] != '/': BASEPATH = BASEPATH + '/'
+if BASE_PATH_TO_CATS[-1] != '/': BASE_PATH_TO_CATS = BASE_PATH_TO_CATS + '/'
 # '/data/des71.a/data/kuropat/des2247-4414_sof/' --> 'des2247-4414_sof' #
-BALROG_RUN = BASEPATH[BASEPATH[:-1].rfind('/')+1:-1]
+BALROG_RUN = BASE_PATH_TO_CATS[BASE_PATH_TO_CATS[:-1].rfind('/')+1:-1]
 # Rewrite #
 if BALROG_RUN == 'Balrog': BALROG_RUN = 'TAMU_Balrog'
 if BALROG_RUN == 'DES0102-4914': BALROG_RUN = 'blank_test_DES0102-4914'
@@ -94,31 +94,35 @@ if '.dat' in cmd_line_tiles[0]:
 
 # Please see 'Table of Constants' in README.md #
 
-MATCH_CAT1, MATCH_CAT2 = 'gal_truth', 'sof'
-INJ1, INJ2 = True, True 
+MATCH_CAT1, MATCH_CAT2 = 'y3_gold_2_2', 'mof'
+INJ1, INJ2 = False, True 
 INJ1_PERCENT, INJ2_PERCENT = 20, 20
 
 # Observable #
 PLOT_MAG = False
 PLOT_COLOR = False
 PLOT_FLUX = True
-GAUSS_APER = True
-TRIM_NORM_FLUX_DIFF = False 
-NORMALIZE_NORM_FLUX_DIFF_VIA_DENSITY = True
-RAW_NORM_FLUX_DIFF = False
-SIGMA_CLIP_NORM_FLUX_DIFF = True
-N = 3.0
 
-SAVE_PLOT = True
+SAVE_PLOT = False
 SHOW_PLOT = True
 
-# Display observable #
+# Display magnitude #
 PLOT_COMPLETENESS = False
 HIST_2D = False
+# Can be used for color plot and magnitude plot #
 CORNER_HIST_2D = False 
 #TODO catch_err corner_hist cannot be true when plotting flux. This interferes with naming plot
 HEXBIN = False 
 SCATTER = False
+
+# For flux plots #
+GAUSS_APER = True
+#TODO bool for no gaussian aperture and just the flux diffs.
+TRIM_NORM_FLUX_DIFF = False
+NORMALIZE_NORM_FLUX_DIFF_VIA_DENSITY = True
+RAW_NORM_FLUX_DIFF = False
+SIGMA_CLIP_NORM_FLUX_DIFF = True
+N = 3.0
 
 # For magnitude plots #
 NORMALIZE = False
@@ -135,6 +139,10 @@ MAG_YLOW, MAG_YHIGH = None, None
 
 STACK_REALIZATIONS = False
 STACK_TILES = False
+
+# Print progress? #
+VERBOSE_ING = True
+VERBOSE_ED = True
 
 # FOF analysis #
 RUN_TYPE = None
@@ -154,8 +162,10 @@ Y3_MOF = None
 if 'y3_gold' in MATCH_CAT1 or 'y3_gold' in MATCH_CAT2:
 	if 'mof' in (MATCH_CAT1, MATCH_CAT2):
 		Y3_MOF = True
+		Y3_FIT = 'mof'
 	if 'sof' in (MATCH_CAT1, MATCH_CAT2):
 		Y3_MOF = False
+		Y3_FIT='sof'
 
 # !!!!! Make 2x2 subplots of each griz band? Or make individual plots? #
 SUBPLOT = True
@@ -172,7 +182,7 @@ RUN_TYPE = None
 MOF = False
 
 if RUN_TYPE is not None:
-	print 'Doing FOF analysis ... \n '
+	if VERBOSE_ING: print 'Doing FOF analysis ... \n '
         # Overwrite MATCH_CATs #
         if MOF:
                 MATCH_CAT1, MATCH_CAT2 = 'mof', 'mof'
@@ -184,8 +194,6 @@ if RUN_TYPE is not None:
 MAKE_REG = False 
 
 ### Miscellaneous ###
-# Print progress? #
-VERBOSE = True
 # Only refers to printouts within get_floats_from_string(), get_matrix_diagonal_element(), and bin_and_cut_measured_magnitude_error() # 
 VERBOSE_MINOR = False
 
@@ -213,6 +221,12 @@ def catch_error():
 	if NORMALIZE and PLOT_COLOR: __err_msg = 'Script not equipped to normalize color plots'
 
 	if PLOT_FLUX is False and PLOT_COLOR is False and PLOT_MAG is False: __err_msg = 'Must plot one observable'
+
+	if PLOT_FLUX and GAUSS_APER:
+		if 'star_truth' in (MATCH_CAT1, MATCH_CAT2): 
+			__err_msg = 'Star truth catalogs do not have the necessary  headers to perform Gaussian aperture flux measurement'
+		if  'coadd' in (MATCH_CAT1, MATCH_CAT2):
+                        __err_msg = 'Coadd catalogs do not have the necessary headers to perform Gaussian aperture flux measurement'
 
 	# Colorbar errors #
 	cbar_counter = 0
@@ -693,7 +707,7 @@ def get_match_type(title_piece1, title_piece2):
 
 
 def get_log_filenames(tile, realization):
-        """Generate names for log files. Relies on directory structure: /`OUTDIR`/log_files/`BALROG_RUN`/`MATCH_TYPE`/{tile}/{realization}/log_files/.
+        """Generate names for log files. Relies on directory structure: /`OUTPUT_DIRECTORY`/log_files/`BALROG_RUN`/`MATCH_TYPE`/{tile}/{realization}/log_files/.
 
         Parameters
 	----------
@@ -723,7 +737,7 @@ def get_log_filenames(tile, realization):
         """
 
         # !!!!! User may wish to edit directory structure #
-	log_dir = os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, tile, realization, 'log_files') 
+	log_dir = os.path.join(OUTPUT_DIRECTORY, 'outputs', BALROG_RUN, MATCH_TYPE, tile, realization, 'log_files') 
         if RUN_TYPE is not None:
 		log_dir = os.path.join(log_dir, 'fof_analysis')
 
@@ -785,7 +799,7 @@ def get_log_filenames(tile, realization):
 
 
 def get_region_filenames(tile, realization):
-	"""Generate names for region files of different join types (join types specified in ms_matcher or ms_fof_matcher). Relies on directory structure `/OUTDIR/outputs/BALROG_RUN/MATCH_TYPE/{tile}/{realization}/region_files/`
+	"""Generate names for region files of different join types (join types specified in ms_matcher or ms_fof_matcher). Relies on directory structure `/OUTPUT_DIRECTORY/outputs/BALROG_RUN/MATCH_TYPE/{tile}/{realization}/region_files/`
 
         Parameters
 	----------
@@ -806,7 +820,7 @@ def get_region_filenames(tile, realization):
         """
 
         # !!!!! User may wish to edit directory structure #
-	reg_dir = os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, tile, realization, 'region_files')
+	reg_dir = os.path.join(OUTPUT_DIRECTORY, 'outputs', BALROG_RUN, MATCH_TYPE, tile, realization, 'region_files')
         if RUN_TYPE is not None:
 		reg_dir = os.path.join(reg_dir, 'fof_analysis')
 
@@ -815,7 +829,7 @@ def get_region_filenames(tile, realization):
                 if NO_DIR_MAKE is False:
                         sys.exit('Directory ' + str(reg_dir) + ' does not exist. \n Change directory structure in ms_plotter.get_region_filenames() or set `NO_DIR_MAKE=True`')
                 if NO_DIR_MAKE:
-                        print 'Making directory ', reg_dir, '...\n'
+                        if VERBOSE_ING: print 'Making directory ', reg_dir, '...\n'
                         os.makedirs(reg_dir)
 
 	# Repeated #
@@ -939,7 +953,14 @@ CLRS_LABEL = CLRS[::-1]
 CMAPS = {'g':'Greens', 'r':'Purples', 'i':'Greys', 'z':'Blues'}
 PT_COLORS = {'g':'green', 'r':'purple', 'i':'darkgrey', 'z':'navy'}
 GAUSS_FIT_COLORS = {'g':'lime', 'r':'magenta', 'i':'dimgrey', 'z':'cyan'}
+# 'Opposite' of `PT_COLORS`
 GAUSS_FIT_TO_GAP_COLORS = {'g':'crimson', 'r':'red', 'i':'tomato', 'z':'orangered'}
+GAUSSIAN_FIT_TO_GAUSSIAN_APERTURE_MEASUREMENT = {'g':'red', 'r':'yellow', 'i':'blue', 'z':'orange'}
+
+FLUX_HIST = {'g':'green', 'r':'green', 'i':'green', 'z':'green'}
+FIT_TO_FLUX = {'g':'lime', 'r':'lime', 'i':'lime', 'z':'lime'}
+GAP_FLUX_HIST = {'g':'blue', 'r':'blue', 'i':'blue', 'z':'blue'}
+FIT_TO_GAP_FLUX = {'g':'cyan', 'r':'cyan', 'i':'cyan', 'z':'cyan'}
 
 # For computing color #
 BANDS_FOR_COLOR = {'g':'r', 'r':'i', 'i':'z'}
@@ -966,12 +987,12 @@ TITLE_PIECE1, TITLE_PIECE2 = CLASS1.title_piece, CLASS2.title_piece
 MATCH_TYPE = get_match_type(title_piece1=TITLE_PIECE1, title_piece2=TITLE_PIECE2)
 
 if STACK_TILES or STACK_REALIZATIONS:
-	log_dir = os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE)
+	log_dir = os.path.join(OUTPUT_DIRECTORY, 'outputs', BALROG_RUN, MATCH_TYPE)
 	if os.path.isdir(log_dir) is False:
 		if NO_DIR_MAKE is False:
 			sys.exit('Directory ' + str(log_dir) + ' does not exist. \n Change directory structure.')
 		if NO_DIR_MAKE:
-			print 'Making directory ', log_dir, '...\n'
+			if VERBOSE_ING: print 'Making directory ', log_dir, '...\n'
 			os.makedirs(log_dir)
 
 	FN_STACK_MAIN_LOG = os.path.join(log_dir, 'log_'+MATCH_TYPE+'.csv')
@@ -1252,7 +1273,7 @@ def get_good_indices_using_primary_flags(df_1and2, full_mag1, full_mag2, cm_flag
 		__idx_bad = None
 
 		
-        if VERBOSE:
+        if VERBOSE_ED:
 		__flag_list = ''
 		if 'y3_gold' in MATCH_CAT1 or 'y3_gold' in MATCH_CAT2:
 			__flag_list += ' SEXTRACTOR_FLAGS_'+band.upper() + ', IMAFLAGS_ISO_'+band.upper()
@@ -1305,6 +1326,8 @@ def log_flags(df_1and2, flag_hdr1, flag_hdr2, band, full_mag1, full_mag2, realiz
 		flag_hdr2 = flag_hdr1
 
 
+	if VERBOSE_ING: print 'For tile: ', str(tile), ' and band: ', str(band), ', checked flags: ', flag_hdr1, ' & ', flag_hdr2, '...'
+
 	### psf_flags are strings of form '(0,0,0,0)' ###
 	if flag_hdr1 is not None and flag_hdr2 is not None and 'psf' not in flag_hdr1 and 'psf' not in flag_hdr2:
 		flag1 = df_1and2[flag_hdr1]
@@ -1334,12 +1357,9 @@ def log_flags(df_1and2, flag_hdr1, flag_hdr2, band, full_mag1, full_mag2, realiz
 					writer.writerow([str(tile), str(realization), str(band), str(flag_hdr1), str(flag_hdr2), str(flag1[i]), str(flag2[i]), str(full_mag1[i]), str(full_mag2[i]), str(RUN_TYPE)])
 
 
-	if VERBOSE:
-		print 'For tile: ', str(tile), ' and band: ', str(band), ', checked flags: ', flag_hdr1, ' & ', flag_hdr2, '...'
-
 	### Check if flags were found ###
-	if counter_idx_bad > 0 and VERBOSE:
-		print ' Number of flags for magnitudes values 9999, 99, 37.5 and flags ', str(flag_hdr1), ' and ', str(flag_hdr2), ' : ', counter_idx_bad, '\n'
+	if counter_idx_bad > 0 and VERBOSE_ED:
+		print ' Number of flagged objects for magnitudes values 9999, 99, 37.5 and flags ', str(flag_hdr1), ' and ', str(flag_hdr2), ' : ', counter_idx_bad, '\n'
 
 
 	return __idx_good, __idx_bad 
@@ -1372,6 +1392,8 @@ def calculate_measured_magnitude_error_from_flux(flux_cov_hdr, df_1and2, band, f
 		The magnitude error corresponding to each object.
 	"""
 
+	if VERBOSE_ING: print 'Calculating magnitude error for ', band, '-band using 1.08 * (flux_cov[i][i])^0.5 / flux[i]...'
+
 	# Uncleaned lists for flux and flux covariance #
 	full_flux = get_floats_from_string(df=df_1and2, four_elmt_arrs_hdr=flux_hdr, band=band)
 	full_flux_cov = get_matrix_diagonal_element(df=df_1and2, sq_matrices_hdr=flux_cov_hdr, band=band)
@@ -1392,13 +1414,13 @@ def calculate_measured_magnitude_error_from_flux(flux_cov_hdr, df_1and2, band, f
 			counter_neg += 1
 
 		if fluxcov[i] == 0:
-			print 'cm_flux_cov is 0'
+			print 'WARNING: cm_flux_cov is 0'
 
 		if fluxcov[i] > 0:
 			# Pogsons number = 1.08 #
 			__mag_err_from_flux.append(1.08*fluxcov[i]**0.5/flux[i])
 
-	if VERBOSE:
+	if VERBOSE_ED:
 		print 'Calculated the magnitude error for band: ', band
 		print ' Number of negative cm_flux_cov: ', counter_neg, ' / ', len(flux), '\n'
 
@@ -1455,7 +1477,7 @@ def get_68percentile_of_normalized_magnitude_difference(binned_norm_mag_diff, ma
 			# Percentile sorts the data #
 			__norm_mag_diff_68p.append(np.percentile(abs_vax_mag_bins_icb, 68, interpolation='lower'))	
 
-			if VERBOSE_MINOR:
+			if VERBOSE_ED:
 				# Check the percentile because interpolation='lower' was used #
 				num = 0
 				for j in np.arange(0, len(binned_norm_mag_diff[b])):
@@ -1529,13 +1551,13 @@ def bin_and_cut_measured_magnitude_error(clean_mag1, clean_mag2, mag_err1, mag_e
 		Bins used. Binned according to horizontal axis.
         """
 
-	if 'meas' in AXLABEL1 and 'meas' not in AXLABEL2 and VERBOSE:
-			print 'Using measured catalog (', MATCH_CAT1, ') for error calculation ... '
+	if 'meas' in AXLABEL1 and 'meas' not in AXLABEL2 and VERBOSE_ING:
+		print 'Using measured catalog (', MATCH_CAT1, ') for error calculation ... '
 
-	if 'meas' in AXLABEL2 and 'meas' not in AXLABEL1 and VERBOSE:
-			print 'Using measured catalog (', MATCH_CAT2, ') for error calculation ... '
+	if 'meas' in AXLABEL2 and 'meas' not in AXLABEL1 and VERBOSE_ING:
+		print 'Using measured catalog (', MATCH_CAT2, ') for error calculation ... '
 
-	if 'meas' in AXLABEL1 and 'meas' in AXLABEL2 and VERBOSE:
+	if 'meas' in AXLABEL1 and 'meas' in AXLABEL2 and VERBOSE_ING:
 		print 'Using measured catalogs (', MATCH_CAT1, '&', MATCH_CAT2, ') for error calculation ... '
 
 	if 'true' in AXLABEL1 and 'true' in AXLABEL2:
@@ -1557,8 +1579,7 @@ def bin_and_cut_measured_magnitude_error(clean_mag1, clean_mag2, mag_err1, mag_e
 	if 'star_truth' in (MATCH_CAT1, MATCH_CAT2):
 		__lim_high = 24
 
-        if VERBOSE:
-                print ' Forcing magnitudes to be binned with max ', __lim_high, '...'
+        if VERBOSE_ING: print ' Forcing magnitudes to be binned with max ', __lim_high, '...'
 
 	# Include endpoint #
         __mag_bins_for_mag_err = np.arange(__lim_low, __lim_high+(__step*0.1), __step)
@@ -1618,9 +1639,8 @@ def bin_and_cut_measured_magnitude_error(clean_mag1, clean_mag2, mag_err1, mag_e
 				__clean_hax_mag.append(__hax_mag[i])
                                 __counter += 1
 
-		# Written in log file, hence 'minor' #
-                if VERBOSE_MINOR:
-                        print ' For magnitude, number of objects in bin ', round(j, 2), '-', round(j+__step, 2), ': ', __counter, '...'
+
+                if VERBOSE_ED: print ' For magnitude, number of objects in bin ', round(j, 2), '-', round(j+__step, 2), ': ', __counter, '...'
 
 
 		### Write to log file ###
@@ -1658,7 +1678,7 @@ def bin_and_cut_measured_magnitude_error(clean_mag1, clean_mag2, mag_err1, mag_e
                         __binned_mag_diff.append(__vax_mag_in_bin)
 
 
-	if VERBOSE:
+	if VERBOSE_ED:
                 if SWAP_HAX:
                         print ' Binned clean_mag2 (from', MATCH_CAT2, ') with step size: ', __step, ', and minimum: ', __lim_low, ', and maximum: ', __lim_high, '...'
 		if SWAP_HAX is False:
@@ -1750,7 +1770,7 @@ def normalize_magnitude_difference_plot(binned_norm_mag_diff, mag_bins_for_mag_e
         hax_mag (list of floats)
 		Magnitude to be plotted on the horizontal axis.
 	"""
-	print 'len(mag_bins_for_mag_err)', len(mag_bins_for_mag_err)
+
 	### Remove `None` so that lists can be flattened. `None` is a placeholder for missing lists due to empty or small bin. ###
 	__idx_no_none = []
         for i in np.arange(0, len(binned_norm_mag_diff)):
@@ -1818,21 +1838,22 @@ def one_sigma_magnitude_counter(mag_diff, clean_mag1, mag_bins_for_mag_err, hax_
 
 	# Center normalization about the median (of vertical axis) of each bin #
 	if CENTER_ERR_ABT_ZERO is False:
-		print 'Centering 1sigma_mag about vax median of each bin... \n'
+		if VERBOSE_ING: print 'Centering 1sigma_mag about vax median of each bin... \n'
 		for b in np.arange(0, len(mag_bins_for_mag_err)-1):
                         if binned_mag_err[b] is not None:
-				print ' Considering objects with magnitudes (on the horizontal axis) in [', mag_bins_for_mag_err[b], ',', mag_bins_for_mag_err[b+1], ')'
+				if VERBOSE_ING: print ' Considering objects with magnitudes (on the horizontal axis) in [', mag_bins_for_mag_err[b], ',', mag_bins_for_mag_err[b+1], ')'
                                 for i in np.arange(0, len(hax_mag)):
                                         if hax_mag[i] >= mag_bins_for_mag_err[b] and hax_mag[i] < mag_bins_for_mag_err[b+1]:
 						counter_objs_considered += 1
 						if mag_diff[i] < binned_mag_err[b] + vax_mag_bin_medians[b] and mag_diff[i] >= -1.0*binned_mag_err[b] + vax_mag_bin_medians[b]: 
 							__num_1sigma_mag += 1
 
-	print ' NOT Normalized '
-	print ' Total objects: ', tot
-	print ' Number of objects considered:', counter_objs_considered
-	print ' Number of objects within 1sigma_mag: ', __num_1sigma_mag 
-	print ' Fraction within 1sigma_mag: ', float(__num_1sigma_mag)/counter_objs_considered, '\n'
+	if VERBOSE_ED:
+		print ' NOT Normalized '
+		print ' Total objects: ', tot
+		print ' Number of objects considered:', counter_objs_considered
+		print ' Number of objects within 1sigma_mag: ', __num_1sigma_mag 
+		print ' Fraction within 1sigma_mag: ', float(__num_1sigma_mag)/counter_objs_considered, '\n'
 
 	return __num_1sigma_mag 
 
@@ -1890,21 +1911,22 @@ def one_sigma_magnitude_counter_for_normalized_magnitude_difference(norm_mag_dif
 
 
 	if CENTER_ERR_ABT_ZERO is False:
-		print 'Centering 1sigma_mag about vax median of each bin... \n'
+		if VERBOSE_ING: print 'Centering 1sigma_mag about vax median of each bin... \n'
 		for b in np.arange(0, len(mag_bins_for_mag_err)-1):
 			if mag_err_bin_medians[b] is not None:
-				print ' Considering objects with magnitudes (on the horizontal axis) in [', mag_bins_for_mag_err[b], ',', mag_bins_for_mag_err[b+1], ')'
+				if VERBOSE_ING: print ' Considering objects with magnitudes (on the horizontal axis) in [', mag_bins_for_mag_err[b], ',', mag_bins_for_mag_err[b+1], ')'
                                 for i in np.arange(0, len(hax_mag)):
                                         if hax_mag[i] >= mag_bins_for_mag_err[b] and hax_mag[i] < mag_bins_for_mag_err[b+1]:
                                                 counter_objs_considered += 1
                                                 if norm_mag_diff[i] < 1 + norm_vax_median[b] and norm_mag_diff[i] >= -1.0 + norm_vax_median[b]: 
 							__num_1sigma_mag_norm += 1
 
-	print ' Normalized '
-	print ' Total objects: ', tot
-        print ' Number of objects considered:', counter_objs_considered
-        print ' Number of objects within 1sigma_mag: ', __num_1sigma_mag_norm 
-        print ' Fraction within 1sigma_mag: ', float(__num_1sigma_mag_norm)/counter_objs_considered, '\n'
+	if VERBOSE_ED:
+		print ' Normalized '
+		print ' Total objects: ', tot
+		print ' Number of objects considered:', counter_objs_considered
+		print ' Number of objects within 1sigma_mag: ', __num_1sigma_mag_norm 
+		print ' Fraction within 1sigma_mag: ', float(__num_1sigma_mag_norm)/counter_objs_considered, '\n'
 
 	return __num_1sigma_mag_norm 
 
@@ -1954,7 +1976,7 @@ def main_logger(vax_mag_bin_medians, tile, band, realization, clean_mag1, full_m
 		Percent of Balrog-injected objects recovered, calculated without including objects with flags* in the matched (via join=1and2) catalog nor the truth catalog. (see README.md for the definition of flags*). Is `None` if neither `MATCH_CAT1` nor `MATCH_CAT2` is a truth catalog (`gal_truth` or `star_truth`).
 	"""
 
-	print 'Logging...'
+	if VERBOSE_ING: print 'Logging...'
 
 	if NORMALIZE:
 		num_1sig = one_sigma_magnitude_counter_for_normalized_magnitude_difference(norm_mag_diff=vax_mag, clean_mag1=clean_mag1, mag_bins_for_mag_err=mag_bins_for_mag_err, hax_mag=hax_mag, mag_err_bin_medians=mag_err_bin_medians, norm_vax_mag_bin_medians=vax_mag_bin_medians)
@@ -2148,7 +2170,7 @@ def get_color_plot_error(mag_err_hdr, flux_hdr, flux_cov_hdr, df, band, idx_good
 
 
 def get_good_data(df_1and2, hdr, idx_good, str_of_arr, band):
-	"""Get the data corresponding to indices of objects without flags* or indices of objects that satisfy quality cuts (if `EH_CUTS=True`).
+	"""Get the data corresponding to indices of objects without flags* or indices of objects that satisfy quality cuts (if `
 
 	Parameters
 	----------
@@ -2159,7 +2181,7 @@ def get_good_data(df_1and2, hdr, idx_good, str_of_arr, band):
 		Matched (via join=1and2) catalog header for the desired column of the DataFrame. 
 
 	idx_good (list of ints)
-		Indices of objects without flags* or indices of objects that satistfy quality cuts (if `EH_CUTS=True`).
+		Indices of objects without flags* or indices of objects that satistfy quality cuts (if `
  
 	str_of_arr (bool)
 		Set to `True` if the desired column of the DataFrame is a string of form '(data_g, data_r, data_i, data_z)'.
@@ -2170,7 +2192,7 @@ def get_good_data(df_1and2, hdr, idx_good, str_of_arr, band):
 	Returns
 	-------
 	clean_data (list of floats)
-		Contains column of the DataFrame with objects with flags* removed (or objects that do not pass quality cuts removed if `EH_CUTS=True` .
+		Contains column of the DataFrame with objects with flags* removed (or objects that do not pass quality cuts removed if `
 	"""
 
 	if str_of_arr:
@@ -2350,7 +2372,7 @@ def get_stacked_magnitude_differences(realization, mag_hdr1, mag_hdr2, mag_err_h
 	for i in np.arange(0, len(ALL_TILES)):
 		t = ALL_TILEs[i]
 
-		__df1and2 = get_dataframe(realization=realization, tile=t, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, inj1=INJ1, inj2=INJ2, inj1_percent=INJ1_PERCENT, inj2_percent=INJ2_PERCENT)[0] 
+		__df1and2 = get_dataframe_and_headers(realization=realization, tile=t, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, inj1=INJ1, inj2=INJ2, inj1_percent=INJ1_PERCENT, inj2_percent=INJ2_PERCENT)[0] 
 
 		for j in np.arange(0, len(ALL_BANDS)):
 			b = ALL_BANDS[j]
@@ -2377,8 +2399,8 @@ def stacked_magnitude_completeness_subplotter(mag_hdr1, mag_hdr2, mag_err_hdr1, 
 	-------
 	"""
 
-	if STACK_TILES: print 'Stacking completeness for multiple tiles ...'
-	if STACK_REALIZATIONS: print 'TODO' #print 'Stacking completeness for multiple realizations ...'
+	if STACK_TILES and VERBOSE_ING: print 'Stacking completeness for multiple tiles ...'
+	if STACK_REALIZATIONS and VERBOSE_ING: print 'TODO' #print 'Stacking completeness for multiple realizations ...'
 
 	### Initialize arrays with dimensions: (number_of_tiles, number_of_bands, number_of_magnitude_bins) ###
 	# 1 --> 10% #
@@ -2395,7 +2417,7 @@ def stacked_magnitude_completeness_subplotter(mag_hdr1, mag_hdr2, mag_err_hdr1, 
                 if 'COSMOS' not in BALROG_RUN:
 
 			### Get DataFrame for tile with 10% injection via `inj_percent=10` ###
-                        __df1 = get_dataframe(realization=realization, tile=t, inj1=True, inj2=True, inj1_percent=10, inj2_percent=10, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2)[0]
+                        __df1 = get_dataframe_and_headers(realization=realization, tile=t, inj1=True, inj2=True, inj1_percent=10, inj2_percent=10, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2)[0]
 
 			# Fill second axis: band #
 			for j in np.arange(0, len(ALL_BANDS)):
@@ -2410,8 +2432,8 @@ def stacked_magnitude_completeness_subplotter(mag_hdr1, mag_hdr2, mag_err_hdr1, 
 
 
 		### Get DataFrame for tile with 20% injection ###
-		print 'Getting DataFrame for tile: ', t, ' ... '
-		__df2 = get_dataframe(realization=realization, tile=t, inj1=True, inj2=True, inj1_percent=20, inj2_percent=20, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2)[0]
+		if VERBOSE_ING: print 'Getting DataFrame for tile: ', t, ' ... '
+		__df2 = get_dataframe_and_headers(realization=realization, tile=t, inj1=True, inj2=True, inj1_percent=20, inj2_percent=20, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2)[0]
 
 		# Fill second axis: band #
 		for j in np.arange(0, len(ALL_BANDS)):
@@ -2489,7 +2511,7 @@ def magnitude_completeness_subplotter(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_
 
 		# Get completeness for 10% inj via `inj_percent=10` #
 		#FIXME instances where data_frame depends on band:
-		__df1 = get_dataframe(realization=realization, tile=tile, inj1=True, inj2=True, inj1_percent=10, inj2_percent=10, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2)[0]
+		__df1 = get_dataframe_and_headers(realization=realization, tile=tile, inj1=True, inj2=True, inj1_percent=10, inj2_percent=10, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2)[0]
 
 		for b in ALL_BANDS:
 			magErr1, magErr2, cleanMag1, cleanMag2, idxGood, fullMag1, fullMag2, magAxLabel1, magAxLabel2, magVaxLabel = get_magnitude_plot_variables(band=b, df_1and2=__df1, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization=realization, tile=tile, mag_axlabel1=M_AXLABEL1, mag_axlabel2=M_AXLABEL2, fn_flag_log=fn_flag_log, plot_title=plot_title, fn_plot=fn_plot) #TODO this does not have inj_% parameter so axlabel is wrong
@@ -2500,19 +2522,19 @@ def magnitude_completeness_subplotter(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_
 
 
 	# Get completeness for 20% injection via `inj_percent=20` #
-	__df2 = get_dataframe(realization=realization, tile=tile, inj1=True, inj2=True, inj1_percent=20, inj2_percent=20, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2)[0]
+	__df2 = get_dataframe_and_headers(realization=realization, tile=tile, inj1=True, inj2=True, inj1_percent=20, inj2_percent=20, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2)[0]
 
 	for b in ALL_BANDS:
 		magErr1, magErr2, cleanMag1, cleanMag2, idxGood, fullMag1, fullMag2, magAxLabel1, magAxLabel2, magVaxLabel = get_magnitude_plot_variables(band=b, df_1and2=__df2, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization=realization, tile=tile, mag_axlabel1=M_AXLABEL1, mag_axlabel2=M_AXLABEL2, fn_flag_log=fn_flag_log, plot_title=plot_title, fn_plot=fn_plot)
 
 		completenessFraction2 = get_magnitude_completeness(inj_percent=20, df_1and2=__df2, idx_good=idxGood, clean_mag1=cleanMag1, clean_mag2=cleanMag2, full_mag1=fullMag1, full_mag2=fullMag2, tile=tile, realization=realization, band=b, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err1=magErr1, mag_err2=magErr2, fn_mag_completeness_log=fn_mag_completeness_log)[0]
 
-		print 'Getting completeness for band: ', b, '\n'
+		if VERBOSE_ING: print 'Getting completeness for band: ', b, '\n'
 
 		__completeness_griz2.append(completenessFraction2)
 
 
-	print 'Plotting magnitude completeness...\n'
+	if VERBOSE_ING: print 'Plotting magnitude completeness...\n'
 
 
 	for i in np.arange(0, len(ALL_BANDS)):
@@ -2792,7 +2814,7 @@ def gaussian(x, mu, sig):
 
 
 
-def get_cm_parameters(fn_fits):
+def get_cm_parameters(fn_unmatched_cat, cat_type):
 	"""Get parameters necessary for `ngmixer.gaussap.get_gauss_aper_flux_cat()`.
 
 	Parameters
@@ -2802,33 +2824,96 @@ def get_cm_parameters(fn_fits):
 	-------
 	""" 
 
-	__catalog = fitsio.read(fn_fits)
-	
-	# These are unmatched ngmix catalogs and we know their headers #
-	# Get data #
-	__g1_g2 = __catalog['cm_g']
-	__cm_t = __catalog['cm_T']
-	__flux_griz = __catalog['cm_flux']
+	if 'y3_gold' in cat_type:
+		cmParameters = get_cm_parameters_from_y3_gold_catalog(fn_unmatched_cat=fn_unmatched_cat) 
 
-	# There are 9 parameters in cm_params #
-	__cm_params = np.empty((len(__g1_g2), 9))
+	if cat_type in ('gal_truth', 'mof', 'sof'):
+		cmParameters = get_cm_parameters_from_mof_catalog(fn_unmatched_cat=fn_unmatched_cat)
 
-	for i in np.arange(0, len(__g1_g2)):
-		# cen1, cen2 #
-		__cm_params[i][0], __cm_params[i][1] = 0.0, 0.0
-		# g1, g2 #
-		__cm_params[i][2], __cm_params[i][3]  = __g1_g2[i]#[0], __g1_g2[i][1]
-		# cm_T #
-		__cm_params[i][4] = __cm_t[i]
-		# g-, r-, i-, z-band fluxes #
-		__cm_params[i][5], __cm_params[i][6], __cm_params[i][7], __cm_params[i][8] = __flux_griz[i]
-
-	return __cm_params 
+	return cmParameters 
 
 
 
 
-def make_ngmixer_gaussap_compatible_catalog(fn_fits, tile, realization):
+def get_cm_parameters_from_y3_gold_catalog(fn_unmatched_cat):
+        """Get parameters necessary for `ngmixer.gaussap.get_gauss_aper_flux_cat()`.
+
+        Parameters
+        ----------
+	fn (str)
+		Must be a FITS file.
+		'mof' or 'sof'
+        Returns
+        -------
+        """
+
+        __catalog = fitsio.read(fn_unmatched_cat)
+
+        # These are unmatched Y3 Gold catalogs with known headers #
+        # Get data #
+	__cm_g1 = __catalog['{}_cm_g_1'.format(Y3_FIT).upper()]
+	__cm_g2 = __catalog['{}_cm_g_2'.format(Y3_FIT).upper()]
+        __cm_t = __catalog['{}_cm_T'.format(Y3_FIT).upper()]
+	__cm_flux_g = __catalog['{}_cm_flux_g'.format(Y3_FIT).upper()]
+	__cm_flux_r = __catalog['{}_cm_flux_r'.format(Y3_FIT).upper()]
+	__cm_flux_i = __catalog['{}_cm_flux_i'.format(Y3_FIT).upper()]
+	__cm_flux_z = __catalog['{}_cm_flux_z'.format(Y3_FIT).upper()]
+
+        # There are 9 parameters in cm_params #
+        __cm_params = np.empty((len(__cm_g1), 9))
+
+        for i in np.arange(0, len(__cm_g1)):
+                # cen1, cen2 #
+                __cm_params[i][0], __cm_params[i][1] = 0.0, 0.0
+                # g1, g2 #
+                __cm_params[i][2], __cm_params[i][3]  = __cm_g1[i], __cm_g2[i] 
+                # cm_T #
+                __cm_params[i][4] = __cm_t[i]
+                # g-, r-, i-, z-band fluxes #
+                __cm_params[i][5], __cm_params[i][6], __cm_params[i][7], __cm_params[i][8] = __cm_flux_g[i], __cm_flux_r[i], __cm_flux_i[i], __cm_flux_z[i] 
+
+        return __cm_params
+
+
+
+def get_cm_parameters_from_mof_catalog(fn_unmatched_cat):
+        """Get parameters necessary for `ngmixer.gaussap.get_gauss_aper_flux_cat()`. For catalogs with MOF output.
+
+        Parameters
+        ----------
+	fn_unmatched_cat (str)
+		Must be a FITS file.
+
+        Returns
+        -------
+        """
+
+        __catalog = fitsio.read(fn_unmatched_cat)
+
+        # These are unmatched ngmix catalogs and we know their headers #
+        # Get data #
+        __cm_g1_g2 = __catalog['cm_g']
+        __cm_t = __catalog['cm_T']
+        __cm_flux_griz = __catalog['cm_flux']
+
+        # There are 9 parameters in cm_params #
+        __cm_params = np.empty((len(__cm_g1_g2), 9))
+
+        for i in np.arange(0, len(__cm_g1_g2)):
+                # cen1, cen2 #
+                __cm_params[i][0], __cm_params[i][1] = 0.0, 0.0
+                # g1, g2 #
+                __cm_params[i][2], __cm_params[i][3]  = __cm_g1_g2[i]
+                # cm_T #
+                __cm_params[i][4] = __cm_t[i]
+                # g-, r-, i-, z-band fluxes #
+                __cm_params[i][5], __cm_params[i][6], __cm_params[i][7], __cm_params[i][8] = __cm_flux_griz[i]
+
+        return __cm_params
+
+
+
+def make_ngmixer_gaussap_compatible_catalog(fn_unmatched_cat, tile, realization, cat_type):
 	"""Add 'cm_pars' column to catalog and set centroids to zero
 
 	Parameters
@@ -2841,15 +2926,18 @@ def make_ngmixer_gaussap_compatible_catalog(fn_fits, tile, realization):
 	__overwrite = False
 	if __overwrite: raw_input('`__overwrite=True` in `make_ngmixer_gaussap_compatible_catalog()`. Press enter to proceed, ctrl+c to stop.')
 
-	__match_dir = os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, tile, realization, 'catalog_compare')
-	__fn_end = fn_fits[fn_fits[:-1].rfind('/')+1:-1]
+	__match_dir = os.path.join(OUTPUT_DIRECTORY, 'outputs', BALROG_RUN, MATCH_TYPE, tile, realization, 'catalog_compare')
+	__fn_end = fn_unmatched_cat[fn_unmatched_cat[:-1].rfind('/')+1:-1]
 	__fn_end = '_'.join(['gauss_ap_ngmixer', __fn_end])
 	__fn_ngmix_cat = os.path.join(__match_dir, __fn_end)
 
 	# Create new catalog #
 	if os.path.isfile(__fn_ngmix_cat) is False or __overwrite:
-		table = Table.read(fn_fits)
-		cmParams = get_cm_parameters(fn_fits=fn_fits)
+
+		if VERBOSE_ING: print ' Adding column to', cat_type, 'catalog...'
+
+		table = Table.read(fn_unmatched_cat)
+		cmParams = get_cm_parameters(fn_unmatched_cat=fn_unmatched_cat, cat_type=cat_type) 
 		# If the catalog already has a 'cm_pars' header, delete it and create a new column with cen1=cen2=0 #
 		try:
 			del table['cm_pars']
@@ -2865,7 +2953,7 @@ def make_ngmixer_gaussap_compatible_catalog(fn_fits, tile, realization):
 
 
 
-def add_gaussian_aperture_flux_measurements_to_catalog(fn_fits, tile, realization): 
+def add_gaussian_aperture_flux_measurements_to_catalog(fn_unmatched_cat, tile, realization, cat_type): 
 	"""
 
 	Parameters
@@ -2878,13 +2966,13 @@ def add_gaussian_aperture_flux_measurements_to_catalog(fn_fits, tile, realizatio
 	"""
 
 	### Make compatible catalog ###
-	fnNgmixCat = make_ngmixer_gaussap_compatible_catalog(fn_fits=fn_fits, tile=tile, realization=realization)
+	fnNgmixCat = make_ngmixer_gaussap_compatible_catalog(fn_unmatched_cat=fn_unmatched_cat, tile=tile, realization=realization, cat_type=cat_type)
 
 
 	### Get Gaussian aperture measurements ###
 	# Units -- `pixel_scale`: arcsec/pixel, `weight_fwhm`: arcsec #
 	# Note this inserts column id too as first column Ex: (511139065, 0, [1187.84212219, 3835.43660733, 6112.35110035, 8653.79708668]) 
-	__gap_flags_and_flux_griz = ngmixer.gaussap.get_gauss_aper_flux_cat(cat=fitsio.read(fnNgmixCat), model='cm', pixel_scale=0.263, weight_fwhm=2.5, verbose=False)
+	__gap_flags_and_flux_griz = ngmixer.gaussap.get_gauss_aper_flux_cat(cat=fitsio.read(fnNgmixCat), model='cm', pixel_scale=0.263, weight_fwhm=2.5, verbose=False, fit=Y3_FIT)
 	#TODO/FIXME add_gauss_aper_flux_cat(cat=fitsio.read(fnNgmixCat), model='cm', pixel_scale=0.263, weight_fwhm=2.5, verbose=False)
 	#FIXME ValueError: no field of name cm_gap_flux: print fitsio.read(fnNgmixCat)['cm_gap_flux']
 
@@ -2962,7 +3050,7 @@ def normalized_flux_difference_histogram_subplotter(fn_gauss_aper_log, fn_plot, 
 	plt.suptitle(plot_title, fontweight='bold')
 	plt.subplots_adjust(hspace=0.3)
 	#plt.tight_layout(pad=1, h_pad=1, w_pad=1)
-	plt.text(0.1, 0.01, BASEPATH, fontsize=10, transform=plt.gcf().transFigure)
+	plt.text(0.1, 0.01, BASE_PATH_TO_CATS, fontsize=10, transform=plt.gcf().transFigure)
 
 	if SAVE_PLOT: fn_plot = fn_plot.replace('placehold', 'griz'); print '-----> Saving plot as: ', fn_plot; plt.savefig(fn_plot)
 
@@ -2987,7 +3075,7 @@ def normalized_flux_difference_histogram_plotter(tile, realization, band, df_1an
 	normFluxDiff, idxGood, fluxDiff = get_flux_plot_variables(band=band, df_1and2=df_1and2, flux_hdr1=flux_hdr1, flux_hdr2=flux_hdr2, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2)
 	__flux_hist_bins = 10**2
 
-	print 'Plotting', len(idxGood), 'points for', band, '-band...'
+	if VERBOSE_ING: print 'Plotting', len(idxGood), 'points for', band, '-band...'
 
 	if GAUSS_APER:
 		normGApFluxDiff = get_flux_plot_variables(band=band, df_1and2=df_1and2, flux_hdr1=gap_flux_hdr1, flux_hdr2=gap_flux_hdr2, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2)[0] 
@@ -2995,12 +3083,12 @@ def normalized_flux_difference_histogram_plotter(tile, realization, band, df_1an
 
 		if RAW_NORM_FLUX_DIFF:
 			# Histogram #
-			plt.hist(normGApFluxDiff, __flux_hist_bins, density=NORMALIZE_NORM_FLUX_DIFF_VIA_DENSITY, histtype='step', color=PT_COLORS[band], label='gauss_aper $(_g)$')
+			plt.hist(normGApFluxDiff, __flux_hist_bins, density=NORMALIZE_NORM_FLUX_DIFF_VIA_DENSITY, histtype='step', color=GAP_FLUX_HIST[band], label='gauss_aper $(_g)$')
 			# Fit to Gaussian #
 			raw_mean, raw_stddev = stats.norm.fit(normGApFluxDiff)
                         raw_x_arr = np.linspace(np.min(normGApFluxDiff), np.max(normGApFluxDiff), len(normGApFluxDiff))
                         raw_fit_data = stats.norm.pdf(raw_x_arr, raw_mean, raw_stddev)
-                        plt.plot(raw_x_arr, raw_fit_data, color=GAUSS_FIT_COLORS[band], label=r'$\mu_g=$'+str(round(raw_mean, 2))+', $\sigma_g=$'+str(round(raw_stddev, 2)), linestyle=':')
+                        plt.plot(raw_x_arr, raw_fit_data, color=FIT_TO_GAP_FLUX[band], label=r'$\mu_g=$'+str(round(raw_mean, 2))+', $\sigma_g=$'+str(round(raw_stddev, 2)))
 		
 		if SIGMA_CLIP_NORM_FLUX_DIFF:
 			# N-sigma clip #
@@ -3017,25 +3105,25 @@ def normalized_flux_difference_histogram_plotter(tile, realization, band, df_1an
 				writer = csv.writer(csvfile, delimiter=',')
 				writer.writerow([str(tile), str(realization), str(band), 'True', str(len(normFluxDiff)), str(__num_gap_clipped)])
 
-			print ' Number of objects clipped:', __num_gap_clipped
+			if VERBOSE_ED: print ' Number of objects sigma clipped after using Gaussian aperture method:', __num_gap_clipped
 
                         gap_sig_clip_mean, gap_sig_clip_stddev = stats.norm.fit(clipped_norm_gap_flux_diff)
                         gap_sig_clip_x_arr = np.linspace(np.min(clipped_norm_gap_flux_diff), np.max(clipped_norm_gap_flux_diff), len(clipped_norm_gap_flux_diff))
                         gap_sig_clip_fit_data = stats.norm.pdf(gap_sig_clip_x_arr, gap_sig_clip_mean, gap_sig_clip_stddev)
-                        plt.plot(gap_sig_clip_x_arr, gap_sig_clip_fit_data, color='k', label=r'$\mu_{sg}=$'+str(round(gap_sig_clip_mean, 2))+', $\sigma_{sg}=$'+str(round(gap_sig_clip_stddev, 2)), linestyle=':')
+                        plt.plot(gap_sig_clip_x_arr, gap_sig_clip_fit_data, color=FIT_TO_GAP_FLUX[band], label=r'$\mu_{sg}=$'+str(round(gap_sig_clip_mean, 2))+', $\sigma_{sg}=$'+str(round(gap_sig_clip_stddev, 2)))
 			##
-			plt.hist(clipped_norm_gap_flux_diff, __flux_hist_bins, density=NORMALIZE_NORM_FLUX_DIFF_VIA_DENSITY, histtype='step', color=GAUSS_FIT_TO_GAP_COLORS[band], label='sig_clip_gauss_aper $(_{sg})$', rwidth=1)
+			plt.hist(clipped_norm_gap_flux_diff, __flux_hist_bins, density=NORMALIZE_NORM_FLUX_DIFF_VIA_DENSITY, histtype='step', color=GAP_FLUX_HIST[band], label=str(N)+'-sig_clip_gauss_aper $(_{sg})$', rwidth=1)
 
 
 
-	if GAUSS_APER is False or GAUSS_APER:
+	if GAUSS_APER is False or GAUSS_APER: #FIXME
 
 		if RAW_NORM_FLUX_DIFF:
 			mean, stddev = stats.norm.fit(normFluxDiff)
 			x_arr = np.linspace(np.min(normFluxDiff), np.max(normFluxDiff), len(normFluxDiff))
 			fit_data = stats.norm.pdf(x_arr, mean, stddev)
-			plt.plot(x_arr, fit_data, color=GAUSS_FIT_COLORS[band], label=r'$\mu_o=$'+str(round(mean, 2))+', $\sigma_o=$'+str(round(stddev, 2)))
-			plt.hist(normFluxDiff, __flux_hist_bins, density=NORMALIZE_NORM_FLUX_DIFF_VIA_DENSITY, histtype='step', color=PT_COLORS[band], label='original $(_o)$', rwidth=1)
+			plt.plot(x_arr, fit_data, color=FIT_TO_FLUX[band], label=r'$\mu_o=$'+str(round(mean, 2))+', $\sigma_o=$'+str(round(stddev, 2)))
+			plt.hist(normFluxDiff, __flux_hist_bins, density=NORMALIZE_NORM_FLUX_DIFF_VIA_DENSITY, histtype='step', color=FLUX_HIST[band], label='original $(_o)$', rwidth=1)
 
 		
 		if SIGMA_CLIP_NORM_FLUX_DIFF:
@@ -3053,16 +3141,16 @@ def normalized_flux_difference_histogram_plotter(tile, realization, band, df_1an
 				writer = csv.writer(csvfile, delimiter=',')
 				writer.writerow([str(tile), str(realization), str(band), 'False', str(len(normFluxDiff)), str(__num_clipped)])
 
-			print ' Number of objects clipped:', __num_clipped
+			if VERBOSE_ED: print ' Number of objects clipped:', __num_clipped
 
 			### Fit N-sigma clipped objects to normalized Gaussian http://danielhnyk.cz/fitting-distribution-histogram-using-python/ ###
 			sig_clip_mean, sig_clip_stddev = stats.norm.fit(clipped_norm_flux_diff)
 			sig_clip_x_arr = np.linspace(np.min(clipped_norm_flux_diff), np.max(clipped_norm_flux_diff), len(clipped_norm_flux_diff))
 			sig_clip_fit_data = stats.norm.pdf(sig_clip_x_arr, sig_clip_mean, sig_clip_stddev)
 			# Plot fit to data #
-			plt.plot(sig_clip_x_arr, sig_clip_fit_data, color=GAUSS_FIT_COLORS[band], label=r'$\mu_s=$'+str(round(sig_clip_mean, 2))+', $\sigma_s=$'+str(round(sig_clip_stddev, 2)))
+			plt.plot(sig_clip_x_arr, sig_clip_fit_data, color=FIT_TO_FLUX[band], label=r'$\mu_s=$'+str(round(sig_clip_mean, 2))+', $\sigma_s=$'+str(round(sig_clip_stddev, 2)))
 			# Plot histogram #
-			plt.hist(clipped_norm_flux_diff, __flux_hist_bins, density=NORMALIZE_NORM_FLUX_DIFF_VIA_DENSITY, histtype='step', color=PT_COLORS[band], label=str(int(N))+'-sig_clip $(_s)$', rwidth=1)
+			plt.hist(clipped_norm_flux_diff, __flux_hist_bins, density=NORMALIZE_NORM_FLUX_DIFF_VIA_DENSITY, histtype='step', color=FLUX_HIST[band], label=str(int(N))+'-sig_clip $(_s)$', rwidth=1)
 
 
 
@@ -3100,7 +3188,9 @@ def normalized_flux_difference_histogram_plotter(tile, realization, band, df_1an
         if NORMALIZE_NORM_FLUX_DIFF_VIA_DENSITY is False:
                 plt.ylabel('Count')
         plt.legend(fontsize=10).draggable()
+
 	#FIXME change back
+	plt.xlim([-10,10])
 
 	### Get median of data. Get x-value corresponding to peak of data distribution ###
 	__bin_size, __bin_edges = np.histogram(normFluxDiff, __flux_hist_bins, density=NORMALIZE_NORM_FLUX_DIFF_VIA_DENSITY)
@@ -3109,10 +3199,13 @@ def normalized_flux_difference_histogram_plotter(tile, realization, band, df_1an
 	for i in np.arange(0, len(__bin_size)):
 		if __bin_size[i] == __max_val:
 			__ymax_idx = i
-	print 'band:', band
-	print 'Corresponding hax value of max vax value:', __bin_edges[__ymax_idx]
-	print 'Data median:', np.median(normFluxDiff)
-	print ' \n'
+
+	if VERBOSE_ED:
+		print 'band:', band
+		print 'Corresponding hax value of max vax value:', __bin_edges[__ymax_idx]
+		print 'Data median:', np.median(normFluxDiff)
+		print ' \n'
+
 	data_median = np.median(normFluxDiff)
 	peak = __bin_edges[__ymax_idx]
 	#plt.axvline(x=data_median, color=GAUSS_FIT_COLORS[band], linestyle=':', label='no_clip_median: '+str(round(data_median, 2)))
@@ -3178,6 +3271,9 @@ def get_flux_histogram_haxlabel(mag_hdr1, mag_hdr2, band):
 		if INJ1 is False:
 			if Y3_MOF: __flux_habel = '(mof$-$Y3_Gold)_mof_cm_flux_'+'$\\bf{'+str(band)+'}$'+' / $\sigma_{flux\_meas}$'
 			if Y3_MOF is False: __flux_haxlabel = '(sof$-$Y3_Gold)_sof_cm_flux_'+'$\\bf{'+str(band)+'}$'+' / $\sigma_{flux\_meas}$'
+
+	#FIXME add this to all axes labels funcs as a fail safe?
+	if '__flux_haxlabel' not in locals(): __flux_haxlabel = 'flux_diff$/$meas_flux_err'
 
 	return  __flux_haxlabel
 
@@ -3274,7 +3370,8 @@ def color_subplotter(band, df_1and2, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_h
 			writer = csv.writer(csvfile, delimiter=',')
 			writer.writerow([str(tile), str(realization), str(writeColor), str(__write_bin), str(len(cleanColor1[i])), str(len(cleanMag1)), str(RUN_TYPE)])
 
-		print 'Plotting ', len(cleanColor1[i]), ' objects ... \n'
+		if VERBOSE_ING: print 'Plotting ', len(cleanColor1[i]), ' objects ... \n'
+
                 plt.subplot(2, 2, i+1)
 
 		if CORNER_HIST_2D:
@@ -3326,7 +3423,7 @@ def color_subplotter(band, df_1and2, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_h
         plt.subplots_adjust(hspace=0.4)
         plt.suptitle(plot_title, fontweight='bold')
 
-	plt.text(0.1, 0.01, BASEPATH, fontsize=10, transform=plt.gcf().transFigure)
+	plt.text(0.1, 0.01, BASE_PATH_TO_CATS, fontsize=10, transform=plt.gcf().transFigure)
 
         if SAVE_PLOT:
 		fn_plot = fn_plot.replace('placehold', writeColor) 
@@ -3809,7 +3906,7 @@ def normalized_magnitude_difference_plotter(mag_hdr1, mag_hdr2, cbar_data, mag_e
 
         if HEXBIN:
 		grid = (100, 1000)
-		print ' Normalized hexbin has a large number of grid cells. Will take a moment to plot ... \n'
+		if VERBOSE_ING: print ' Normalized hexbin has a large number of grid cells. Plotting will take a moment... \n'
                 plt.hexbin(plotHaxMag, plotDeltaMag, gridsize=grid, cmap=CMAPS[band], bins='log')
                 plt.colorbar(label='log(counts)')
 
@@ -3958,7 +4055,7 @@ def magnitude_difference_plotter(mag_hdr1, mag_hdr2, cbar_data, mag_err1, mag_er
 	percent_1sig, percentRecoveredFlagsIncluded, percentRecoveredFlagsNotIncluded = main_logger(vax_mag=outlierCleanedVaxMag, band=band, clean_mag1=clean_mag1, full_mag1=full_mag1, realization=realization, tile=tile, mag_bins_for_mag_err=initialBins, hax_mag=outlierCleanedHaxMag, fn_main_log=fn_main_log, mag_err_bin_medians=magErrBinMedians, vax_mag_bin_medians=vaxBinMedian)
 
 
-	if VERBOSE:
+	if VERBOSE_ING:
                 print 'Plotting ', len(clean_mag1), ' objects ... \n'
 
 	### Plot ###
@@ -4142,8 +4239,8 @@ def magnitude_difference_subplotter(df_1and2, mag_hdr1, mag_hdr2, mag_err_hdr1, 
 			plot_title = ' '.join([plot_title, 'Recovered (with flags):', str(round(percentRecoveredWithFlags, 4))+'%'])
 		plt.suptitle(plot_title, fontweight='bold')
 
-		# Include `BASEPATH` on the plot (using figure coordinates #
-		plt.text(0.1, 0.01, BASEPATH, fontsize=10, transform=plt.gcf().transFigure)
+		# Include `BASE_PATH_TO_CATS` on the plot (using figure coordinates #
+		plt.text(0.1, 0.01, BASE_PATH_TO_CATS, fontsize=10, transform=plt.gcf().transFigure)
 
 		### Save plot ###
 		if SAVE_PLOT: fn_plot = fn_plot.replace('placehold', 'griz'); print '-----> Saving plot as, ', fn_plot; plt.savefig(fn_plot)
@@ -4201,8 +4298,8 @@ def get_plot_suptitle(realization, tile, number_of_stacked_realizations, number_
 
 def get_plot_save_filename(realization, tile):
         """Generate name of the plot that will be used in plt.savefig() if `SAVE_PLOT=True`.
-	Relies on directory structure: /`OUTDIR`/plots/`BALROG_RUN`/`match_type`/{tile}/{realization}/plots/`plot_obs`/ `plot_obs` can be: 'color' 'magnitude' 'flux'.
-	The FOF analysis plots are saved differently: /`OUTDIR`/plots/`BALROG_RUN`/`match_type`/{tile}/{realization}/plots/{plot_obs}/'fof_analysis'/
+	Relies on directory structure: /`OUTPUT_DIRECTORY`/plots/`BALROG_RUN`/`match_type`/{tile}/{realization}/plots/`plot_obs`/ `plot_obs` can be: 'color' 'magnitude' 'flux'.
+	The FOF analysis plots are saved differently: /`OUTPUT_DIRECTORY`/plots/`BALROG_RUN`/`match_type`/{tile}/{realization}/plots/{plot_obs}/'fof_analysis'/
 
         Parameters
 	----------
@@ -4273,12 +4370,12 @@ def get_plot_save_filename(realization, tile):
 
 	# `placehold` will be replaced with {band(s)/color} when `savefig()` is called within various functions #
 	if RUN_TYPE is None:
-		plot_dir = os.path.join(OUTDIR, 'outputs', BALROG_RUN, match_type, tile, realization, 'plots', plot_obs)
+		plot_dir = os.path.join(OUTPUT_DIRECTORY, 'outputs', BALROG_RUN, match_type, tile, realization, 'plots', plot_obs)
 		if PLOT_MAG and NORMALIZE:
-			plot_dir = os.path.join(OUTDIR, 'outputs', BALROG_RUN, match_type, tile, realization, 'plots', plot_obs, 'normalized')
+			plot_dir = os.path.join(OUTPUT_DIRECTORY, 'outputs', BALROG_RUN, match_type, tile, realization, 'plots', plot_obs, 'normalized')
 		endname = '_'.join([tile, realization, match_type, 'placehold', plot_type, ylim+'.png'])
 	if RUN_TYPE is not None:
-		plot_dir = os.path.join(OUTDIR, 'outputs', BALROG_RUN, match_type, tile, realization, 'plots', plot_obs, 'fof_analysis')
+		plot_dir = os.path.join(OUTPUT_DIRECTORY, 'outputs', BALROG_RUN, match_type, tile, realization, 'plots', plot_obs, 'fof_analysis')
 		endname = '_'.join([tile, realization, match_type, RUN_TYPE, 'placehold', plot_type, ylim+'.png'])
 	
 
@@ -4290,7 +4387,7 @@ def get_plot_save_filename(realization, tile):
 		if NO_DIR_MAKE is False:
 			sys.exit('Directory ' + str(plot_dir) + ' does not exist. \n Change directory structure in ms_plotter.get_plot_save_filename() or set `NO_DIR_MAKE=True`')
 		if NO_DIR_MAKE:
-			print 'Making directory ', plot_dir, '...\n'
+			if VERBOSE_ING: print 'Making directory ', plot_dir, '...\n'
 			os.makedirs(plot_dir)
 
 
@@ -4378,7 +4475,7 @@ def get_star_truth_catalog_magnitude(df_1and2, suf):
 	__star_truth_mag_griz (list of str) 
 	"""
 
-	print 'Calculating g-, r-, i-, z-band magnitudes for star truth catalog...'
+	if VERBOSE_ING: print 'Calculating g-, r-, i-, z-band magnitudes for star truth catalog...'
 
 	m_g = df_1and2['g_Corr'+suf]
 
@@ -4414,7 +4511,7 @@ def get_y3_gold_catalog_magnitude(df_1and2, mag_hdr):
 	__y3_gold_mag_griz (list of str) 
         """
 
-	print 'Getting Y3 Gold g-, r-, i-, z-band magnitudes for', mag_hdr
+	if VERBOSE_ING: print 'Getting Y3 Gold g-, r-, i-, z-band magnitudes for', mag_hdr
 
 	# Get headers, which are dependent on band #
 	hdr_g = mag_hdr[:-2] + '_G' + mag_hdr[-2:]; hdr_r = mag_hdr[:-2] + '_R' + mag_hdr[-2:]
@@ -4445,7 +4542,7 @@ def get_y3_gold_catalog_flux_griz(df_1and2, flux_hdr):
         __y3_gold_flux_griz (list of str)
         """
 
-        print 'Getting Y3 Gold g-, r-, i-, z-band fluxes for', flux_hdr
+        if VERBOSE_ING: print 'Getting Y3 Gold g-, r-, i-, z-band fluxes for', flux_hdr
 
         # Get headers, which are dependent on band #
 	hdr_g = flux_hdr[:-2] + '_G' + flux_hdr[-2:]; hdr_r = flux_hdr[:-2] + '_R' + flux_hdr[-2:]
@@ -4493,31 +4590,31 @@ def get_catalog_filename(cat_type, inj, inj_percent, realization, tile, band):
 
 	if BALROG_RUN == 'test':
 		if cat_type == 'gal_truth' and inj_percent == 20 and inj:
-                        __fn_cat = os.path.join(BASEPATH, tile, tile+'_0_balrog_truth_cat_gals.fits')
+                        __fn_cat = os.path.join(BASE_PATH_TO_CATS, tile, tile+'_0_balrog_truth_cat_gals.fits')
 		if cat_type == 'sof' and inj_percent == 20 and inj:
-			__fn_cat = os.path.join(BASEPATH, tile, 'real_0_'+tile+'_sof.fits')
+			__fn_cat = os.path.join(BASE_PATH_TO_CATS, tile, 'real_0_'+tile+'_sof.fits')
 		if cat_type == 'mof' and inj_percent == 20 and inj:
-			__fn_cat = os.path.join(BASEPATH, tile, 'real_0_'+tile+'_mof.fits')
+			__fn_cat = os.path.join(BASE_PATH_TO_CATS, tile, 'real_0_'+tile+'_mof.fits')
 
 
 	# TODO GoogleDoc link to Balrog log to see which catalogs can exist within ea `BALROG_RUN` 
 	if BALROG_RUN == 'se_DES0347-5540':
 		if cat_type == 'gal_truth' and inj_percent == 10 and inj:
-                        __fn_cat = os.path.join(BASEPATH, tile+'_0_balrog_truth_cat_gals.fits')
+                        __fn_cat = os.path.join(BASE_PATH_TO_CATS, tile+'_0_balrog_truth_cat_gals.fits')
 		if cat_type == 'sof' and inj_percent == 10 and inj:
-                        __fn_cat = os.path.join(BASEPATH, 'sof', tile+'_sof.fits')
+                        __fn_cat = os.path.join(BASE_PATH_TO_CATS, 'sof', tile+'_sof.fits')
 		if inj_percent == 20:
 			sys.exit('Balrog run se_DES0347-5540 is ~10% injected') 
 
 	if BALROG_RUN == 'COSMOS' or BALROG_RUN == 'COSMOS_HEX': #Jun 18
                 if cat_type == 'gal_truth' and inj_percent == 20 and inj:
-                        __fn_cat = os.path.join(BASEPATH, tile, tile+'_0_balrog_truth_cat_gals.fits')
+                        __fn_cat = os.path.join(BASE_PATH_TO_CATS, tile, tile+'_0_balrog_truth_cat_gals.fits')
 		if cat_type == 'star_truth' and inj_percent == 20 and inj:
-                        __fn_cat = os.path.join(BASEPATH, tile, tile+'_0_balrog_truth_cat_stars.fits')
+                        __fn_cat = os.path.join(BASE_PATH_TO_CATS, tile, tile+'_0_balrog_truth_cat_stars.fits')
                 if cat_type == 'sof' and inj_percent == 20 and inj:
-                        __fn_cat = os.path.join(BASEPATH, tile, 'real_0_'+tile+'_sof.fits')
+                        __fn_cat = os.path.join(BASE_PATH_TO_CATS, tile, 'real_0_'+tile+'_sof.fits')
                 if cat_type == 'mof' and inj_percent == 20 and inj:
-                        __fn_cat = os.path.join(BASEPATH, tile, 'real_0_'+tile+'_mof.fits')
+                        __fn_cat = os.path.join(BASE_PATH_TO_CATS, tile, 'real_0_'+tile+'_mof.fits')
 
 		#TODO make MATCH_TYPE a parameter?
 		if inj is False and cat_type == 'base':
@@ -4525,11 +4622,11 @@ def get_catalog_filename(cat_type, inj, inj_percent, realization, tile, band):
 
 	if BALROG_RUN == 'DES0236+0001_COSMOS':
 		if cat_type == 'gal_truth' and inj_percent == 20 and inj:
-			__fn_cat = os.path.join(BASEPATH, tile+'_0_balrog_truth_cat_gals.fits')
+			__fn_cat = os.path.join(BASE_PATH_TO_CATS, tile+'_0_balrog_truth_cat_gals.fits')
 		if cat_type == 'sof' and inj_percent == 20 and inj:
-			__fn_cat = os.path.join(BASEPATH, 'real_0_'+tile+'_sof.fits')
+			__fn_cat = os.path.join(BASE_PATH_TO_CATS, 'real_0_'+tile+'_sof.fits')
 		if cat_type == 'mof' and inj_percent == 20 and inj:
-			__fn_cat = os.path.join(BASEPATH, 'real_0_'+tile+'_mof.fits')
+			__fn_cat = os.path.join(BASE_PATH_TO_CATS, 'real_0_'+tile+'_mof.fits')
 
 	# TODO As of May 2018 only TAMU_Balrog catalogs have 20% injections
 	if BALROG_RUN == 'TAMU_Balrog':
@@ -4540,37 +4637,38 @@ def get_catalog_filename(cat_type, inj, inj_percent, realization, tile, band):
 
 		# $/data/des61.a/data/kuropat/blank_test/DES0102-4914/ #
 		if cat_type == 'gal_truth' and inj_percent == 20 and inj:
-			__fn_cat = os.path.join(BASEPATH, 'y3v02', 'balrog_images', realization, tile, tile+'_'+realization+'_balrog_truth_cat_gals.fits')
+			__fn_cat = os.path.join(BASE_PATH_TO_CATS, 'y3v02', 'balrog_images', realization, tile, tile+'_'+realization+'_balrog_truth_cat_gals.fits')
 		if cat_type == 'mof' and inj_percent == 20 and inj:
-			__fn_cat = os.path.join(BASEPATH, 'y3v02', 'balrog_images', realization, tile, 'mof', tile+'_mof.fits')			
+			__fn_cat = os.path.join(BASE_PATH_TO_CATS, 'y3v02', 'balrog_images', realization, tile, 'mof', tile+'_mof.fits')			
 		if cat_type == 'sof' and inj_percent == 20 and inj:
-			__fn_cat = os.path.join(BASEPATH, 'y3v02', 'balrog_images', realization, tile, 'sof', tile+'_sof.fits')
+			__fn_cat = os.path.join(BASE_PATH_TO_CATS, 'y3v02', 'balrog_images', realization, tile, 'sof', tile+'_sof.fits')
 
 
 		if cat_type == 'gal_truth' and inj_percent == 10 and inj:
-			__fn_cat = os.path.join(BASEPATH, 'y3v02', 'balrog_images', realization, tile, tile+'_'+realization+'_balrog_truth_cat_gals.fits')
+			__fn_cat = os.path.join(BASE_PATH_TO_CATS, 'y3v02', 'balrog_images', realization, tile, tile+'_'+realization+'_balrog_truth_cat_gals.fits')
 
 		if cat_type == 'star_truth' and inj_percent == 10 and inj:
-			__fn_cat = os.path.join(BASEPATH, 'y3v02', 'balrog_images', realization, tile, tile+'_'+realization+'_balrog_truth_cat_stars.fits')
+			__fn_cat = os.path.join(BASE_PATH_TO_CATS, 'y3v02', 'balrog_images', realization, tile, tile+'_'+realization+'_balrog_truth_cat_stars.fits')
 
 		if cat_type == 'sof' and inj_percent == 10 and inj:
-			__fn_cat = os.path.join(BASEPATH, 'y3v02', 'balrog_images', realization, tile, 'sof', tile+'_sof.fits')
+			__fn_cat = os.path.join(BASE_PATH_TO_CATS, 'y3v02', 'balrog_images', realization, tile, 'sof', tile+'_sof.fits')
 		if cat_type == 'sof' and inj is False:
-			__fn_cat = os.path.join(BASEPATH, 'y3v02', tile, 'sof', tile+'_sof.fits')
+			__fn_cat = os.path.join(BASE_PATH_TO_CATS, 'y3v02', tile, 'sof', tile+'_sof.fits')
 
 		if cat_type == 'mof' and inj_percent == 10 and inj:
-			__fn_cat = os.path.join(BASEPATH, 'y3v02', 'balrog_images', realization, tile, 'mof', tile+'_mof.fits')
+			__fn_cat = os.path.join(BASE_PATH_TO_CATS, 'y3v02', 'balrog_images', realization, tile, 'mof', tile+'_mof.fits')
 		if cat_type == 'mof' and inj is False:
-			__fn_cat = os.path.join(BASEPATH, 'y3v02', tile, 'mof', tile+'_mof.fits')
+			__fn_cat = os.path.join(BASE_PATH_TO_CATS, 'y3v02', tile, 'mof', tile+'_mof.fits')
 
 		#FIXME Inj %?
 		if cat_type == 'coadd' and inj:
-			__fn_cat = os.path.join(BASEPATH, 'y3v02', 'balrog_images', realization, tile, 'coadd', tile+'_'+band+'_cat.fits')
+			__fn_cat = os.path.join(BASE_PATH_TO_CATS, 'y3v02', 'balrog_images', realization, tile, 'coadd', tile+'_'+band+'_cat.fits')
 		if cat_type == 'coadd' and inj is False:
-			__fn_cat = os.path.join(BASEPATH, 'y3v02', tile, 'coadd', tile+'_'+band+'_cat.fits')
+			__fn_cat = os.path.join(BASE_PATH_TO_CATS, 'y3v02', tile, 'coadd', tile+'_'+band+'_cat.fits')
 
 
 	# Y3 catalogs cannot be injected #
+	# !!!!! #
 	if cat_type == 'y3_gold_2_0':
 		# !!!!! User may need to alter path to Y3 Gold catalog #
 		__fn_cat = os.path.join('/data/des71.a/data/mspletts/balrog_validation_tests/y3_gold_catalogs/', tile+'_y3_gold_2_0.fits')
@@ -4596,25 +4694,25 @@ def get_and_reformat_base_catalog(tile, realization):
 	if __overwrite: raw_input('`__overwrite=True` in `get_and_reformat_base_catalog()`. Press enter to proceed, ctrl+c to stop')
 
 
-	__match_dir = os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, tile, realization, 'catalog_compare')
+	__match_dir = os.path.join(OUTPUT_DIRECTORY, 'outputs', BALROG_RUN, MATCH_TYPE, tile, realization, 'catalog_compare')
 	if os.path.isdir(__match_dir) is False:
 		if NO_DIR_MAKE is False:
 			sys.exit('Directory '+str(__match_dir)+' does not exist. \n Change directory structure in ms_plotter.matcher() or set `NO_DIR_MAKE=True`')
 		if NO_DIR_MAKE:
-                        print 'Making directory ', __match_dir, '...\n'
+                        if VERBOSE_ING: print 'Making directory ', __match_dir, '...\n'
                         os.makedirs(__match_dir)
 
 	__fn_base_cat_for_matcher = os.path.join(__match_dir, tile+'_base_i.fits')
 
 
-	if os.path.isfile(__fn_base_cat_for_matcher):
-                print ' Reformatted base catalog already exists.\n'
+	if os.path.isfile(__fn_base_cat_for_matcher) and __overwrite is False:
+                if VERBOSE_ING: print ' Reformatted base catalog already exists. Not overwriting...\n'
 
 	if os.path.isfile(__fn_base_cat_for_matcher) is False or __overwrite:
-		print 'Reformatting base catalog...'
+		if VERBOSE_ING: print ' Reformatting base catalog...'
 
 		# Base catalogs are zipped #
-		__fn_cat_bundle = os.path.join(BASEPATH, tile, 'base_cat.tgz')
+		__fn_cat_bundle = os.path.join(BASE_PATH_TO_CATS, tile, 'base_cat.tgz')
 		__tar = tarfile.open(__fn_cat_bundle, 'r')
 
 		# Base catalogs are zipped #
@@ -4701,37 +4799,37 @@ def get_tamu_catalog_filename(cat_type, inj, inj_percent, realization, tile):
 	# 20% injection directory #	
 	if inj_percent == 20:
 		if cat_type == 'mof' and inj:
-                        __fn_tamu_cat = os.path.join(BASEPATH, tile + '_20', 'real_' + realization + '_' + tile + '_mof.fits')
+                        __fn_tamu_cat = os.path.join(BASE_PATH_TO_CATS, tile + '_20', 'real_' + realization + '_' + tile + '_mof.fits')
 		if cat_type == 'mof' and inj is False:
-			__fn_tamu_cat = os.path.join(BASEPATH, tile + '_20', 'base_' + tile + '_mof.fits')
+			__fn_tamu_cat = os.path.join(BASE_PATH_TO_CATS, tile + '_20', 'base_' + tile + '_mof.fits')
 
                 if cat_type == 'sof' and inj:
-                        __fn_tamu_cat = os.path.join(BASEPATH, tile + '_20', 'real_' + realization + '_' + tile + '_sof.fits')
+                        __fn_tamu_cat = os.path.join(BASE_PATH_TO_CATS, tile + '_20', 'real_' + realization + '_' + tile + '_sof.fits')
 		if cat_type == 'sof' and inj is False:
-			__fn_tamu_cat = os.path.join(BASEPATH, tile + '_20', 'base_' + tile + '_sof.fits')
+			__fn_tamu_cat = os.path.join(BASE_PATH_TO_CATS, tile + '_20', 'base_' + tile + '_sof.fits')
 
                 if cat_type == 'gal_truth':
-                        __fn_tamu_cat = os.path.join(BASEPATH, tile + '_20', tile + '_' + realization + '_balrog_truth_cat_gals.fits')
+                        __fn_tamu_cat = os.path.join(BASE_PATH_TO_CATS, tile + '_20', tile + '_' + realization + '_balrog_truth_cat_gals.fits')
 
 		if cat_type == 'star_truth':
-                        __fn_tamu_cat = os.path.join(BASEPATH, tile + '_20', tile + '_' + realization + '_balrog_truth_cat_stars.fits')
+                        __fn_tamu_cat = os.path.join(BASE_PATH_TO_CATS, tile + '_20', tile + '_' + realization + '_balrog_truth_cat_stars.fits')
 
 	# 10% injection directory #
 	if inj_percent == 10:
 		if cat_type == 'mof' and inj:
-			__fn_tamu_cat = os.path.join(BASEPATH, tile, 'real_' + realization + '_' + tile + '_mof.fits')
+			__fn_tamu_cat = os.path.join(BASE_PATH_TO_CATS, tile, 'real_' + realization + '_' + tile + '_mof.fits')
 		if cat_type == 'mof' and inj is False:
-			__fn_tamu_cat = os.path.join(BASEPATH, tile, 'base_' + tile + '_mof.fits')
+			__fn_tamu_cat = os.path.join(BASE_PATH_TO_CATS, tile, 'base_' + tile + '_mof.fits')
 
 		if cat_type == 'sof' and inj:
-			__fn_tamu_cat = os.path.join(BASEPATH, tile, 'real_' + realization + '_' + tile + '_sof.fits') 
+			__fn_tamu_cat = os.path.join(BASE_PATH_TO_CATS, tile, 'real_' + realization + '_' + tile + '_sof.fits') 
 		if cat_type == 'sof' and inj is False:
-			__fn_tamu_cat = os.path.join(BASEPATH, tile, 'base_' + tile + '_sof.fits')
+			__fn_tamu_cat = os.path.join(BASE_PATH_TO_CATS, tile, 'base_' + tile + '_sof.fits')
 
 		if cat_type == 'gal_truth':
-			__fn_tamu_cat = os.path.join(BASEPATH, tile, tile + '_' + realization + '_balrog_truth_cat_gals.fits')
+			__fn_tamu_cat = os.path.join(BASE_PATH_TO_CATS, tile, tile + '_' + realization + '_balrog_truth_cat_gals.fits')
 		if cat_type == 'star_truth':
-			__fn_tamu_cat = os.path.join(BASEPATH, tile, tile + '_' + realization + '_balrog_truth_cat_stars.fits')
+			__fn_tamu_cat = os.path.join(BASE_PATH_TO_CATS, tile, tile + '_' + realization + '_balrog_truth_cat_stars.fits')
 
 	return __fn_tamu_cat 
 
@@ -4774,9 +4872,10 @@ def matcher(realization, tile, inj1, inj2, inj1_percent, inj2_percent):
 		in2 =  get_coadd_catalog_for_matcher(cat_type=MATCH_CAT2, inj_percent=inj2_percent,  realization=realization, tile=tile, mag_hdr=M_HDR2, mag_err_hdr=M_ERR_HDR2, inj=INJ2, flux_hdr='FLUX_AUTO', flux_err_hdr='FLUXERR_AUTO')
 
 
-	print 'Matching or already matched:'
-	print '', in1
-	print '', in2
+	if VERBOSE_ING:
+		print 'Matching or already matched:'
+		print '', in1
+		print '', in2
 
 
 	if PLOT_COMPLETENESS: 
@@ -4793,14 +4892,14 @@ def matcher(realization, tile, inj1, inj2, inj1_percent, inj2_percent):
 		match_type = MATCH_TYPE
 
         # !!!!! User may wish to edit directory structure. Output catalog name for STILTS #
-	match_dir = os.path.join(OUTDIR, 'outputs', BALROG_RUN, match_type, tile, realization, 'catalog_compare')	
+	match_dir = os.path.join(OUTPUT_DIRECTORY, 'outputs', BALROG_RUN, match_type, tile, realization, 'catalog_compare')	
 
 	# Check for directory existence #
 	if os.path.isdir(match_dir) is False:
 		if NO_DIR_MAKE is False:
 			sys.exit('Directory ' + str(match_dir) + ' does not exist. \n Change directory structure in ms_plotter.matcher() or set `NO_DIR_MAKE=True`')
 		if NO_DIR_MAKE:
-			print 'Making directory ', match_dir, '...\n'
+			if VERBOSE_ING: print 'Making directory ', match_dir, '...\n'
 			os.makedirs(match_dir)
 
 	# Filenames #
@@ -4809,8 +4908,8 @@ def matcher(realization, tile, inj1, inj2, inj1_percent, inj2_percent):
 	__fn_match_2not1 = os.path.join(match_dir, tile+'_'+realization+'_'+str(match_type)+'_match2not1.csv')
 
 	# Overwrite matched catalogs if one already exists? # 
-        overwrite = False 
-	if overwrite: raw_input('`overwrite=True` in `matcher()`. Press enter to proceed, control+c to stop')
+        __overwrite = False
+	if __overwrite: raw_input('`__overwrite=True` in `matcher()`. Press enter to proceed, control+c to stop')
 
 
 	### Make catalog compatible for Gaussian aperture catalog ###
@@ -4819,21 +4918,31 @@ def matcher(realization, tile, inj1, inj2, inj1_percent, inj2_percent):
 		if os.path.isfile(__fn_match_1and2):
 			try:
 				df = pd.read_csv(__fn_match_1and2)
-				temp = df[GAUSS_APER_FLUX_HDR+'_1']
+				temp = df[GAUSS_APER_FLUX_GRIZ_HDR+'_1']
 			except:
-				overwrite = True
-				print 'Forcing overwrite to add Gaussian aperture flux measurements...'
+				__overwrite = True
+				if VERBOSE_ING: print 'Forcing overwrite to add Gaussian aperture flux measurements...'
 	
-		if os.path.isfile(__fn_match_1and2) is False or overwrite:
-			if VERBOSE: print 'Adding Gaussian aperture measured flux to both catalogs...'
+		'''
+		# `gaussap` requires a catalog with 'id' header #
+		try:
+			temp = fitsio.read(in1)['id']
+		except:
+			fitsio.read(in1)['coadd_objects_id']
+			in1 = 
+		'''	
+
+
+		if os.path.isfile(__fn_match_1and2) is False or __overwrite:
+			if VERBOSE_ING: print 'Adding Gaussian aperture measured flux to both catalogs...'
 			# Delete these files after the matched catalog is created #
-			in1_gap_incl = add_gaussian_aperture_flux_measurements_to_catalog(fn_fits=in1, tile=tile, realization=realization)
-			in2_gap_incl = add_gaussian_aperture_flux_measurements_to_catalog(fn_fits=in2, tile=tile, realization=realization) #FIXME better input param name, fn_match_cat1
+			in1_gap_incl = add_gaussian_aperture_flux_measurements_to_catalog(fn_unmatched_cat=in1, tile=tile, realization=realization, cat_type=MATCH_CAT1)
+			in2_gap_incl = add_gaussian_aperture_flux_measurements_to_catalog(fn_unmatched_cat=in2, tile=tile, realization=realization, cat_type=MATCH_CAT2)
 			in1 = in1_gap_incl 
 			in2 = in2_gap_incl
 
 	# Check existence #
-	if os.path.isfile(__fn_match_1and2) is False or overwrite:
+	if os.path.isfile(__fn_match_1and2) is False or __overwrite:
 
 		### Matching done in ms_matcher. Parameters in1, in2, out, RA_HDR1, DEC_HDR1, RA_HDR2, DEC_HDR2, overwrite ###
 		# !!!!! Ensure that path to ms_matcher is correct #
@@ -4844,8 +4953,8 @@ def matcher(realization, tile, inj1, inj2, inj1_percent, inj2_percent):
 
 	# Delete files created for `ngmixer` once their contents are in the matched catalog #
 	if GAUSS_APER:
-		if os.path.isfile(__fn_match_1and2) is False or overwrite:
-			print ' Deleting', in1_gap_incl, ' \n', in2_gap_incl, '\n'
+		if os.path.isfile(__fn_match_1and2) is False or __overwrite:
+			if VERBOSE_ING: print ' Deleting', in1_gap_incl, ' \n', in2_gap_incl, '\n'
 			os.remove(in1_gap_incl); os.remove(in2_gap_incl) 
 
 
@@ -4876,22 +4985,22 @@ def fof_matcher(realization, tile):
         # MOF or SOF #
 	#FIXME
         if MOF:
-                mof = os.path.join(BASEPATH, 'y3v02', tile, 'mof', tile+'_mof.fits')
-                inj_mof = os.path.join(BASEPATH, 'y3v02', 'balrog_images', realization, tile, 'mof', tile+'_mof.fits')
-                fof = os.path.join(BASEPATH, 'y3v02', tile, 'mof', tile+'_fofslist.fits')
-                inj_fof = os.path.join(BASEPATH, 'y3v02', 'balrog_images', realization, tile, 'mof', tile+'_fofslist.fits')
+                mof = os.path.join(BASE_PATH_TO_CATS, 'y3v02', tile, 'mof', tile+'_mof.fits')
+                inj_mof = os.path.join(BASE_PATH_TO_CATS, 'y3v02', 'balrog_images', realization, tile, 'mof', tile+'_mof.fits')
+                fof = os.path.join(BASE_PATH_TO_CATS, 'y3v02', tile, 'mof', tile+'_fofslist.fits')
+                inj_fof = os.path.join(BASE_PATH_TO_CATS, 'y3v02', 'balrog_images', realization, tile, 'mof', tile+'_fofslist.fits')
         if MOF is False:
-                mof = os.path.join(BASEPATH, 'y3v02', tile, 'sof', tile+'_sof.fits')
-                inj_mof = os.path.join(BASEPATH, 'y3v02', 'balrog_images', realization, tile, 'sof', tile+'_sof.fits')
-                fof = os.path.join(BASEPATH, 'y3v02', tile, 'sof', tile+'_fofslist.fits')
-                inj_fof = os.path.join(BASEPATH, 'y3v02', 'balrog_images', realization, tile, 'sof', tile+'_fofslist.fits')
+                mof = os.path.join(BASE_PATH_TO_CATS, 'y3v02', tile, 'sof', tile+'_sof.fits')
+                inj_mof = os.path.join(BASE_PATH_TO_CATS, 'y3v02', 'balrog_images', realization, tile, 'sof', tile+'_sof.fits')
+                fof = os.path.join(BASE_PATH_TO_CATS, 'y3v02', tile, 'sof', tile+'_fofslist.fits')
+                inj_fof = os.path.join(BASE_PATH_TO_CATS, 'y3v02', 'balrog_images', realization, tile, 'sof', tile+'_fofslist.fits')
         # Coadds. Using i-band #
-        coadd = os.path.join(BASEPATH, 'y3v02', tile, 'coadd', tile+'_i_cat.fits')
-        inj_coadd = os.path.join(BASEPATH, 'y3v02', 'balrog_images', realization, tile, 'coadd', tile+'_i_cat.fits')
+        coadd = os.path.join(BASE_PATH_TO_CATS, 'y3v02', tile, 'coadd', tile+'_i_cat.fits')
+        inj_coadd = os.path.join(BASE_PATH_TO_CATS, 'y3v02', 'balrog_images', realization, tile, 'coadd', tile+'_i_cat.fits')
 
 
         ### Filenames for outputs of fof_matcher ###
-	outdir = os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, tile, realization, 'catalog_compare', 'fof_analysis')
+	outdir = os.path.join(OUTPUT_DIRECTORY, 'outputs', BALROG_RUN, MATCH_TYPE, tile, realization, 'catalog_compare', 'fof_analysis')
 
 
         ### Check directory existence. Make directories if not present. ###
@@ -4925,11 +5034,11 @@ def fof_matcher(realization, tile):
 
 
         # WARNING: May need to overwrite if matching was interupted #
-        overwrite = False 
-	if overwrite: raw_input('`overwrite=True` in `fof_matcher()`. Press enter to procees and ctrl+c to stop.')
+        __overwrite = False 
+	if __overwrite: raw_input('`__overwrite=True` in `fof_matcher()`. Press enter to procees and ctrl+c to stop.')
 
         ### Check file existence of last file made in fof_matcher ###
-        if os.path.isfile(__fn_rerun_1and2) is False or (os.path.isfile(__fn_rerun_1and2) and overwrite):
+        if os.path.isfile(__fn_rerun_1and2) is False or (os.path.isfile(__fn_rerun_1and2) and __overwrite):
 
                 ### Run fof_matcher ###
                 subprocess.call(['/data/des71.a/data/mspletts/balrog_validation_tests/scripts/BalVal/ms_fof_matcher', fof, inj_fof, mof, inj_mof, coadd, inj_coadd, parpy_outdir, fofcoadd, fofgroups, inj_fofcoadd, inj_fofgroups, origfof_injfof, ok, rerun, ok_inj_mof, rerun_inj_mof, ok_mof, rerun_mof, __fn_ok_1and2, __fn_rerun_1and2, __fn_ok_1not2, __fn_rerun_1not2, __fn_ok_2not1, __fn_ok_2not1])
@@ -4964,14 +5073,14 @@ def stack_tiles(realization):
 	"""
 
 	# Directory for stacked catalog #
-	stack_dir = os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, 'stack', realization, 'catalog_compare')
+	stack_dir = os.path.join(OUTPUT_DIRECTORY, 'outputs', BALROG_RUN, MATCH_TYPE, 'stack', realization, 'catalog_compare')
 
 	# Check directory existence and handle nonexistence #
 	if os.path.isdir(stack_dir) is False:
 		if NO_DIR_MAKE is False:
 			sys.exit('Directory ' + str(stack_dir) + ' does not exist. \n Change directory structure in ms_plotter. or set `NO_DIR_MAKE=True`')
 		if NO_DIR_MAKE:
-			print 'Making directory ', stack_dir, '...\n'
+			if VERBOSE_ING: print 'Making directory ', stack_dir, '...\n'
 			os.makedirs(stack_dir)
 
 	# Filename for stacked catalogs #
@@ -4985,17 +5094,17 @@ def stack_tiles(realization):
 	__fn_stack_tiles_2not1 = os.path.join(stack_dir, fn_end_2not1)
 
 	# Check if stacked tile catalog already exists #
-	overwrite = False
-	if overwrite: raw_input('`overwrite=True` in `stack_tiles()`. Press enter to procees and ctrl+c to stop.')
+	__overwrite = False
+	if __overwrite: raw_input('`__overwrite=True` in `stack_tiles()`. Press enter to procees and ctrl+c to stop.')
 
-	if os.path.isfile(__fn_stack_tiles_2not1) and overwrite is False:
-		print 'Stacked tile catalog exists. Not overwriting ... \n'
+	if os.path.isfile(__fn_stack_tiles_2not1) and __overwrite is False:
+		if VERBOSE_ING: print 'Stacked tile catalog exists. Not overwriting ... \n'
 		df1and2 = pd.read_csv(__fn_stack_tiles_1and2)
 		df1not2 = pd.read_csv(__fn_stack_tiles_1not2)
 		df2not1 = pd.read_csv(__fn_stack_tiles_2not1)
 
 	# Combine all realizations for one tile into a single catalog. Catalogs combined AFTER matching. #
-	if os.path.isfile(__fn_stack_tiles_2not1) is False or overwrite:
+	if os.path.isfile(__fn_stack_tiles_2not1) is False or __overwrite:
 
 		all_fn_1and2, all_fn_1not2, all_fn_2not1 = [], [], []
 
@@ -5009,11 +5118,11 @@ def stack_tiles(realization):
 
 			all_fn_1and2.append(fn_1and2); all_fn_1not2.append(fn_1not2); all_fn_2not1.append(fn_2not1)
 
-		print 'Stacking tiles. ', len(all_fn_1and2), 'files ...'	
+		if VERBOSE_ING: print 'Stacking tiles. ', len(all_fn_1and2), 'files ...'	
 		df1and2 = pd.concat((pd.read_csv(fn) for fn in all_fn_1and2))
 		df1not2 = pd.concat((pd.read_csv(fn) for fn in all_fn_1not2))
 		df2not1 = pd.concat((pd.read_csv(fn) for fn in all_fn_2not1))
-		print 'Stacking complete ... \n'
+		if VERBOSE_ING: print 'Stacking complete ... \n'
 
 
 		# Save stacked catalogs as DataFrame #
@@ -5048,14 +5157,14 @@ def stack_realizations(tile):
 	"""
 
 	# Directory for stacked catalog #
-	stack_dir = os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, tile, 'stack', 'catalog_compare')
+	stack_dir = os.path.join(OUTPUT_DIRECTORY, 'outputs', BALROG_RUN, MATCH_TYPE, tile, 'stack', 'catalog_compare')
 
 	# Check directory existence and handle nonexistence #
 	if os.path.isdir(stack_dir) is False:
 		if NO_DIR_MAKE is False:
 			sys.exit('Directory ' + str(stack_dir) + ' does not exist. \n Change directory structure in ms_plotter. or set `NO_DIR_MAKE=True`')
 		if NO_DIR_MAKE:
-			print 'Making directory ', stack_dir, '...\n'
+			if VERBOSE_ING: print 'Making directory ', stack_dir, '...\n'
 			os.makedirs(stack_dir)
 
 	# Filename for stacked catalogs #
@@ -5064,18 +5173,18 @@ def stack_realizations(tile):
 	__fn_stack_reals_2not1 = os.path.join(stack_dir, tile+'_stacked_'+str(MATCH_TYPE)+'_match2not1.csv')
 
 	# Check if stacked realization catalog already exists #
-	overwrite = False
-	if overwrite: raw_input('`overwrite=True` in `stack_realizations()`. Press enter to procees and ctrl+c to stop.')
+	__overwrite = False
+	if __overwrite: raw_input('`__overwrite=True` in `stack_realizations()`. Press enter to procees and ctrl+c to stop.')
 
-	if os.path.isfile(__fn_stack_reals_2not1) and overwrite is False:
-		print 'Stacked realization catalog exists. Not overwriting ... \n'
+	if os.path.isfile(__fn_stack_reals_2not1) and __overwrite is False:
+		if VERBOSE_ING: print 'Stacked realization catalog exists. Not overwriting ... \n'
 		df1and2 = pd.read_csv(__fn_stack_reals_1and2)
 		df1not2 = pd.read_csv(__fn_stack_reals_1not2)
 		df2not1 = pd.read_csv(__fn_stack_reals_2not1)
 
 
 	# Combine all realizations for one tile into a single catalog. Catalogs combined AFTER matching. #
-	if os.path.isfile(__fn_stack_reals_2not1) is False or overwrite:
+	if os.path.isfile(__fn_stack_reals_2not1) is False or __overwrite:
 
 		all_fn_1and2, all_fn_1not2, all_fn_2not1 = [], [], []
 
@@ -5089,11 +5198,11 @@ def stack_realizations(tile):
 
 			all_fn_1and2.append(fn_1and2); all_fn_1not2.append(fn_1not2); all_fn_2not1.append(fn_2not1)
 
-		print 'Stacking realizations. ', len(all_fn_1and2), 'files ...'
+		if VERBOSE_ING: print 'Stacking realizations. ', len(all_fn_1and2), 'files ...'
 		df1and2 = pd.concat((pd.read_csv(fn) for fn in all_fn_1and2))
 		df1not2 = pd.concat((pd.read_csv(fn) for fn in all_fn_1not2))
 		df2not1 = pd.concat((pd.read_csv(fn) for fn in all_fn_2not1))
-		print 'Stacking complete ... \n'
+		if VERBOSE_ING: print 'Stacking complete ... \n'
 
 
 		# Save stacked catalog as DataFrame #
@@ -5168,7 +5277,8 @@ def get_percent_recovered(full_data, clean_data, inj_percent, tile, band, realiz
 
 
 
-def get_dataframe(realization, tile, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, inj1, inj2, inj1_percent, inj2_percent):
+
+def get_dataframe_and_headers(realization, tile, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, inj1, inj2, inj1_percent, inj2_percent):
 	"""Get pandas DataFrame and read it.
 
 	Parameters
@@ -5190,7 +5300,7 @@ def get_dataframe(realization, tile, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_h
 		df1and2, df1not2, df2not1, __mag_hdr1, __mag_hdr2, __mag_err_hdr1, __mag_err_hdr2, number_of_stacked_tiles, number_of_stacked_realizations
 	"""
 
-	print 'Getting and reading DataFrame ... \n'
+	if VERBOSE_ING: print 'Getting (reading) DataFrame and getting headers for magnitude, magnitude error, flux, and flux error... \n'
 
 	__mag_hdr1, __mag_hdr2, __mag_err_hdr1, __mag_err_hdr2, __flux_hdr1, __flux_hdr2 = mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, CM_FLUX_HDR1, CM_FLUX_HDR2 
 
@@ -5202,23 +5312,16 @@ def get_dataframe(realization, tile, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_h
 		### Stack tiles ###
 		for r in ALL_REALIZATIONS:
 			if STACK_TILES and STACK_REALIZATIONS is False: 
-				fn_stack_1and2, fn_stack_1not2, fn_stack_2not1, __number_of_stacked_tiles = stack_tiles(realization=r)
+				fn_1and2, fn_1not2, fn_2not1, __number_of_stacked_tiles = stack_tiles(realization=r)
 				__number_of_stacked_realizations = None
 
 
 		### Stack realizations ###
 		for t in ALL_TILES:
 			if STACK_REALIZATIONS and STACK_TILES is False:
-				fn_stack_1and2, fn_stack_1not2, fn_stack_2not1, __number_of_stacked_realizations = stack_realizations(tile=t)
+				fn_1and2, fn_1not2, fn_2not1, __number_of_stacked_realizations = stack_realizations(tile=t)
 				__number_of_stacked_tiles = None
 
-		### Read stacked catalog ###
-		if STACK_TILES or STACK_REALIZATIONS:
-			# Get DataFrame for stacked catalogs #
-			if STACK_REALIZATIONS or STACK_TILES:
-				__df1and2 = pd.read_csv(fn_stack_1and2)
-				__df1not2 = pd.read_csv(fn_stack_1not2)
-				__df2not1 = pd.read_csv(fn_stack_2not1)
 
 	
 	if (STACK_REALIZATIONS is False and STACK_TILES is False) or (PLOT_COMPLETENESS and STACK_TILES):
@@ -5229,40 +5332,33 @@ def get_dataframe(realization, tile, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_h
 		if RUN_TYPE is not None:
 			fn_1and2, fn_1not2, fn_2not1 = fof_matcher(realization=realization, tile=tile) #FIXME
 
-		# Get DataFrame #
-		__df1and2 = pd.read_csv(fn_1and2)
-		__df1not2 = pd.read_csv(fn_1not2)
-		__df2not1 = pd.read_csv(fn_2not1)
+
+	# Get DataFrame #
+	__df1and2 = pd.read_csv(fn_1and2)
+	__df1not2 = pd.read_csv(fn_1not2)
+	__df2not1 = pd.read_csv(fn_2not1)
 
 
 	### Handle star truth catalogs ###
-	# Star truth catalogs matched then combined #
+	# Star truth catalogs matched then combined so a suffix (_1 or _2) is necessary #
 	if MATCH_CAT1 == 'star_truth' or MATCH_CAT2 == 'star_truth':
-		print 'Adding new column to matched csv for star truth ...\n'
-		# mag_star #
-		#new_hdr = 'mag_s'
+		if VERBOSE_ING: print 'Adding new column to matched CSV. Column contains star truth catalog g-, r-, i-, z-band magnitudes...\n'
 
 		if MATCH_CAT1 == 'star_truth':
 			suf = '_1'
-			__mag_hdr1 = new_hdr
-			# No suffix because matched then combined #
 			__mag_hdr1 = STAR_TRUTH_MAG_HDR
-			#__mag_hdr1 set at the beginning of function
 		if MATCH_CAT2 == 'star_truth':
 			suf = '_2'
-			__mag_hdr2 = new_hdr
 			__mag_hdr2 = STAR_TRUTH_MAG_HDR
 
 		star_mag = get_star_truth_catalog_magnitude(df_1and2=__df1and2, suf=suf)
-		# New header must be of the form {base}_x where x is a single character because of the way m_axlabel is created from m_hdr #
-		#__df1and2.insert(len(__df1and2.columns), new_hdr, star_mag)
+		# New header must be of the form {base}_x where x is a single character because of the way m_axlabel is created from m_hdr # #FIXME check this
 		__df1and2.insert(len(__df1and2.columns), STAR_TRUTH_MAG_HDR, star_mag)
-		print __mag_hdr1, __mag_hdr2
 
 	### Handle Y3 Gold catalogs ###
-	# Y3 catalogs are matched then combined #
+	# Y3 catalogs are matched then combined so a suffix (_1 or _2) is necessary #
 	if 'y3_gold' in MATCH_CAT1 or 'y3_gold' in MATCH_CAT2:
-		print 'Adding new column to matched csv for Y3 Gold ...\n'
+		if VERBOSE_ING: print 'Adding two or four  new columns to matched CSV. Columns contain Y3 Gold 1) g-, r-, i-, z-band magnitudes, 2) g-, r-, i-, z-band magnitude errors; if PLOT_FLUX=True: 3) g-, r-, i-, z-band fluxes, and 4) g-, r-, i-, z-band flux errors...\n'
 
 		# New header name #
 		'''
@@ -5272,16 +5368,20 @@ def get_dataframe(realization, tile, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_h
 			new_y3_gold_hdr = 'cm_mag_griz'
 		'''
 		if 'y3_gold' in MATCH_CAT1:
+			# Headers in Y3 Gold #
 			mhdr = M_HDR1
 			fhdr = CM_FLUX_HDR1 
+			# Headers to be added to DataFrame #
 			__mag_hdr1 = Y3_GOLD_MAG_HDR 
 			__flux_hdr1 = Y3_GOLD_FLUX_HDR
 		if 'y3_gold' in MATCH_CAT2:
+			# Headers in Y3 Gold #
 			mhdr = M_HDR2
 			fhdr = CM_FLUX_HDR2 
+			# Headers to be added to DataFrame #
 			__mag_hdr2 = Y3_GOLD_MAG_HDR 
 			__flux_hdr2 = Y3_GOLD_FLUX_HDR
-		# Note: need magnitudes for `__idx_good` to get rid of m=37.5 #
+		# Note: need magnitudes for `__idx_good` to get rid of mag=37.5 #
 		y3_gold_mag = get_y3_gold_catalog_magnitude(df_1and2=__df1and2, mag_hdr=mhdr)
 		# Add new column to df #
 		__df1and2.insert(len(__df1and2.columns), Y3_GOLD_MAG_HDR, y3_gold_mag)
@@ -5295,7 +5395,9 @@ def get_dataframe(realization, tile, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_h
 	if MATCH_CAT2 == 'base':
 		__mag_hdr2, __mag_err_hdr2 = BASE_MAG_HDR+'_2', BASE_MAG_ERR_HDR+'_2'
 
-	### Handle coadd catalogs. New column has been added with name 'mag_c'. Catalog combined then matched so has suffix (unlike star) #
+
+	### Handle coadd catalogs. Catalog combined then matched so has suffix (unlike star) TODO re-explain #
+	# Headers added to DataFrame #
 	if MATCH_CAT1 == 'coadd':
 		__mag_hdr1, __mag_err_hdr1 = COADD_MAG_HDR+'_1', COADD_MAG_ERR_HDR+'_1'
 		__flux_hdr1, __flux_err_hdr1 = COADD_FLUX_HDR+'_1', COADD_FLUX_ERR_HDR+'_1' 
@@ -5308,8 +5410,11 @@ def get_dataframe(realization, tile, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_h
 
 
 	### Log matches ###
-	log_dir = os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, tile, realization, 'log_files')
-	fn_match_log = os.path.join(log_dir, 'match_log.csv') 
+	log_dir = os.path.join(OUTPUT_DIRECTORY, 'outputs', BALROG_RUN, MATCH_TYPE, tile, realization, 'log_files')
+	if os.path.isdir(log_dir) is False:
+		if NO_DIR_MAKE: os.makedirs(log_dir)
+		
+	fn_match_log = os.path.join(log_dir, tile+'_'+realization+'_'+MATCH_TYPE+'_matched_catalogs.log') 
 	print ' -----> Saving match log as: ', fn_match_log, '\n'
 	with open(fn_match_log, 'wb') as csvfile:
 		writer = csv.writer(csvfile, delimiter=',')
@@ -5353,7 +5458,7 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 
 			# Stacked completeness plots do NOT use stacked tile catalog ... #
 			if PLOT_COMPLETENESS is False: 
-				df1and2, df1not2, df2not1, magHdr1, magHdr2, fluxHdr1, fluxHdr2, magErrHdr1, magErrHdr2, fluxErrHdr1, fluxErrHdr2, numStackTile, numStackReal = get_dataframe(realization=r, tile=t, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, inj1=INJ1, inj2=INJ2, inj1_percent=INJ1_PERCENT, inj2_percent=INJ2_PERCENT)
+				df1and2, df1not2, df2not1, magHdr1, magHdr2, fluxHdr1, fluxHdr2, magErrHdr1, magErrHdr2, fluxErrHdr1, fluxErrHdr2, numStackTile, numStackReal = get_dataframe_and_headers(realization=r, tile=t, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, inj1=INJ1, inj2=INJ2, inj1_percent=INJ1_PERCENT, inj2_percent=INJ2_PERCENT)
 
 				__gap_flags1 = np.array(df1and2[GAUSS_APER_FLAGS_HDR+'_1'])
 				__gap_flags2 = np.array(df1and2[GAUSS_APER_FLAGS_HDR+'_2'])
@@ -5410,7 +5515,7 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 
 #FIXME get rid of flux_hdr dependence if this is a constant
 def get_coadd_catalog_for_matcher(cat_type, inj_percent, inj, realization, mag_hdr, mag_err_hdr, tile, flux_hdr, flux_err_hdr):
-	"""Make FITS file that includes a column of form '(m_g, m_r, m_i, m_z)' where m is magnitude. Column will be added to '..._i_cat.fits'. This will be used in matcher(). Relies on directory structure /`OUTDIR`/outputs/`BALROG_RUN`/`MATCH_TYPE`/{tile}/{realization}/catalog_compare/
+	"""Make FITS file that includes a column of form '(m_g, m_r, m_i, m_z)' where m is magnitude. Column will be added to '..._i_cat.fits'. This will be used in matcher(). Relies on directory structure /`OUTPUT_DIRECTORY`/outputs/`BALROG_RUN`/`MATCH_TYPE`/{tile}/{realization}/catalog_compare/
 
 	Parameters
 	----------
@@ -5439,9 +5544,9 @@ def get_coadd_catalog_for_matcher(cat_type, inj_percent, inj, realization, mag_h
 	"""
 
 	__overwrite = False 
-	if __overwrite: raw_input('`overwrite=True` in `get_coadd_catalog_for_matcher()`. Press enter to proceed, ctrl+c to exit.') 
+	if __overwrite: raw_input('`__overwrite=True` in `get_coadd_catalog_for_matcher()`. Press enter to proceed, ctrl+c to exit.') 
 
-	dir_new = os.path.join(OUTDIR, 'outputs', BALROG_RUN, MATCH_TYPE, tile, realization, 'catalog_compare')
+	dir_new = os.path.join(OUTPUT_DIRECTORY, 'outputs', BALROG_RUN, MATCH_TYPE, tile, realization, 'catalog_compare')
 	if os.path.isdir(dir_new) is False:
 		if NO_DIR_MAKE is False:
 			sys.exit('Directory ' + str(dir_new) + ' does not exist...')
@@ -5522,14 +5627,14 @@ def write_to_region_files(df_1and2, df_1not2, df_2not1, realization, tile):
 	### Get filenames and open files ###
 	fnRegion1and2, fnRegion1not2, fnRegion2not1 = get_region_filenames(tile=tile, realization=realization)
 
-	overwrite = False
-	if overwrite: raw_input('`overwrite=True` in `write_to_region_files()`. Press enter to procees and ctrl+c to stop.')
+	__overwrite = False
+	if __overwrite: raw_input('`__overwrite=True` in `write_to_region_files()`. Press enter to procees and ctrl+c to stop.')
 	
-	if os.path.isfile(fnRegion2not1) and overwrite is False:
+	if os.path.isfile(fnRegion2not1) and __overwrite is False:
 		print 'Region files already exist. Not overwriting ...'
 	
 
-	if os.path.isfile(fnRegion2not1) is False or (os.path.isfile(fnRegion2not1) and overwrite):
+	if os.path.isfile(fnRegion2not1) is False or (os.path.isfile(fnRegion2not1) and __overwrite):
 		fd_match = open(fnRegion1and2, 'w'); fd_1not2 = open(fnRegion1not2, 'w'); fd_2not1 = open(fnRegion2not1, 'w')
 		# Write coordinate system #
 		fd_match.write('J2000 \n'); fd_1not2.write('J2000 \n'), fd_2not1.write('J2000 \n')
