@@ -45,12 +45,13 @@ User sets plot attributes and catalog attributes within `ms_plotter.py`. A table
 
 If user has access to the DES machines at FNAL: 
 1. Because `ngmixer` needs `matplotlib v2.2.2`, user must do one of the following bullet points
-  - `ssh {user}@des70.fnal.gov`
-  - `ssh {user}@des71.fnal.gov`
+  - `$ssh {user}@des70.fnal.gov`
+  - `$ssh {user}@des71.fnal.gov`
 2. `$source /home/s1/mspletts/setup_ngmixer_gaussap.sh`
 
 Note that `/home/s1/mspletts/setup_ngmixer_gaussap.sh` points to `ngmixer` as installed in `/home/s1/mspletts/`, where minor changes have been made to `ngmixer.gaussap.get_gauss_aper_flux_cat()`, as indicated by code between 
-```### MS ### 
+```
+### MS ### 
 {modified code} 
 ### - ###
 ```
