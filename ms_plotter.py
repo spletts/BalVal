@@ -94,8 +94,8 @@ if '.dat' in cmd_line_tiles[0]:
 
 # Please see 'Table of Constants' in README.md #
 
-MATCH_CAT1, MATCH_CAT2 = 'y3_gold_2_2', 'mof'
-INJ1, INJ2 = False, True 
+MATCH_CAT1, MATCH_CAT2 = 'gal_truth', 'mof'
+INJ1, INJ2 = True, True 
 INJ1_PERCENT, INJ2_PERCENT = 20, 20
 
 # Observable #
@@ -116,7 +116,7 @@ HEXBIN = False
 SCATTER = False
 
 # For flux plots #
-GAUSS_APER = True
+GAUSS_APER = False
 #TODO bool for no gaussian aperture and just the flux diffs.
 TRIM_NORM_FLUX_DIFF = False
 NORMALIZE_NORM_FLUX_DIFF_VIA_DENSITY = True
@@ -240,7 +240,7 @@ def catch_error():
 
 	if INJ1 is False and INJ2 is False and cmd_line_realizations[0] != 'None': __err_msg = 'If INJ1 and INJ2 are False realizations must be None at cmd line'
 
-	if ('truth' in MATCH_CAT1 and INJ1 is False) and ('truth' in MATCH_CAT2 and INJ2 is False): __err_msg = 'Truth catalogs are injected'
+	if ('truth' in MATCH_CAT1 and INJ1 is False) or ('truth' in MATCH_CAT2 and INJ2 is False): __err_msg = 'Truth catalogs are injected'
 
 	if PLOT_COMPLETENESS and 'truth' not in MATCH_CAT1 and 'truth' not in MATCH_CAT2: __err_msg = 'Completeness plots must be made with a truth catalog'
 
@@ -737,17 +737,7 @@ def get_log_filenames(tile, realization):
         """
 
         # !!!!! User may wish to edit directory structure #
-	log_dir = os.path.join(OUTPUT_DIRECTORY, 'outputs', BALROG_RUN, MATCH_TYPE, tile, realization, 'log_files') 
-        if RUN_TYPE is not None:
-		log_dir = os.path.join(log_dir, 'fof_analysis')
-
-	### Check for directory existence ###
-        if os.path.isdir(log_dir) is False:
-                if NO_DIR_MAKE is False:
-                        sys.exit('Directory ' + str(log_dir) + ' does not exist. \n Change directory structure in ms_plotter.get_log_filenames() or set `NO_DIR_MAKE=True`')
-                if NO_DIR_MAKE:
-                        print 'Making directory ', log_dir, '...\n'
-                        os.makedirs(log_dir)
+	log_dir = get_directory(tile=tile, realization=realization, low_level_dir='log_files')
 
 	# Repeated #
 	fn_rep = '_'.join([tile, realization, MATCH_TYPE])
@@ -820,17 +810,7 @@ def get_region_filenames(tile, realization):
         """
 
         # !!!!! User may wish to edit directory structure #
-	reg_dir = os.path.join(OUTPUT_DIRECTORY, 'outputs', BALROG_RUN, MATCH_TYPE, tile, realization, 'region_files')
-        if RUN_TYPE is not None:
-		reg_dir = os.path.join(reg_dir, 'fof_analysis')
-
-	### Check for directory existence ###
-        if os.path.isdir(reg_dir) is False:
-                if NO_DIR_MAKE is False:
-                        sys.exit('Directory ' + str(reg_dir) + ' does not exist. \n Change directory structure in ms_plotter.get_region_filenames() or set `NO_DIR_MAKE=True`')
-                if NO_DIR_MAKE:
-                        if VERBOSE_ING: print 'Making directory ', reg_dir, '...\n'
-                        os.makedirs(reg_dir)
+	reg_dir = get_directory(tile=tile, realization=realization, low_level_dir='region_files')
 
 	# Repeated #
         fn_rep = '_'.join([tile, realization, MATCH_TYPE])
@@ -2926,10 +2906,10 @@ def make_ngmixer_gaussap_compatible_catalog(fn_unmatched_cat, tile, realization,
 	__overwrite = False
 	if __overwrite: raw_input('`__overwrite=True` in `make_ngmixer_gaussap_compatible_catalog()`. Press enter to proceed, ctrl+c to stop.')
 
-	__match_dir = os.path.join(OUTPUT_DIRECTORY, 'outputs', BALROG_RUN, MATCH_TYPE, tile, realization, 'catalog_compare')
+	matchCatDir = get_directory(tile=tile, realization=realization, low_level_dir='catalog_compare') 
 	__fn_end = fn_unmatched_cat[fn_unmatched_cat[:-1].rfind('/')+1:-1]
 	__fn_end = '_'.join(['gauss_ap_ngmixer', __fn_end])
-	__fn_ngmix_cat = os.path.join(__match_dir, __fn_end)
+	__fn_ngmix_cat = os.path.join(matchCatDir, __fn_end)
 
 	# Create new catalog #
 	if os.path.isfile(__fn_ngmix_cat) is False or __overwrite:
@@ -4368,27 +4348,17 @@ def get_plot_save_filename(realization, tile):
 	if PLOT_MAG is False:
 		ylim = ''
 
+
+	plot_dir = get_directory(tile=tile, realization=realization, low_level_dir=['plots', plot_obs])
+
 	# `placehold` will be replaced with {band(s)/color} when `savefig()` is called within various functions #
 	if RUN_TYPE is None:
-		plot_dir = os.path.join(OUTPUT_DIRECTORY, 'outputs', BALROG_RUN, match_type, tile, realization, 'plots', plot_obs)
-		if PLOT_MAG and NORMALIZE:
-			plot_dir = os.path.join(OUTPUT_DIRECTORY, 'outputs', BALROG_RUN, match_type, tile, realization, 'plots', plot_obs, 'normalized')
 		endname = '_'.join([tile, realization, match_type, 'placehold', plot_type, ylim+'.png'])
 	if RUN_TYPE is not None:
-		plot_dir = os.path.join(OUTPUT_DIRECTORY, 'outputs', BALROG_RUN, match_type, tile, realization, 'plots', plot_obs, 'fof_analysis')
 		endname = '_'.join([tile, realization, match_type, RUN_TYPE, 'placehold', plot_type, ylim+'.png'])
 	
 
 	#if PLOT_DIFF_ON_VAX: outname = 'vax_diff' + outname
-
-
-	### Check for directory existence ###
-	if os.path.isdir(plot_dir) is False:
-		if NO_DIR_MAKE is False:
-			sys.exit('Directory ' + str(plot_dir) + ' does not exist. \n Change directory structure in ms_plotter.get_plot_save_filename() or set `NO_DIR_MAKE=True`')
-		if NO_DIR_MAKE:
-			if VERBOSE_ING: print 'Making directory ', plot_dir, '...\n'
-			os.makedirs(plot_dir)
 
 
 	### Get complete filename (including path) ###
@@ -4561,29 +4531,160 @@ def get_y3_gold_catalog_flux_griz(df_1and2, flux_hdr):
 
 
 
+def catch_catalog_filename_error(cat_type, inj, inj_percent):
+	"""TODO"""
+
+	__err = None
+
+	if BALROG_RUN != 'TAMU_Balrog' and 'COSMOS' not in BALROG_RUN and BALROG_RUN != 'test' and BALROG_RUN != 'se_DES0347-5540':
+		if inj_percent != 10:
+			raw_input('The catalogs in'+str(BALROG_RUN)+'are not 10% injected, not '+str(inj_percent))
+
+	return __err
+
+
+
+
+def get_injection_percent(tile, realization):
+	"""."""
+
+	### Get truth catalog ###
+	if os.path.isfile(os.path.join(BASE_PATH_TO_CATS, 'y3v02', 'balrog_images', realization, tile, tile+'_'+realization+'_balrog_truth_cat_gals.fits')):
+                        __fn_cat = os.path.join(BASE_PATH_TO_CATS, 'y3v02', 'balrog_images', realization, tile, tile+'_'+realization+'_balrog_truth_cat_gals.fits')
+
+	if os.path.isfile(os.path.join(BASE_PATH_TO_CATS, tile, tile+'_0_balrog_truth_cat_gals.fits')):
+                        __fn_cat = os.path.join(BASE_PATH_TO_CATS, tile, tile+'_0_balrog_truth_cat_gals.fits')
+
+	if os.path.isfile(os.path.join(BASE_PATH_TO_CATS, tile+'_0_balrog_truth_cat_gals.fits')):
+                        __fn_cat = os.path.join(BASE_PATH_TO_CATS, tile+'_0_balrog_truth_cat_gals.fits')
+
+	if os.path.isfile(os.path.join(BASE_PATH_TO_CATS, 'y3v02', 'balrog_images', realization, tile, tile+'_'+realization+'_balrog_truth_cat.fits')):
+                        __fn_cat = os.path.join(BASE_PATH_TO_CATS, 'y3v02', 'balrog_images', realization, tile, tile+'_'+realization+'_balrog_truth_cat.fits')
+
+	### Read truth catalog ###
+	hdu = fits.open(__fn_cat)
+	data = hdu[1].data
+	__num_rows = len(data)
+
+	# Approximate objects per tile: 50,000 #
+	__inj_percent = 1.0*__num_rows/50000
+
+	return __inj_percent
+
+
+
+
 def get_catalog_filename(cat_type, inj, inj_percent, realization, tile, band):
-        """Get the complete filename of a catalog to match.
-	Note that different Balrog runs (`BALROG_RUN`) may have different directory structures and filename structures; an (incomplete) log is at https://docs.google.com/document/d/1hb3OlmU02jS4KkvCxvw80zr1fd15LbgzOK7tps1uqBM/edit?usp=sharing
-	
+	"""Get the complete filename of a catalog to match.
+        Note that different Balrog runs (`BALROG_RUN`) may have different directory structures and filename structures; an (incomplete) log is at https://docs.google.com/document/d/1hb3OlmU02jS4KkvCxvw80zr1fd15LbgzOK7tps1uqBM/edit?usp=sharing
+
         Parameters
-	----------
-	cat_type -- Catalog type. Allowed values: 'gal_truth', 'mof', 'star_truth', 'sof', 'coadd', 'y3_gold'. Set by `MATCH_CAT1` or `MATCH_CAT2`.
+        ----------
+        cat_type -- Catalog type. Allowed values: 'gal_truth', 'mof', 'star_truth', 'sof', 'coadd', 'y3_gold'. Set by `MATCH_CAT1` or `MATCH_CAT2`.
 
-	inj_percent (int)
-		If `inj` is False this will not be used nor referenced.
+        inj_percent (int)
+                If `inj` is False this will not be used nor referenced.
 
-	inj (bool)
+        inj (bool)
 
-	realization (str) -- 
+        realization (str) --
 
-	tile -- 
+        tile --
 
-	band (str) -- Only used with coadd catalogs. Ignored if `cat_type` is not 'coadd'. 
+        band (str) -- Only used with coadd catalogs. Ignored if `cat_type` is not 'coadd'.
 
         Returns
-	-------
-	__fn_cat (str) -- Complete catalog filename.
+        -------
+        __fn_cat (str)
+                Complete catalog filename.
         """
+
+	# Note: only need inj percent for TAMU cat #
+
+	# Note that this function does not check if tile was part of Balrog run #
+	catErr = catch_catalog_filename_error(cat_type=cat_type, inj=inj, inj_percent=inj_percent)
+	if catErr is not None:
+		sys.exit('Error. '+catErr)
+
+
+	### Balrog-injected MOF/SOF ###
+	if cat_type in ('mof', 'sof') and inj: #and inj_percent == 20:
+		if os.path.isfile(os.path.join(BASE_PATH_TO_CATS, tile, 'real_0_'+tile+'_{}.fits'.format(cat_type))): 
+			__fn_cat = os.path.join(BASE_PATH_TO_CATS, tile, 'real_0_'+tile+'_{}.fits'.format(cat_type))
+
+		if os.path.isfile(os.path.join(BASE_PATH_TO_CATS, 'real_0_'+tile+'_{}.fits'.format(cat_type))):
+			__fn_cat = os.path.join(BASE_PATH_TO_CATS, 'real_0_'+tile+'_{}.fits'.format(cat_type))
+
+		if os.path.isfile(os.path.join(BASE_PATH_TO_CATS, 'y3v02', 'balrog_images', realization, tile, '{}'.format(cat_type), tile+'_{}.fits'.format(cat_type))):
+			__fn_cat = os.path.join(BASE_PATH_TO_CATS, 'y3v02', 'balrog_images', realization, tile, '{}'.format(cat_type), tile+'_{}.fits'.format(cat_type))	
+
+
+	### Base MOF/SOF ###
+	if cat_type in ('mof', 'sof') and inj is False:
+		if os.path.isfile(os.path.join(BASE_PATH_TO_CATS, 'y3v02', tile, '{}'.format(cat_type), tile+'_{}.fits'.format(cat_type))):
+			__fn_cat = os.path.join(BASE_PATH_TO_CATS, 'y3v02', tile, '{}'.format(cat_type), tile+'_{}.fits'.format(cat_type))
+		#TODO Add more	
+
+
+	### Galaxy truth catalogs ###
+	if cat_type == 'gal_truth' and inj:
+		if os.path.isfile(os.path.join(BASE_PATH_TO_CATS, 'y3v02', 'balrog_images', realization, tile, tile+'_'+realization+'_balrog_truth_cat_gals.fits')):
+                        __fn_cat = os.path.join(BASE_PATH_TO_CATS, 'y3v02', 'balrog_images', realization, tile, tile+'_'+realization+'_balrog_truth_cat_gals.fits')
+
+		if os.path.isfile(os.path.join(BASE_PATH_TO_CATS, tile, tile+'_0_balrog_truth_cat_gals.fits')):
+			__fn_cat = os.path.join(BASE_PATH_TO_CATS, tile, tile+'_0_balrog_truth_cat_gals.fits')
+
+		if os.path.isfile(os.path.join(BASE_PATH_TO_CATS, tile+'_0_balrog_truth_cat_gals.fits')):
+			__fn_cat = os.path.join(BASE_PATH_TO_CATS, tile+'_0_balrog_truth_cat_gals.fits')
+
+		if os.path.isfile(os.path.join(BASE_PATH_TO_CATS, 'y3v02', 'balrog_images', realization, tile, tile+'_'+realization+'_balrog_truth_cat.fits')):
+			__fn_cat = os.path.join(BASE_PATH_TO_CATS, 'y3v02', 'balrog_images', realization, tile, tile+'_'+realization+'_balrog_truth_cat.fits')
+		
+
+	### Star truth catalogs ###
+	if cat_type == 'star_truth' and inj:
+		if os.path.isfile(os.path.join(BASE_PATH_TO_CATS, tile, tile+'_0_balrog_truth_cat_stars.fits')):
+			__fn_cat = os.path.join(BASE_PATH_TO_CATS, tile, tile+'_0_balrog_truth_cat_stars.fits')
+
+		if os.path.isfile(os.path.join(BASE_PATH_TO_CATS, 'y3v02', 'balrog_images', realization, tile, tile+'_'+realization+'_balrog_truth_cat_stars.fits')):
+			__fn_cat = os.path.join(BASE_PATH_TO_CATS, 'y3v02', 'balrog_images', realization, tile, tile+'_'+realization+'_balrog_truth_cat_stars.fits')
+
+
+	### Balrog-injected coadd catalogs ###
+	if cat_type == 'coadd' and inj:
+                if os.path.isfile(os.path.join(BASE_PATH_TO_CATS, 'y3v02', 'balrog_images', realization, tile, 'coadd', tile+'_'+band+'_cat.fits')):
+			__fn_cat = os.path.join(BASE_PATH_TO_CATS, 'y3v02', 'balrog_images', realization, tile, 'coadd', tile+'_'+band+'_cat.fits')
+
+
+	### Base coadd catalogs ###
+	if cat_type == 'coadd' and inj is False:
+		if os.path.isfile(os.path.join(BASE_PATH_TO_CATS, 'y3v02', tile, 'coadd', tile+'_'+band+'_cat.fits')):
+			__fn_cat = os.path.join(BASE_PATH_TO_CATS, 'y3v02', tile, 'coadd', tile+'_'+band+'_cat.fits')
+
+		if os.path.isfile(get_and_reformat_base_catalog(tile=tile, realization=realization)):
+                        __fn_cat = get_and_reformat_base_catalog(tile=tile, realization=realization)
+
+
+	### Y3 Gold catalogs ###
+	# !!!!! #
+	if cat_type == 'y3_gold_2_0' and inj is False:
+                __fn_cat = os.path.join('/data/des71.a/data/mspletts/balrog_validation_tests/y3_gold_catalogs/', tile+'_y3_gold_2_0.fits')
+        if cat_type == 'y3_gold_2_2' and inj is False:
+                __fn_cat = os.path.join('/data/des71.a/data/mspletts/balrog_validation_tests/y3_gold_catalogs/', tile+'_y3_gold_2_2.fits')
+
+
+	if BALROG_RUN == 'TAMU_Balrog' and 'y3_gold' not in cat_type:
+                __fn_cat = get_tamu_catalog_filename(cat_type=cat_type, inj_percent=inj_percent, realization=realization, tile=tile, inj=inj)
+
+
+	return __fn_cat
+
+
+
+
+
+
+def get_catalog_filename_old(cat_type, inj, inj_percent, realization, tile, band):
 
 	if (cat_type == 'gal_truth' or cat_type == 'star_truth') and inj is False:
 		sys.exit('No non-injected truth catalog exists.')
@@ -4591,10 +4692,9 @@ def get_catalog_filename(cat_type, inj, inj_percent, realization, tile, band):
 	if BALROG_RUN == 'test':
 		if cat_type == 'gal_truth' and inj_percent == 20 and inj:
                         __fn_cat = os.path.join(BASE_PATH_TO_CATS, tile, tile+'_0_balrog_truth_cat_gals.fits')
-		if cat_type == 'sof' and inj_percent == 20 and inj:
-			__fn_cat = os.path.join(BASE_PATH_TO_CATS, tile, 'real_0_'+tile+'_sof.fits')
-		if cat_type == 'mof' and inj_percent == 20 and inj:
-			__fn_cat = os.path.join(BASE_PATH_TO_CATS, tile, 'real_0_'+tile+'_mof.fits')
+
+		if cat_type in ('mof', 'sof') and inj and inj_percent == 20:
+			__fn_cat = os.path.join(BASE_PATH_TO_CATS, tile, 'real_0_'+tile+'_{}.fits'.format(cat_type))
 
 
 	# TODO GoogleDoc link to Balrog log to see which catalogs can exist within ea `BALROG_RUN` 
@@ -4636,27 +4736,21 @@ def get_catalog_filename(cat_type, inj, inj_percent, realization, tile, band):
 	if BALROG_RUN != 'TAMU_Balrog' and 'COSMOS' not in BALROG_RUN and BALROG_RUN != 'test' and BALROG_RUN != 'se_DES0347-5540' and 'y3_gold' not in cat_type:
 
 		# $/data/des61.a/data/kuropat/blank_test/DES0102-4914/ #
-		if cat_type == 'gal_truth' and inj_percent == 20 and inj:
+		# Inj percent is always 10?
+		if cat_type == 'gal_truth' and inj:
 			__fn_cat = os.path.join(BASE_PATH_TO_CATS, 'y3v02', 'balrog_images', realization, tile, tile+'_'+realization+'_balrog_truth_cat_gals.fits')
-		if cat_type == 'mof' and inj_percent == 20 and inj:
+		if cat_type == 'mof' and inj:
 			__fn_cat = os.path.join(BASE_PATH_TO_CATS, 'y3v02', 'balrog_images', realization, tile, 'mof', tile+'_mof.fits')			
-		if cat_type == 'sof' and inj_percent == 20 and inj:
+
+		if cat_type == 'sof' and inj:
 			__fn_cat = os.path.join(BASE_PATH_TO_CATS, 'y3v02', 'balrog_images', realization, tile, 'sof', tile+'_sof.fits')
 
-
-		if cat_type == 'gal_truth' and inj_percent == 10 and inj:
-			__fn_cat = os.path.join(BASE_PATH_TO_CATS, 'y3v02', 'balrog_images', realization, tile, tile+'_'+realization+'_balrog_truth_cat_gals.fits')
-
-		if cat_type == 'star_truth' and inj_percent == 10 and inj:
+		if cat_type == 'star_truth' and inj:
 			__fn_cat = os.path.join(BASE_PATH_TO_CATS, 'y3v02', 'balrog_images', realization, tile, tile+'_'+realization+'_balrog_truth_cat_stars.fits')
 
-		if cat_type == 'sof' and inj_percent == 10 and inj:
-			__fn_cat = os.path.join(BASE_PATH_TO_CATS, 'y3v02', 'balrog_images', realization, tile, 'sof', tile+'_sof.fits')
 		if cat_type == 'sof' and inj is False:
 			__fn_cat = os.path.join(BASE_PATH_TO_CATS, 'y3v02', tile, 'sof', tile+'_sof.fits')
 
-		if cat_type == 'mof' and inj_percent == 10 and inj:
-			__fn_cat = os.path.join(BASE_PATH_TO_CATS, 'y3v02', 'balrog_images', realization, tile, 'mof', tile+'_mof.fits')
 		if cat_type == 'mof' and inj is False:
 			__fn_cat = os.path.join(BASE_PATH_TO_CATS, 'y3v02', tile, 'mof', tile+'_mof.fits')
 
@@ -4680,6 +4774,70 @@ def get_catalog_filename(cat_type, inj, inj_percent, realization, tile, band):
 
 
 
+def get_directory(tile, realization, low_level_dir):
+        """Get directory"""
+
+	if isinstance(low_level_dir, str):
+		__dir = os.path.join(OUTPUT_DIRECTORY, 'outputs', BALROG_RUN, MATCH_TYPE, tile, realization, low_level_dir)
+
+	if isinstance(low_level_dir, list):
+		if low_level_dir[1] == 'magnitude' and NORMALIZE:
+			__dir = os.path.join(OUTPUT_DIRECTORY, 'outputs', BALROG_RUN, MATCH_TYPE, tile, realization, low_level_dir[0], low_level_dir[1], 'normalized')
+		else:
+			__dir = os.path.join(OUTPUT_DIRECTORY, 'outputs', BALROG_RUN, MATCH_TYPE, tile, realization, low_level_dir[0], low_level_dir[1])
+
+
+	if RUN_TYPE is not None:
+		__dir = os.path.join(OUTPUT_DIRECTORY, 'outputs', BALROG_RUN, MATCH_TYPE, tile, realization, low_level_dir. 'fof_analysis')
+
+        if os.path.isdir(__dir) is False:
+                if NO_DIR_MAKE is False:
+                        sys.exit('Directory '+str(__dir)+' does not exist. Change directory structure in `get_directory()`.\n')
+                if NO_DIR_MAKE:
+                        if VERBOSE_ING: print 'Making directory ', __dir, '...\n'
+                        os.makedirs(__dir)
+
+        return __dir
+
+
+
+
+def get_zipped_coadd_magnitudes(fn_base_g, fn_base_r, fn_base_i, fn_base_z):
+	"""TODO"""
+
+	mag_hdr = 'MAG_AUTO'
+	mag_err_hdr = 'MAGERR_AUTO'
+	flag1_hdr = 'FLAGS'
+	flag2_hdr = 'IMAFLAGS_ISO'
+
+	# Open FITS files #
+	hdu_g = fits.open(fn_base_g); hdu_r = fits.open(fn_base_r); hdu_i = fits.open(fn_base_i); hdu_z = fits.open(fn_base_z)
+
+	# Read data #
+	data_g = hdu_g[1].data; data_r = hdu_r[1].data; data_i = hdu_i[1].data; data_z = hdu_z[1].data
+
+	# Get magnitudes #
+	m_g = data_g[mag_hdr]; m_r = data_r[mag_hdr]; m_i = data_i[mag_hdr]; m_z = data_z[mag_hdr]
+
+	# Get magnitude errors #
+	err_g = data_g[mag_err_hdr]; err_r = data_r[mag_err_hdr]; err_i = data_i[mag_err_hdr]; err_z = data_z[mag_err_hdr]
+
+	# Get flags #
+	flag1_g = data_g[flag1_hdr]; flag1_r = data_r[flag1_hdr]; flag1_i = data_i[flag1_hdr]; flag1_z = data_z[flag1_hdr]
+	flag2_g = data_g[flag2_hdr]; flag2_r = data_r[flag2_hdr]; flag2_i = data_i[flag2_hdr]; flag2_z = data_z[flag2_hdr]
+
+
+	__base_mag_griz, __base_mag_err_griz, __base_flag1_griz, __base_flag2_griz = [], [], [], []
+
+	for i in np.arange(0, len(m_g)):
+		__base_mag_griz.append("'("+ str(m_g[i]) + ', ' + str(m_r[i]) + ', ' + str(m_i[i]) + ', ' + str(m_z[i]) + ")'")
+		__base_mag_err_griz.append("'("+ str(err_g[i])+ ', ' + str(err_r[i])+ ', ' + str(err_i[i]) + ', ' + str(err_z[i]) + ")'")
+		__base_flag1_griz.append("'("+ str(flag1_g[i])+ ', ' + str(flag1_r[i])+ ', ' + str(flag1_i[i]) + ', ' + str(flag1_z[i]) + ")'")
+		__base_flag2_griz.append("'("+ str(flag2_g[i])+ ', ' + str(flag2_r[i])+ ', ' + str(flag2_i[i]) + ', ' + str(flag2_z[i]) + ")'")
+
+	return __base_mag_griz, __base_mag_err_griz, __base_flag1_griz, __base_flag2_griz
+
+
 def get_and_reformat_base_catalog(tile, realization):
 	"""Handle new format for base catalogs. Zipped and SExtractor?
 
@@ -4694,16 +4852,9 @@ def get_and_reformat_base_catalog(tile, realization):
 	if __overwrite: raw_input('`__overwrite=True` in `get_and_reformat_base_catalog()`. Press enter to proceed, ctrl+c to stop')
 
 
-	__match_dir = os.path.join(OUTPUT_DIRECTORY, 'outputs', BALROG_RUN, MATCH_TYPE, tile, realization, 'catalog_compare')
-	if os.path.isdir(__match_dir) is False:
-		if NO_DIR_MAKE is False:
-			sys.exit('Directory '+str(__match_dir)+' does not exist. \n Change directory structure in ms_plotter.matcher() or set `NO_DIR_MAKE=True`')
-		if NO_DIR_MAKE:
-                        if VERBOSE_ING: print 'Making directory ', __match_dir, '...\n'
-                        os.makedirs(__match_dir)
+	matchCatDir = get_directory(tile=tile, realization=realization, low_level_dir='catalog_compare')
 
-	__fn_base_cat_for_matcher = os.path.join(__match_dir, tile+'_base_i.fits')
-
+	__fn_base_cat_for_matcher = os.path.join(matchCatDir, tile+'_base_i.fits')
 
 	if os.path.isfile(__fn_base_cat_for_matcher) and __overwrite is False:
                 if VERBOSE_ING: print ' Reformatted base catalog already exists. Not overwriting...\n'
@@ -4717,43 +4868,14 @@ def get_and_reformat_base_catalog(tile, realization):
 
 		# Base catalogs are zipped #
 		__fn_base_griz = []
-		__tar.extractall(path=__match_dir)
+		__tar.extractall(path=matchCatDir)
 		for b in ALL_BANDS:
 			__fn_b = '_'.join([tile, b, 'cat.fits'])
-			__fn_base_griz.append(os.path.join(__match_dir, __fn_b))
-		fn_base_g, fn_base_r, fn_base_i, fn_base_z = __fn_base_griz
+			__fn_base_griz.append(os.path.join(matchCatDir, __fn_b))
+		__fn_base_g, __fn_base_r, __fn_base_i, __fn_base_z = __fn_base_griz
 
-		#TODO sep function which gets data (as in done for coadds)
-		# Pre-match #
-		mag_hdr = 'MAG_AUTO'
-		mag_err_hdr = 'MAGERR_AUTO' 
-		flag1_hdr = 'FLAGS'
-		flag2_hdr = 'IMAFLAGS_ISO'
 
-		# Open FITS files #
-		hdu_g = fits.open(fn_base_g); hdu_r = fits.open(fn_base_r); hdu_i = fits.open(fn_base_i); hdu_z = fits.open(fn_base_z)
-
-		# Read data #
-		data_g = hdu_g[1].data; data_r = hdu_r[1].data; data_i = hdu_i[1].data; data_z = hdu_z[1].data
-
-		# Get magnitudes #
-		m_g = data_g[mag_hdr]; m_r = data_r[mag_hdr]; m_i = data_i[mag_hdr]; m_z = data_z[mag_hdr]
-
-		# Get magnitude errors #
-		err_g = data_g[mag_err_hdr]; err_r = data_r[mag_err_hdr]; err_i = data_i[mag_err_hdr]; err_z = data_z[mag_err_hdr]
-
-		# Get flags #
-		flag1_g = data_g[flag1_hdr]; flag1_r = data_r[flag1_hdr]; flag1_i = data_i[flag1_hdr]; flag1_z = data_z[flag1_hdr]
-		flag2_g = data_g[flag2_hdr]; flag2_r = data_r[flag2_hdr]; flag2_i = data_i[flag2_hdr]; flag2_z = data_z[flag2_hdr]
-	
-
-		__base_mag_griz, __base_mag_err_griz, __base_flag1_griz, __base_flag2_griz = [], [], [], []
-
-		for i in np.arange(0, len(m_g)):
-			__base_mag_griz.append("'("+ str(m_g[i]) + ', ' + str(m_r[i]) + ', ' + str(m_i[i]) + ', ' + str(m_z[i]) + ")'")
-			__base_mag_err_griz.append("'("+ str(err_g[i])+ ', ' + str(err_r[i])+ ', ' + str(err_i[i]) + ', ' + str(err_z[i]) + ")'")
-			__base_flag1_griz.append("'("+ str(flag1_g[i])+ ', ' + str(flag1_r[i])+ ', ' + str(flag1_i[i]) + ', ' + str(flag1_z[i]) + ")'")
-			__base_flag2_griz.append("'("+ str(flag2_g[i])+ ', ' + str(flag2_r[i])+ ', ' + str(flag2_i[i]) + ', ' + str(flag2_z[i]) + ")'")
+		__base_mag_griz, __base_mag_err_griz, __base_flag1_griz, __base_flag2_griz = get_zipped_coadd_catalogs(fn_base_g=__fn_base_g, fn_base_r=__fn_base_r, fn_base_i=__fn_base_i, fn_base_z=__fn_base_z) 
 
 	
 	       # Create new table #
@@ -4798,15 +4920,10 @@ def get_tamu_catalog_filename(cat_type, inj, inj_percent, realization, tile):
 
 	# 20% injection directory #	
 	if inj_percent == 20:
-		if cat_type == 'mof' and inj:
-                        __fn_tamu_cat = os.path.join(BASE_PATH_TO_CATS, tile + '_20', 'real_' + realization + '_' + tile + '_mof.fits')
-		if cat_type == 'mof' and inj is False:
-			__fn_tamu_cat = os.path.join(BASE_PATH_TO_CATS, tile + '_20', 'base_' + tile + '_mof.fits')
-
-                if cat_type == 'sof' and inj:
-                        __fn_tamu_cat = os.path.join(BASE_PATH_TO_CATS, tile + '_20', 'real_' + realization + '_' + tile + '_sof.fits')
-		if cat_type == 'sof' and inj is False:
-			__fn_tamu_cat = os.path.join(BASE_PATH_TO_CATS, tile + '_20', 'base_' + tile + '_sof.fits')
+		if cat_type in ('mof', 'sof') and inj:
+                        __fn_tamu_cat = os.path.join(BASE_PATH_TO_CATS, tile + '_20', 'real_' + realization + '_' + tile + '_{}.fits'.format(cat_type))
+		if cat_type in ('mof', 'sof') and inj is False:
+			__fn_tamu_cat = os.path.join(BASE_PATH_TO_CATS, tile + '_20', 'base_' + tile + '_{}.fits'.format(cat_type))
 
                 if cat_type == 'gal_truth':
                         __fn_tamu_cat = os.path.join(BASE_PATH_TO_CATS, tile + '_20', tile + '_' + realization + '_balrog_truth_cat_gals.fits')
@@ -4816,15 +4933,11 @@ def get_tamu_catalog_filename(cat_type, inj, inj_percent, realization, tile):
 
 	# 10% injection directory #
 	if inj_percent == 10:
-		if cat_type == 'mof' and inj:
-			__fn_tamu_cat = os.path.join(BASE_PATH_TO_CATS, tile, 'real_' + realization + '_' + tile + '_mof.fits')
-		if cat_type == 'mof' and inj is False:
-			__fn_tamu_cat = os.path.join(BASE_PATH_TO_CATS, tile, 'base_' + tile + '_mof.fits')
+		if cat_type in ('mof', 'sof') and inj:
+			__fn_tamu_cat = os.path.join(BASE_PATH_TO_CATS, tile, 'real_' + realization + '_' + tile + '_{}.fits'.format(cat_type))
 
-		if cat_type == 'sof' and inj:
-			__fn_tamu_cat = os.path.join(BASE_PATH_TO_CATS, tile, 'real_' + realization + '_' + tile + '_sof.fits') 
-		if cat_type == 'sof' and inj is False:
-			__fn_tamu_cat = os.path.join(BASE_PATH_TO_CATS, tile, 'base_' + tile + '_sof.fits')
+		if cat_type in ('mof', 'sof') and inj is False:
+			__fn_tamu_cat = os.path.join(BASE_PATH_TO_CATS, tile, 'base_' + tile + '_{}.fits'.format(cat_type))
 
 		if cat_type == 'gal_truth':
 			__fn_tamu_cat = os.path.join(BASE_PATH_TO_CATS, tile, tile + '_' + realization + '_balrog_truth_cat_gals.fits')
@@ -4892,15 +5005,7 @@ def matcher(realization, tile, inj1, inj2, inj1_percent, inj2_percent):
 		match_type = MATCH_TYPE
 
         # !!!!! User may wish to edit directory structure. Output catalog name for STILTS #
-	match_dir = os.path.join(OUTPUT_DIRECTORY, 'outputs', BALROG_RUN, match_type, tile, realization, 'catalog_compare')	
-
-	# Check for directory existence #
-	if os.path.isdir(match_dir) is False:
-		if NO_DIR_MAKE is False:
-			sys.exit('Directory ' + str(match_dir) + ' does not exist. \n Change directory structure in ms_plotter.matcher() or set `NO_DIR_MAKE=True`')
-		if NO_DIR_MAKE:
-			if VERBOSE_ING: print 'Making directory ', match_dir, '...\n'
-			os.makedirs(match_dir)
+	match_dir = get_directory(tile=tile, realization=realization, low_level_dir='catalog_compare') 
 
 	# Filenames #
         __fn_match_1and2 = os.path.join(match_dir, tile+'_'+realization+'_'+str(match_type)+'_match1and2.csv')
@@ -5000,12 +5105,7 @@ def fof_matcher(realization, tile):
 
 
         ### Filenames for outputs of fof_matcher ###
-	outdir = os.path.join(OUTPUT_DIRECTORY, 'outputs', BALROG_RUN, MATCH_TYPE, tile, realization, 'catalog_compare', 'fof_analysis')
-
-
-        ### Check directory existence. Make directories if not present. ###
-        if os.path.isdir(os.path.join(outdir, tile)) is False:
-                os.makedirs(os.path.join(outdir, tile))
+	outdir = get_directory(tile=tile, realization=realization, low_level_dir='catalog_compare')
 
 
 	### Create filenames for output catalogs created by ms_fof_matcher ###
@@ -5073,15 +5173,7 @@ def stack_tiles(realization):
 	"""
 
 	# Directory for stacked catalog #
-	stack_dir = os.path.join(OUTPUT_DIRECTORY, 'outputs', BALROG_RUN, MATCH_TYPE, 'stack', realization, 'catalog_compare')
-
-	# Check directory existence and handle nonexistence #
-	if os.path.isdir(stack_dir) is False:
-		if NO_DIR_MAKE is False:
-			sys.exit('Directory ' + str(stack_dir) + ' does not exist. \n Change directory structure in ms_plotter. or set `NO_DIR_MAKE=True`')
-		if NO_DIR_MAKE:
-			if VERBOSE_ING: print 'Making directory ', stack_dir, '...\n'
-			os.makedirs(stack_dir)
+	stack_dir = get_directory(tile='stack', realization=realization, low_level_dir='catalog_compare') 
 
 	# Filename for stacked catalogs #
 	fn_end_1and2 = '_'.join(['stacked', realization, MATCH_TYPE, 'match1and2.csv'])
@@ -5157,15 +5249,7 @@ def stack_realizations(tile):
 	"""
 
 	# Directory for stacked catalog #
-	stack_dir = os.path.join(OUTPUT_DIRECTORY, 'outputs', BALROG_RUN, MATCH_TYPE, tile, 'stack', 'catalog_compare')
-
-	# Check directory existence and handle nonexistence #
-	if os.path.isdir(stack_dir) is False:
-		if NO_DIR_MAKE is False:
-			sys.exit('Directory ' + str(stack_dir) + ' does not exist. \n Change directory structure in ms_plotter. or set `NO_DIR_MAKE=True`')
-		if NO_DIR_MAKE:
-			if VERBOSE_ING: print 'Making directory ', stack_dir, '...\n'
-			os.makedirs(stack_dir)
+	stack_dir = get_directory(tile=tile, realization='stack', low_level_dir='catalog_compare') 
 
 	# Filename for stacked catalogs #
 	__fn_stack_reals_1and2 = os.path.join(stack_dir, tile+'_stacked_'+str(MATCH_TYPE)+'_match1and2.csv')
@@ -5410,10 +5494,8 @@ def get_dataframe_and_headers(realization, tile, mag_hdr1, mag_hdr2, mag_err_hdr
 
 
 	### Log matches ###
-	log_dir = os.path.join(OUTPUT_DIRECTORY, 'outputs', BALROG_RUN, MATCH_TYPE, tile, realization, 'log_files')
-	if os.path.isdir(log_dir) is False:
-		if NO_DIR_MAKE: os.makedirs(log_dir)
-		
+	log_dir = get_directory(tile=tile, realization=realization, low_level_dir='log_files')
+
 	fn_match_log = os.path.join(log_dir, tile+'_'+realization+'_'+MATCH_TYPE+'_matched_catalogs.log') 
 	print ' -----> Saving match log as: ', fn_match_log, '\n'
 	with open(fn_match_log, 'wb') as csvfile:
@@ -5546,12 +5628,7 @@ def get_coadd_catalog_for_matcher(cat_type, inj_percent, inj, realization, mag_h
 	__overwrite = False 
 	if __overwrite: raw_input('`__overwrite=True` in `get_coadd_catalog_for_matcher()`. Press enter to proceed, ctrl+c to exit.') 
 
-	dir_new = os.path.join(OUTPUT_DIRECTORY, 'outputs', BALROG_RUN, MATCH_TYPE, tile, realization, 'catalog_compare')
-	if os.path.isdir(dir_new) is False:
-		if NO_DIR_MAKE is False:
-			sys.exit('Directory ' + str(dir_new) + ' does not exist...')
-		if NO_DIR_MAKE:
-			os.makedirs(dir_new)
+	dir_new = get_directory(tile=tile, realization=realization, low_level_dir='catalog_compare') 
 
 	__fn_coadd_for_matcher = os.path.join(dir_new, str(tile) + '_i_cat_combo.fits')
 
