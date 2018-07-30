@@ -4601,7 +4601,7 @@ def get_catalog_filename(cat_type, inj, inj_percent, realization, tile, band):
 
 	# Note: only need inj percent for TAMU cat #
 
-	# Does not check if tile was part of Balrog run #
+	# Note that this function does not check if tile was part of Balrog run #
 	catErr = catch_catalog_filename_error(cat_type=cat_type, inj=inj, inj_percent=inj_percent)
 	if catErr is not None:
 		sys.exit('Error. '+catErr)
