@@ -2,7 +2,8 @@
 
 Conducts various [Balrog-GalSim](https://github.com/sweverett/Balrog-GalSim) validation tests.
 
-__Table of Contents__
+___
+### Table of Contents
 
 [Running BalVal](http://github.com)
 
@@ -15,46 +16,49 @@ __Table of Contents__
   - [Full Directory Structure](https://github.com/spletts/BalVal/blob/master/README.md#full-directory-structure)
 
 
+
 ___
-**Contents of the repository**
-
-`ms_matcher` matches two catalogs using STILTS.
-
-`ms_fof_matcher` and `ms_par.py` analyse FOF groups. `ms_fof_matcher` uses STILTS.
-
-`ms_plotter.py` calls `ms_matcher` or `ms_fof_matcher` (which calls `ms_par.py`), analyses the matched catalog, and produces various comparison plots.
-
-Note that `ms_matcher` and `ms_fof_matcher` return CSV file formats. Further, arrays in FITS files of form `(1 2 3 4)` are converted to strings of form `'(1, 2, 3, 4)'` in matched catalogs. Similarly for matrices.
-___
-
 # Running BalVal
 
 General: `$python ms_plotter.py {BASE_PATH_TO_CATS} {OUTPUT_DIRECTORY} {realization(s)} {tile(s)}`
 
 Ex: `$python ms_plotter.py /data/des71.a/data/kuropat/des2247-4414_sof/ /BalVal/ 0,1 DES2247-4414`
 
-`None` is an allowed value for `{realization(s)}`. One can list realizations at the command line with commas and _no_ spaces separating the realizations (similarly for tiles).
+`None` is an allowed value for `{realization(s)}`. User can list realizations at the command line with commas and _no_ spaces separating the realizations (similarly for tiles). `{tile(s)}` can also be specified with a `.dat` file.
 
 After the above command is issued, a prompt will appear so that the user can confirm plot attributes. This is to prevent plots from being overwritten when testing new additions to the script. User can comment `NOTICE` to remove this prompt. 
 
-User sets plot attributes and catalog attributes within `ms_plotter.py`. A table of user-set attributes is below.
+User sets plot attributes and catalog attributes within `ms_plotter.py`. A table of user-set attributes is in 'Table of Constants'.
 
-**Dependencies**
+##### Dependencies
 
 `ms_plotter.py` requires [`ngmixer`](https://github.com/esheldon/ngmixer) to measure fluxes using a Gaussian aperture. 
 
 If user has access to the DES machines at FNAL: 
-1. Because `ngmixer` needs `matplotlib v2.2.2`, user must do one of the following bullet points
-  - `$ssh {user}@des70.fnal.gov`
+1. Use `matplotlib v2.2.2`, via 
+  - `$ssh {user}@des70.fnal.gov` OR
   - `$ssh {user}@des71.fnal.gov`
 2. `$source /home/s1/mspletts/setup_ngmixer_gaussap.sh`
 
-Note that `/home/s1/mspletts/setup_ngmixer_gaussap.sh` points to `ngmixer` as installed in `/home/s1/mspletts/`, where minor changes have been made to `ngmixer.gaussap.get_gauss_aper_flux_cat()`, as indicated by code between 
+Note that `/home/s1/mspletts/setup_ngmixer_gaussap.sh` points to `ngmixer` as cloned in `/home/s1/mspletts/`, where minor changes have been made to `ngmixer.gaussap.get_gauss_aper_flux_cat()`. These changes are indicated by
 ```
 ### MS ### 
 {modified code} 
 ### - ###
 ```
+
+___
+##### Contents of Repository
+
+- `ms_matcher`: matches two catalogs on RA and Dec using [STILTS](http://www.star.bris.ac.uk/~mbt/stilts/). Returns a CSV.
+
+- `ms_fof_matcher`: creates a number of catalogs needed to analyse FOF groups. Catalogs are matched using STILTS. Returns CSVs.
+
+- `ms_par.py`: analyses FOF groups changed and unchanged after Balrog-injection. This is called by `ms_fof_matcher`. 
+
+- `ms_plotter.py`: Calls the above scripts and analyses the matched catalog produced by `ms_matcher` or the end results of `ms_fof_matcher`, and produces various comparison plots (see 'Table of Constants').
+
+Note that the CSVs created after matching two catalogs have converted arrays in FITS files. For example, if a cell contains an array of form `(1 2 3 4)` it is converted to a string of form `'(1, 2, 3, 4)'`. Similarly for matrices, etc.
 
 
 
@@ -71,12 +75,15 @@ Parameter(s) | Type | Description <br> `allowed values` (if Type not bool)
 | `PLOT_MAG` | bool | If `True` plots of g-, r-, i-, and z-band magnitude are created.
 | `PLOT_COLOR` | bool | If `True` colors g-r, r-i, and i-z are plotted. Creates a 2x2 grid with subplots corresponding to different magnitude bins (currently \[20,21), \[21,22), \[22,23), and \[23,24)). Magnitudes are binned according to values in `MATCH_CAT1` for the leading filter (g for g-r, etc).
 | `PLOT_FLUX` | bool | If `True` a 1D histogram of Delta_Flux/Sigma_Flux is plotted along with a standard Gaussian (mean=0, standard_deviation=1) and a fit to the 1D histogram. Delta_Flux is computed as truth_flux minus {SOF/MOF/coadd}\_flux. Sigma_Flux is computed using only the measured catalog (SOF/MOF/coadd).
-| `GAUSS_APER` | bool | If `True` and `PLOT_FLUX=True` a Gaussian aperture method is used to measure the flux.
+| `PLOT_CM_FLUX` | bool | If `True` the cm_flux is plotted. Note that this and `PLOT_GAUSS_APER_FLUX` can be `True` and both will be plotted on the same plot.
+| `PLOT_GAUSS_APER_FLUX` | bool | If `True` and `PLOT_FLUX=True` a Gaussian aperture method is used to measure the flux.
 | `SIGMA_CLIP_NORM_FLUX_DIFF` | bool | Used if `PLOT_FLUX=True`. If `True` the normalized (to measured flux error) flux differences are sigma clipped to `N`-sigma.
 | `N` | float | Used if `PLOT_FLUX=True` and `SIGMA_CLIP_NORM_FLUX_DIFF=True` to perform `N`-sigma clip.
 | `NORMALIZE_NORM_FLUX_DIFF_VIA_DENSITY` | bool | Used if `PLOT_FLUX=True`. If `True` histograms are normalized (meaning area under the curve is 1).
 | `RAW_NORM_FLUX_DIFF` | bool | Used if `PLOT_FLUX=True`. If `True` the normalized (to measured flux error) flux differences are plotted within percentile trimming nor sigma clipping. These normalized (to measured flux error) flux differences can be from Gaussian aperture measurements if `GAUSS_APER=True`.
 | `TRIM_NORM_FLUX_DIFF` | bool | If `True` and `PLOT_FLUX=True` histograms of Delta_Flux/Sigma_Flux (even those created using `GAUSS_APER`) include the 2<sup>nd</sup>-98<sup>th</sup> percentiles.
+| `FLUX_XLOW` `FLUX_XHIGH` | float OR `None` |
+| `COLOR_XLOW` `COLOR_XHIGH` | float OR `None` |
 | `NORMALIZE` | bool | Used if `PLOT_MAG=True`. If `True` the magnitude plot is normalized according to the *measured* 1sigma magnitude error.
 | `HIST_2D` | bool | Used if `PLOT_MAG=True`. If `True` a `matplotlib.pyplot` 2D histogram is plotted.
 | `CORNER_HIST_2D` | bool | Used if `PLOT_MAG=True` or Used if `PLOT_COLOR=True`. If `True` `corner.hist2d` plots are created using [`corner.py`](https://github.com/dfm/corner.py).
@@ -128,7 +135,7 @@ If `__overwrite=True` a `raw_input()` prompt will appear to ensure that files ar
 Log files, matched catalogs, and plot names are printed with a proceeding `----->` for ease of finding and opening these files.
 
 
-**Warnings**
+##### Warnings
 
 If user does not have access to DES machines at FNAL:
 
@@ -136,14 +143,16 @@ Replace `/data/des71.a/data/mspletts/balrog_validation_tests/scripts/BalVal/ms_m
 
 User should edit the paths to catalogs in `ms_plotter.get_catalog_filename()`. 
 
+...
 
-**Note about Y3 Gold catalogs**
+
+##### Note about Y3 Gold catalogs
 
 The following is relevant if `MATCH_CAT1` or `MATCH_CAT2` is a Y3 Gold catalog.
 
 By default, `ms_plotter.py` tries to access Y3 Gold catalogs saved in `/data/des71.a/data/mspletts/balrog_validation_tests/y3_gold_catalogs/`. 
 
-If the user has access to FNAL DES machines, and a necessary Y3 Gold catalog is not already in the directory above, user will need to download the Y3 Gold catalog with the headers found in: `/data/des71.a/data/mspletts/balrog_validation_tests/y3_gold_catalogs/y3_gold_general_column_query.sql` and edit `ms_plotter.get_catalog_filename()` with the correct path to the Y3 Gold catalog.
+If the user has access to FNAL DES machines, and necessary Y3 Gold catalogs are not already in the directory above, user will need to download the Y3 Gold catalogs with the headers found in: `/data/des71.a/data/mspletts/balrog_validation_tests/y3_gold_catalogs/y3_gold_general_column_query.sql` and edit `ms_plotter.get_catalog_filename()` with the correct path to the Y3 Gold catalogs.
 
 
 ---
@@ -161,7 +170,7 @@ Directory names are determined by the constants that follow.
 then `MATCH_TYPE=10%_inj_gal_truth_cat_10%_inj_sof_cat`. Note that `MATCH_TYPE` reflects the order in which the catalogs were matched in `ms_matcher`.
 
 
-## Condensed Directory Structure
+### Condensed Directory Structure
 
 Below are solely the directories and not the files that will be created within them.
 
@@ -172,7 +181,7 @@ Below are solely the directories and not the files that will be created within t
     |  
     +---- {BALROG_RUN}
         |  
-        +---- {match_type}
+        +---- {MATCH_TYPE}
             |
             +---- {tile}
                 |
@@ -213,7 +222,7 @@ Below are solely the directories and not the files that will be created within t
 ```
 
 
-## Full Directory Structure 
+### Full Directory Structure 
 
 ```
 {OUTPUT_DIRECTORY}
@@ -222,16 +231,16 @@ Below are solely the directories and not the files that will be created within t
     |  
     +---- {BALROG_RUN}
         |  
-        +---- {match_type}
+        +---- {MATCH_TYPE}
             |
             +---- {tile}
                 |
                 +---- {realization}
                     |
                     +---- catalog_compare
-                    |   |   {tile}_{realization}_{match_type}_match1and2.csv
-                    |   |   {tile}_{realization}_{match_type}_match1not2.csv
-                    |   |   {tile}_{realization}_{match_type}_match2not1.csv
+                    |   |   {tile}_{realization}_{MATCH_TYPE}_match1and2.csv
+                    |   |   {tile}_{realization}_{MATCH_TYPE}_match1not2.csv
+                    |   |   {tile}_{realization}_{MATCH_TYPE}_match2not1.csv
                     |   |
                     |   +---- fof_analysis
                     |           {tile}_num_match_fof_coadd.csv
@@ -277,25 +286,25 @@ Below are solely the directories and not the files that will be created within t
                     +---- plots
                     |   |
                     |   +---- color
-                    |   |       {tile}_{realization}_{match_type}_{color}_{plot_type}_{ylim}.png
-                    |   |       {tile}_{realization}_{match_type}_{color}_corner2dhist_.png
+                    |   |       {tile}_{realization}_{MATCH_TYPE}_{color}_{plot_type}_{ylim}.png
+                    |   |       {tile}_{realization}_{MATCH_TYPE}_{color}_corner2dhist_.png
                     |   |
                     |   +---- flux
-                    |   |       {tile}_{realization}_{match_type}_griz_{plot_type}_.png
-                    |   |       {tile}_{realization}_{match_type}_griz_norm_flux_diff_histogram_.png
-                    |   |       {tile}_{realization}_{match_type}_griz_gauss_aper_norm_flux_diff_histogram_.png
-                    |   |       {tile}_{realization}_{match_type}_griz_{N}sigma_clip_norm_flux_diff_histogram_.png
-                    |   |       {tile}_{realization}_{match_type}_griz_{N}sigma_clip_gauss_aper_norm_flux_diff_histogram_.png
+                    |   |       {tile}_{realization}_{MATCH_TYPE}_griz_{plot_type}_.png
+                    |   |       {tile}_{realization}_{MATCH_TYPE}_griz_norm_flux_diff_histogram_.png
+                    |   |       {tile}_{realization}_{MATCH_TYPE}_griz_gauss_aper_norm_flux_diff_histogram_.png
+                    |   |       {tile}_{realization}_{MATCH_TYPE}_griz_{N}sigma_clip_norm_flux_diff_histogram_.png
+                    |   |       {tile}_{realization}_{MATCH_TYPE}_griz_{N}sigma_clip_gauss_aper_norm_flux_diff_histogram_.png
                     |   |
                     |   +---- magnitude
-                    |   |   |   {tile}_{realization}_{match_type}_{band(s)}_{plot_type}_{ylim}.png
-                    |   |   |   {tile}_{realization}_{match_type}_{band(s)}_cbar_cm_t_{ylim}.png
-                    |   |   |   {tile}_{realization}_{match_type}_{band(s)}_cbar_cm_t_err_{ylim}.png
-                    |   |   |   {tile}_{realization}_{match_type}_{band(s)}_completeness_{ylim}.png
-                    |   |   |   {tile}_{realization}_{match_type}_{band(s)}_cornerhist2d_{ylim}.png
-                    |   |   |   {tile}_{realization}_{match_type}_{band(s)}_hexbin_{ylim}.png
-                    |   |   |   {tile}_{realization}_{match_type}_{band(s)}_hist2d_{ylim}.png
-                    |   |   |   {tile}_{realization}_{match_type}_{band(s)}_scatter_{ylim}.png
+                    |   |   |   {tile}_{realization}_{MATCH_TYPE}_{band(s)}_{plot_type}_{ylim}.png
+                    |   |   |   {tile}_{realization}_{MATCH_TYPE}_{band(s)}_cbar_cm_t_{ylim}.png
+                    |   |   |   {tile}_{realization}_{MATCH_TYPE}_{band(s)}_cbar_cm_t_err_{ylim}.png
+                    |   |   |   {tile}_{realization}_{MATCH_TYPE}_{band(s)}_completeness_{ylim}.png
+                    |   |   |   {tile}_{realization}_{MATCH_TYPE}_{band(s)}_cornerhist2d_{ylim}.png
+                    |   |   |   {tile}_{realization}_{MATCH_TYPE}_{band(s)}_hexbin_{ylim}.png
+                    |   |   |   {tile}_{realization}_{MATCH_TYPE}_{band(s)}_hist2d_{ylim}.png
+                    |   |   |   {tile}_{realization}_{MATCH_TYPE}_{band(s)}_scatter_{ylim}.png
                     |   |   |
                     |   |   +---- normalized
                     |   |           norm_"
@@ -321,24 +330,21 @@ Below are solely the directories and not the files that will be created within t
                               {tile}_{realization}_{MATCH_TYPE}_{RUN_TYPE}_match2not1.reg
                 
 ```
-`{realization}` and `{tile}` can be `stack`.
+`{realization}` and `{tile}` will be `stack` if `STACK_REALIZATIONS=True` and `STACK_TILES=True`, respectively.
 
 
-Log files are CSVs. Not all log files will be written to; for example, if `PLOT_MAG=False`, 'mag_completeness.log' will not be created and an empty 'dummy.log' will replace it.
+Log files are CSVs although they have `.log` extensions. Not all log files will be written to; for example, if `PLOT_MAG=False`, 'mag_completeness.log' will not be created and an empty 'dummy.log' will replace it.
 
 Plot save names ending with '\_.png' have default axes.
 
-`match_type` is `MATCH_TYPE` unless `PLOT_COMPLETENESS=True` in which case both 10% and 20% Balrog-injected matched catalogs are plotted in the same window, so `match_type` removes the percent injected from `MATCH_TYPE`. That is, `MATCH_TYPE=10%_inj_gal_truth_cat_10%_inj_sof_cat` results in `match_type=inj_gal_truth_cat_inj_sof_cat`.
+`modified_match_type` is `MATCH_TYPE` unless `PLOT_COMPLETENESS=True` in which case both 10% and 20% Balrog-injected matched catalogs are plotted in the same window (if applicable). `modified_match_type` removes the percent injected from `MATCH_TYPE`. That is, `MATCH_TYPE=10%_inj_gal_truth_cat_10%_inj_sof_cat` results in `match_type=inj_gal_truth_cat_inj_sof_cat`.
 
 ___
-
-**Stacking multiple realizations or multiple tiles**
+##### Stacking multiple realizations or multiple tiles
 
 Matching is performed first, then catalogs are stacked.
 
 ___
-
-
 # `flagged* objects`
 Docstrings in `ms_plotter.py` frequently make reference to `flagged* objects` which refer to specific flag cuts employed in `ms_plotter.get_good_index_using_primary_flags()` but described below for clarity.
 
