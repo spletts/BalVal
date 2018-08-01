@@ -71,7 +71,7 @@ Parameter(s) | Type | Description <br> `allowed values` (if Type not bool)
 :---: | :---: | ---
 |`MATCH_CAT1` `MATCH_CAT2` | str | Type of catalogs to analyse. <br>`coadd` `gal_truth` `mof` `sof` `star_truth` `y3_gold_2_0` `y3_gold_2_2`
 | `INJ1` `INJ2` | bool | If `True` then `MATCH_CAT1` `MATCH_CAT2` are Balrog-injected. If `False` then `MATCH_CAT1` `MATCH_CAT2` are base catalogs.
-|`INJ1_PERCENT` `INJ2_PERCENT` | int | Injection percent for `MATCH_CAT1` `MATCH_CAT2`. It is important to specify these parameters even in the case of `INJ1=False` `INJ2=False` because these parameters impact directory structure.
+|`INJ1_PERCENT` `INJ2_PERCENT` | int | These are set my `ms_plotter.get_injection_percent()`. User should hardcode these if `{BASE_PATH_TO_CATS}` contains catalogs with different injection percents (for example, the Balrog run for TAMU had both 10% and 20% injections).
 | `PLOT_MAG` | bool | If `True` plots of g-, r-, i-, and z-band magnitude are created.
 | `PLOT_COLOR` | bool | If `True` colors g-r, r-i, and i-z are plotted. Creates a 2x2 grid with subplots corresponding to different magnitude bins (currently \[20,21), \[21,22), \[22,23), and \[23,24)). Magnitudes are binned according to values in `MATCH_CAT1` for the leading filter (g for g-r, etc). By default (`SWAP_HAX=False`) the color difference is calculated via color_from_match_cat1 - color_from_match_cat2. This order is reversed if `SWAP_HAX=True`.
 | `PLOT_FLUX` | bool | If `True` a 1D histogram of Delta_Flux/Sigma_Flux is plotted along with a standard Gaussian (mean=0, standard_deviation=1) and a fit to the 1D histogram. Delta_Flux is computed as truth_flux minus {SOF/MOF/coadd}\_flux. Sigma_Flux is computed using only the measured catalog (SOF/MOF/coadd).
