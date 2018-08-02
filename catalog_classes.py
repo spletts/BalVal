@@ -10,6 +10,8 @@ Comments are ABOVE the code they refer to.
 
 
 
+#TODO DeepMOF, DeepSOF will need different title-piece
+
 class CoaddCatalog():
 	"""Declare headers for coadd catalogs.
 	There is a separate catalog for each band.
