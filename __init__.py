@@ -2,9 +2,9 @@
 Imports
 """
 
+from . import outputs
+from . import set_constants
 from . import catalog_classes
-from . import calculate_injection_percent
-from . import get_catalog_headers
-from . import get_catalog 
-from . import set_plot_and_catalog_constants
 from . import ms_plotter
+from . import calculate_injection_percent
+from . import catalog_headers

@@ -50,12 +50,11 @@ import tarfile
 
 # From BalVal #
 import calculate_injection_percent
-import catalog_classes
-import get_catalog
+import get_and_match_catalogs 
+import outputs 
 ### Import list of constants ###
-import get_catalog_headers 
-from get_catalog_headers import *
-from set_plot_and_catalog_constants import *
+from catalog_headers import *
+from set_constants import *
 
 
 
@@ -97,9 +96,15 @@ if '.dat' in cmd_line_tiles[0]:
 
 
 # User must hardcode these if multiple injection density are in the same `BASE_PATH_TO_CATALOG`. Also edit `get_catalog_filename()` # 
-INJ1_PERCENT = calculate_injection_percent.get_injection_percent(cat_types=[MATCH_CAT1, MATCH_CAT2], tile=cmd_line_tiles[0], realization=cmd_line_realizations[0], balrog_run=BALROG_RUN, base_path_to_catalogs=BASE_PATH_TO_CATS)
+try:
+	INJ1_PERCENT = calculate_injection_percent.get_injection_percent(cat_types=[MATCH_CAT1, MATCH_CAT2], tile=cmd_line_tiles[0], realization=cmd_line_realizations[0], balrog_run=BALROG_RUN, base_path_to_catalogs=BASE_PATH_TO_CATS)
+except:
+	INJ1_PERCENT = None
 
-INJ2_PERCENT = calculate_injection_percent.get_injection_percent(cat_types=[MATCH_CAT1, MATCH_CAT2], tile=cmd_line_tiles[0], realization=cmd_line_realizations[0], balrog_run=BALROG_RUN, base_path_to_catalogs=BASE_PATH_TO_CATS)
+try:
+	INJ2_PERCENT = calculate_injection_percent.get_injection_percent(cat_types=[MATCH_CAT1, MATCH_CAT2], tile=cmd_line_tiles[0], realization=cmd_line_realizations[0], balrog_run=BALROG_RUN, base_path_to_catalogs=BASE_PATH_TO_CATS)
+except:
+        INJ2_PERCENT = None
 
 
 
@@ -197,8 +202,8 @@ NOTICE = raw_input('\n Check the above before running! \n --> Press enter to pro
 
 
 
-
-def get_log_filenames(tile, realization):
+#def get_log_filenames(tile, realization):
+'''
         """Generate names for log files. Relies on directory structure: /`OUTPUT_DIRECTORY`/log_files/`BALROG_RUN`/`MATCH_TYPE`/{tile}/{realization}/log_files/.
 
         Parameters
@@ -278,7 +283,7 @@ def get_log_filenames(tile, realization):
 	if PLOT_GAUSS_APER_FLUX: print '-----> Saving Gaussian aperture calculation details as: ', __fn_gauss_aper_log, '\n'
 	
 	return __fn_flag_log, __fn_mag_err_log, __fn_color_log, __fn_mag_diff_outliers_log, __fn_mag_completeness_log, __fn_gauss_aper_log, __fn_flux_sigma_clip_log, __fn_percent_recovered_log, __fn_num_objs_in_1sig_mag_log 
-
+	'''
 
 
 
@@ -338,7 +343,7 @@ def write_log_file_headers(fn_mag_err_log, fn_flag_log, fn_color_log, fn_mag_dif
 		with open(fn_percent_recovered_log, 'wb') as csvfile:
 			writer = csv.writer(csvfile, delimiter=',')
 			writer.writerow(['TILE', 'REALIZATION', 'BAND', 'TOTAL_OBJS_IN_MATCH1AND2', 'TOTAL_FLAGGED_OBJS_IN_MATCH1AND2', 'TOTAL_FLAGGED_OBJS_IN_TRUTH', '%_RECOVERED_FLAGS_IN', '%_RECOVERED_FLAGS_RM', 'RUN_TYPE'])
-	csvfile.close()
+		csvfile.close()
 
 
 	### Number of objects in 1sigma_mag_meas ###
@@ -346,7 +351,7 @@ def write_log_file_headers(fn_mag_err_log, fn_flag_log, fn_color_log, fn_mag_dif
 		with open(fn_num_objs_in_1sig_mag_log, 'wb') as csvfile:
 			writer = csv.writer(csvfile, delimiter=',')
 			writer.writerow(['TILE', 'REALIZATION', 'BAND', 'TOTAL_OBJS_IN_MATCH1AND2', 'TOTAL_FLAGGED_OBJS_IN_MATCH1AND2', 'TOTAL_OBJS_IN_1SIGMA_MAG_MEAS', 'NORMALIZED', 'RUN_TYPE'])
-	csvfile.close()
+		csvfile.close()
 
 	### Flag log? ###
 
@@ -360,7 +365,7 @@ def write_log_file_headers(fn_mag_err_log, fn_flag_log, fn_color_log, fn_mag_dif
 		else:
 			# mag_meas #
 			writer.writerow(['TILE', 'REALIZATION', 'BAND', 'NUM_OBJS_IN_BIN', 'MAG_MEAS_BIN_LHS', 'MAG_MEAS_BIN_RHS', 'MEDIAN_HAX_MAG_MEAS', 'MEDIAN_MAG_ERROR'])	
-	csvfile.close()
+		csvfile.close()
 
 
 	### Log file for color calculation ###
@@ -370,14 +375,14 @@ def write_log_file_headers(fn_mag_err_log, fn_flag_log, fn_color_log, fn_mag_dif
 			writer.writerow(['TILE', 'REALIZATION', 'COLOR', 'MAG_TRUE_BIN', 'OBJS_IN_MAG_BIN', 'TOTAL_OBJECTS_NO_FLAGS', 'RUN_TYPE'])
 		if 'truth' not in MATCH_CAT1:
 			writer.writerow(['TILE', 'REALIZATION', 'COLOR', 'MAG_MEAS_BIN', 'OBJS_IN_MAG_BIN', 'TOTAL_OBJECTS_NO_FLAGS', 'RUN_TYPE'])
-	csvfile.close()
+		csvfile.close()
 
 
 	### Log file for magnitude outliers ###
 	with open(fn_mag_diff_outliers_log, 'wb') as csvfile:
 		writer = csv.writer(csvfile, delimiter=',')
 		writer.writerow(['TILE', 'REALIZATION', 'BAND', 'MAG1', 'MAG2', 'MAG_DIFF'])
-	csvfile.close()
+		csvfile.close()
 
 
 	### Log file for magnitude completeness calculation ###
@@ -399,7 +404,7 @@ def write_log_file_headers(fn_mag_err_log, fn_flag_log, fn_color_log, fn_mag_dif
 		with open(fn_flag_log, 'wb') as csvfile:
 			writer = csv.writer(csvfile, delimiter=',')
 			writer.writerow(['TILE', 'REALIZATION', 'FLAG1_HEADER', 'FLAG2_HEADER', 'FLAG1_VALUE', 'FLAG2_VALUE', 'MAG1', 'MAG2', 'RUN_TYPE'])
-	csvfile.close()
+		csvfile.close()
 
 
 	return fn_flag_log, fn_mag_err_log, fn_color_log, fn_mag_diff_outliers_log, fn_mag_completeness_log, fn_flux_sigma_clip_log, fn_percent_recovered_log, fn_num_objs_in_1sig_mag_log
@@ -1564,10 +1569,10 @@ def get_magnitude_axlabel(inj, mag_hdr, meas_or_true_cat, match_cat, band, inj_p
 	if inj:
 		__mag_axlabel = '%s%%_inj_%s' % (inj_percent, __mag_axlabel)
 	if inj is False:
-		__mag_axlabel = '%s_' % ('base', __mag_axlabel)
+		__mag_axlabel = '%s_%s' % ('base', __mag_axlabel)
 
 
-	return __mag_axlabel
+	return __mag_axlabel.lower()
 
 
 
@@ -1593,13 +1598,8 @@ def get_color_axlabel(inj, meas_or_true_cat, match_cat, band, inj_percent):
 
 	if 'y3_gold' in match_cat:
 		__color_axlabel = '{}_{}'.format('Y3', __color_axlabel)
-	'''
-	if band == 'g': __color_axlabel = '$\\bf{(g-r)}$_' + str(meas_or_true_cat)
-        if band == 'r': __color_axlabel = '$\\bf{(r-i)}$_' + str(meas_or_true_cat)
-        if band == 'i': __color_axlabel = '$\\bf{(i-z)}$_' + str(meas_or_true_cat)
-        __color_axlabel = __pref + __color_axlabel	
-	'''
-	return __color_axlabel 
+
+	return __color_axlabel.lower() 
 
 
 
@@ -2080,7 +2080,7 @@ def get_cm_parameters(fn_unmatched_cat, cat_type):
 	if 'y3_gold' in cat_type:
 		cmParameters = get_cm_parameters_from_y3_gold_catalog(fn_unmatched_cat=fn_unmatched_cat) 
 
-	if cat_type in ('gal_truth', 'mof', 'sof'):
+	if cat_type in ('gal_truth', 'mof', 'sof', 'deep_sn_sof', 'deep_sn_mof'):
 		cmParameters = get_cm_parameters_from_mof_catalog(fn_unmatched_cat=fn_unmatched_cat)
 
 	return cmParameters 
@@ -2421,8 +2421,8 @@ def normalized_flux_difference_histogram_plotter(tile, realization, band, df_1an
         if NORMALIZE_NORM_FLUX_DIFF_VIA_DENSITY is False:
                 plt.ylabel('Count')
         plt.legend(fontsize=10).draggable()
-	if FLUX_XLOW is not None and FLUX_YHIGH is not None:
-		plt.xlim([FLUX_XLOW, FLUX_YHIGH])
+	if FLUX_XLOW is not None and FLUX_XHIGH is not None:
+		plt.xlim([FLUX_XLOW, FLUX_XHIGH])
 
 
 	'''
@@ -2702,9 +2702,9 @@ def get_total_flux_error(df_1and2, idx_good, band):
 		__flux_err2 = None
 
 	if 'y3_gold' in MATCH_CAT1:
-		__flux_err1 = np.sqrt(df_1and2[Y3_GOLD_CM_FLUX_COV_HDR+'_'+band.upper()+'_'+band.upper()+'_1'][idx_good])
+		__flux_err1 = np.sqrt(df_1and2[NEW_Y3_GOLD_CM_FLUX_COV_HDR+'_'+band.upper()+'_'+band.upper()+'_1'][idx_good])
 	if 'y3_gold' in MATCH_CAT2:
-		__flux_err2 = np.sqrt(df_1and2[Y3_GOLD_CM_FLUX_COV_HDR+'_'+band.upper()+'_'+band.upper()+'_2'][idx_good])
+		__flux_err2 = np.sqrt(df_1and2[NEW_Y3_GOLD_CM_FLUX_COV_HDR+'_'+band.upper()+'_'+band.upper()+'_2'][idx_good])
 
 	if 'y3_gold' not in MATCH_CAT1 and 'truth' not in MATCH_CAT1 and MATCH_CAT1 != 'coadd':
 		__flux_err1 = np.sqrt(np.array(get_matrix_diagonal_element(df=df_1and2, band=band, sq_matrices_hdr=CM_FLUX_COV_HDR1))[idx_good])
@@ -2766,6 +2766,8 @@ def get_magnitude_plot_variables(band, df_1and2, mag_hdr1, mag_hdr2, mag_err_hdr
         if MATCH_CAT2 in ('gal_truth', 'star_truth'):
                 percentRecoveredFlagsIncluded, percentRecoveredFlagsRemoved = get_percent_recovered(full_data=fullMag1, clean_data=cleanMag1, inj_percent=INJ2_PERCENT, band=band, tile=tile, realization=realization, fn_percent_recovered_log=fn_percent_recovered_log)
 
+	if MATCH_CAT1 not in ('gal_truth', 'star_truth') and MATCH_CAT2 not in ('gal_truth', 'star_truth'):
+		percentRecoveredFlagsIncluded, percentRecoveredFlagsRemoved = None, None
 
         ### Write flags to log file ###
         if LOG_FLAGS:
@@ -3558,7 +3560,7 @@ def get_y3_gold_catalog_magnitude(df_1and2, mag_hdr):
 
 
 
-def get_y3_gold_catalog_flux_griz(df_1and2, flux_hdr):
+def get_y3_gold_catalog_flux_griz(df_1and2, flux_hdr, flux_cov_hdr):
         """Creates a list of magnitudes of form '(mag_g, mag_r, mag_i, mag_z)'. Solely for use with Y3 Gold catalogs.
 
         Parameters
@@ -3576,15 +3578,31 @@ def get_y3_gold_catalog_flux_griz(df_1and2, flux_hdr):
 	hdr_g = flux_hdr[:-2] + '_G' + flux_hdr[-2:]; hdr_r = flux_hdr[:-2] + '_R' + flux_hdr[-2:]
 	hdr_i = flux_hdr[:-2] + '_I' + flux_hdr[-2:]; hdr_z = flux_hdr[:-2] + '_Z' + flux_hdr[-2:]
 
+	hdr_flux_cov_g = '{}_G_G{}'.format(flux_cov_hdr[:-2], flux_cov_hdr[-2:])
+	hdr_flux_cov_r = '{}_R_R{}'.format(flux_cov_hdr[:-2], flux_cov_hdr[-2:])
+	hdr_flux_cov_i = '{}_I_I{}'.format(flux_cov_hdr[:-2], flux_cov_hdr[-2:])
+	hdr_flux_cov_z = '{}_Z_Z{}'.format(flux_cov_hdr[:-2], flux_cov_hdr[-2:])
+
         # Read magnitudes from DataFrame #
         f_g = df_1and2[hdr_g]; f_r = df_1and2[hdr_r]; f_i = df_1and2[hdr_i]; f_z = df_1and2[hdr_z]
 
+
+	flux_cov_g = df_1and2[hdr_flux_cov_g]
+	flux_cov_r = df_1and2[hdr_flux_cov_r]
+	flux_cov_i = df_1and2[hdr_flux_cov_i]
+	flux_cov_z = df_1and2[hdr_flux_cov_z]
+
         __y3_gold_flux_griz = []
+	#__y3_gold_flux_cov_griz = np.empty(len(f_g))
+	__y3_gold_flux_cov_griz = []
 
         for i in np.arange(0, len(f_g)):
+		#TODO .format()
                 __y3_gold_flux_griz.append("'("+ str(f_g[i]) + ', ' + str(f_r[i]) + ', ' + str(f_i[i]) + ', ' + str(f_z[i]) + ")'")
-
-        return __y3_gold_flux_griz
+		__y3_gold_flux_cov_griz.append('({}, {}, {}, {})'.format(flux_cov_g[i], flux_cov_r[i], flux_cov_i[i], flux_cov_r[i])) 
+		
+	
+        return __y3_gold_flux_griz, __y3_gold_flux_cov_griz
 
 
 
@@ -3779,118 +3797,6 @@ def get_tamu_catalog_filename(cat_type, inj, inj_percent, realization, tile):
 
 
 
-
-def matcher(realization, tile, inj1, inj2, inj1_percent, inj2_percent):
-        """Match two catalogs on RA and DEC with a tolerance of 1 arcsecond via STILTS.
-
-        Parameters
-	----------
-	realization (str or int) -- Currently allowed values: 0 1 2 3 4 5 6 7 8 9 depending on the basepath.
-
-
-	tile (str) -- Currently allowed values: DES0347-5540  DES2329-5622  DES2357-6456 DES2247-4414 depending on the basepath.
-
-	band (str)
-
-        Returns
-	-------
-
-	__fn_match_1and2 (str) -- Name of catalog matched via join=1and2. Note that headers of matched catalogs will have '_1' appended or '_2' appended.
-
-	__fn_match_1not2 (str) -- Name of catalog matched via join=1not2.
-
-	__fn_match_2not1 (str) -- Name of catalof matched via join=2not1.
-        """
-
-        ### Get arguments to pass to ms_matcher ###
-
-        # Input catalogs for STILTS #
-	if MATCH_CAT1 is not 'coadd':
-		in1 = get_catalog.get_catalog_filename(cat_type=MATCH_CAT1, inj=inj1, inj_percent=inj1_percent, realization=realization, tile=tile, band=None, base_path_to_catalogs=BASE_PATH_TO_CATS, balrog_run=BALROG_RUN)
-	if MATCH_CAT1 == 'coadd':
-		in1 =  get_coadd_catalog_for_matcher(cat_type=MATCH_CAT1, inj_percent=inj1_percent,  realization=realization, tile=tile, mag_hdr=M_HDR1, mag_err_hdr=M_ERR_HDR1, flux_hdr=CM_FLUX_HDR1, flux_err_hdr='FLUXERR_AUTO')
-
-	if MATCH_CAT2 is not 'coadd':
-		in2 = get_catalog.get_catalog_filename(cat_type=MATCH_CAT2, inj=inj2, inj_percent=inj2_percent, realization=realization, tile=tile, band=None, base_path_to_catalogs=BASE_PATH_TO_CATS, balrog_run=BALROG_RUN)	
-	if MATCH_CAT2 == 'coadd':
-		in2 =  get_coadd_catalog_for_matcher(cat_type=MATCH_CAT2, inj_percent=inj2_percent,  realization=realization, tile=tile, mag_hdr=M_HDR2, mag_err_hdr=M_ERR_HDR2, inj=INJ2, flux_hdr='FLUX_AUTO', flux_err_hdr='FLUXERR_AUTO')
-
-
-	if VERBOSE_ING:
-		print 'Matching or already matched: \n {}\n {}'.format(in1, in2)
-
-
-	if PLOT_COMPLETENESS: 
-		### Rewrite `match_type` ###
-		if RUN_TYPE is not None:
-			__class1 = get_class(cat_type=MATCH_CAT1, cat_type_pair=MATCH_CAT2, inj_percent=inj1_percent, inj=inj1, suf='')
-		if RUN_TYPE is None:
-			__class1 = get_class(cat_type=MATCH_CAT1, cat_type_pair=MATCH_CAT2, inj_percent=inj1_percent, inj=inj1, suf='_1')
-		__class2 = get_class(cat_type=MATCH_CAT2, cat_type_pair=MATCH_CAT1, inj_percent=inj2_percent, inj=inj2, suf='_2')
-		__title1, __title2 = __class1.title_piece, __class2.title_piece,
-		match_type = get_match_type(title_piece1=__title1, title_piece2=__title2)
-
-	if PLOT_COMPLETENESS is False: 
-		match_type = MATCH_TYPE
-
-	match_dir = get_directory(tile=tile, realization=realization, low_level_dir='catalog_compare') 
-
-	# Filenames #
-        __fn_match_1and2 = os.path.join(match_dir, tile+'_'+realization+'_'+str(match_type)+'_match1and2.csv')
-	__fn_match_1not2 = os.path.join(match_dir, tile+'_'+realization+'_'+str(match_type)+'_match1not2.csv')
-	__fn_match_2not1 = os.path.join(match_dir, tile+'_'+realization+'_'+str(match_type)+'_match2not1.csv')
-
-	# Overwrite matched catalogs if one already exists? # 
-        __overwrite = False
-	if __overwrite: raw_input('`__overwrite=True` in `matcher()`. Press enter to proceed, control+c to stop')
-
-
-	### Make catalog compatible for Gaussian aperture catalog ###
-        if PLOT_GAUSS_APER_FLUX and PLOT_FLUX:
-		# Will need to rematch this catalog if Gaussian aperture columns are not present #
-		if os.path.isfile(__fn_match_1and2):
-			try:
-				df = pd.read_csv(__fn_match_1and2)
-				temp = df[GAUSS_APER_FLUX_GRIZ_HDR+'_1']
-			except:
-				__overwrite = True
-				if VERBOSE_ING: print 'Forcing overwrite to add Gaussian aperture flux measurements...'
-	
-		'''
-		# `gaussap` requires a catalog with 'id' header #
-		try:
-			temp = fitsio.read(in1)['id']
-		except:
-			fitsio.read(in1)['coadd_objects_id']
-			in1 = 
-		'''	
-
-
-		if os.path.isfile(__fn_match_1and2) is False or __overwrite:
-			if VERBOSE_ING: print 'Adding Gaussian aperture measured flux to both catalogs...'
-			# Delete these files after the matched catalog is created #
-			in1_gap_incl = add_gaussian_aperture_flux_measurements_to_catalog(fn_unmatched_cat=in1, tile=tile, realization=realization, cat_type=MATCH_CAT1)
-			in2_gap_incl = add_gaussian_aperture_flux_measurements_to_catalog(fn_unmatched_cat=in2, tile=tile, realization=realization, cat_type=MATCH_CAT2)
-			in1 = in1_gap_incl 
-			in2 = in2_gap_incl
-
-	# Check existence #
-	if os.path.isfile(__fn_match_1and2) is False or __overwrite:
-
-		### Matching done in ms_matcher. Parameters in1, in2, out, RA_HDR1, DEC_HDR1, RA_HDR2, DEC_HDR2, overwrite ###
-		# !!!!! Ensure that path to ms_matcher is correct #
-		subprocess.call(['/data/des71.a/data/mspletts/balrog_validation_tests/scripts/BalVal/ms_matcher', in1, in2, __fn_match_1and2, __fn_match_1not2, __fn_match_2not1, RA_HDR1, DEC_HDR1, RA_HDR2, DEC_HDR2])
-
-	print ' ----->', __fn_match_1and2, '\n'
-
-
-	# Delete files created for `ngmixer` once their contents are in the matched catalog #
-	if PLOT_GAUSS_APER_FLUX:
-		if os.path.isfile(__fn_match_1and2) is False or __overwrite:
-			if VERBOSE_ING: print ' Deleting {}\n {}'.format(in1_gap_incl, in2_gap_incl)
-			os.remove(in1_gap_incl); os.remove(in2_gap_incl) 
-
-        return __fn_match_1and2, __fn_match_1not2, __fn_match_2not1, in1, in2
 
 
 
@@ -4155,10 +4061,10 @@ def get_percent_recovered(full_data, clean_data, inj_percent, tile, band, realiz
 	if 'gal_truth' in (MATCH_CAT1, MATCH_CAT2):
 
 		if MATCH_CAT1 == 'gal_truth':
-			fn_truth_catalog = get_catalog.get_catalog_filename(cat_type=MATCH_CAT1, inj=INJ1, inj_percent=INJ1_PERCENT, realization=realization, tile=tile, band=band, base_path_to_catalogs=BASE_PATH_TO_CATS, balrog_run=BALROG_RUN)
+			fn_truth_catalog = get_and_match_catalogs.get_catalog_filename(cat_type=MATCH_CAT1, inj=INJ1, inj_percent=INJ1_PERCENT, realization=realization, tile=tile, band=band, base_path_to_catalogs=BASE_PATH_TO_CATS, balrog_run=BALROG_RUN)
 			__mag_hdr, __flag_hdr, __cm_flag_hdr = M_HDR1[:-2], FLAGS_HDR1[:-2], CM_FLAGS_HDR1[:-2]
 		if MATCH_CAT2 == 'gal_truth':
-			fn_truth_catalog = get_catalog.get_catalog_filename(cat_type=MATCH_CAT2, inj=INJ2, inj_percent=INJ2_PERCENT, realization=realization, tile=tile, band=band, base_path_to_catalogs=BASE_PATH_TO_CATS, balrog_run=BALROG_RUN)
+			fn_truth_catalog = get_and_match_catalogs.get_catalog_filename(cat_type=MATCH_CAT2, inj=INJ2, inj_percent=INJ2_PERCENT, realization=realization, tile=tile, band=band, base_path_to_catalogs=BASE_PATH_TO_CATS, balrog_run=BALROG_RUN)
 			__mag_hdr, __flag_hdr, __cm_flag_hdr = M_HDR2[:-2], FLAGS_HDR2[:-2], CM_FLAGS_HDR2[:-2]
 
 		# Read catalog #
@@ -4258,6 +4164,7 @@ def get_short_difference_axlabel(axlabel_a, axlabel_b, band):
 	if PLOT_FLUX:
 		__short_axlabel = __short_axlabel.replace('mag', 'flux')
 
+	__short_axlabel.lower()
 
 	# Default labels #
 	if OVERRIDE_AXLABELS:
@@ -4321,7 +4228,8 @@ def get_dataframe_and_headers(realization, tile, mag_hdr1, mag_hdr2, mag_err_hdr
 		__number_of_stacked_tiles, __number_of_stacked_realizations = None, None
 		# Filenames for catalogs #
 		if RUN_TYPE is None:
-			fn_1and2, fn_1not2, fn_2not1 = matcher(realization=realization, tile=tile, inj1=inj1, inj2=inj2, inj1_percent=inj1_percent, inj2_percent=inj2_percent)[:3]
+			#fn_1and2, fn_1not2, fn_2not1 = matcher(realization=realization, tile=tile, inj1=inj1, inj2=inj2, inj1_percent=inj1_percent, inj2_percent=inj2_percent)[:3]
+			fn_1and2, fn_1not2, fn_2not1 = get_and_match_catalogs.match_catalogs(realization=realization, tile=tile, inj1=inj1, inj2=inj2, inj1_percent=inj1_percent, inj2_percent=inj2_percent, output_directory=OUTPUT_DIRECTORY, balrog_run=BALROG_RUN, base_path_to_catalogs=BASE_PATH_TO_CATS)[:3]
 		if RUN_TYPE is not None:
 			fn_1and2, fn_1not2, fn_2not1 = fof_matcher(realization=realization, tile=tile) #FIXME
 
@@ -4364,23 +4272,28 @@ def get_dataframe_and_headers(realization, tile, mag_hdr1, mag_hdr2, mag_err_hdr
 			# Headers in Y3 Gold #
 			mhdr = M_HDR1
 			fhdr = CM_FLUX_HDR1 
+			fchdr = CM_FLUX_COV_HDR1
 			# Headers to be added to DataFrame #
 			__mag_hdr1 = NEW_Y3_GOLD_MAG_GRIZ_HDR 
 			__flux_hdr1 = NEW_Y3_GOLD_FLUX_GRIZ_HDR
+			__flux_cov_hdr1 = NEW_Y3_GOLD_CM_FLUX_COV_HDR 
 		if 'y3_gold' in MATCH_CAT2:
 			# Headers in Y3 Gold #
 			mhdr = M_HDR2
 			fhdr = CM_FLUX_HDR2 
+			fchdr = CM_FLUX_COV_HDR2
 			# Headers to be added to DataFrame #
 			__mag_hdr2 = NEW_Y3_GOLD_MAG_GRIZ_HDR 
 			__flux_hdr2 = NEW_Y3_GOLD_FLUX_GRIZ_HDR
+			__flux_cov_hdr2 = NEW_Y3_GOLD_CM_FLUX_COV_HDR
 		# Note: need magnitudes for `__idx_good` to get rid of mag=37.5 #
 		y3_gold_mag = get_y3_gold_catalog_magnitude(df_1and2=__df1and2, mag_hdr=mhdr)
 		# Add new column to df #
 		__df1and2.insert(len(__df1and2.columns), NEW_Y3_GOLD_MAG_GRIZ_HDR, y3_gold_mag)
 		if PLOT_FLUX:
-			y3_gold_flux_griz = get_y3_gold_catalog_flux_griz(df_1and2=__df1and2, flux_hdr=fhdr)
+			y3_gold_flux_griz, y3_gold_flux_cov_griz = get_y3_gold_catalog_flux_griz(df_1and2=__df1and2, flux_hdr=fhdr, flux_cov_hdr=fchdr)
 			__df1and2.insert(len(__df1and2.columns), NEW_Y3_GOLD_FLUX_GRIZ_HDR, y3_gold_flux_griz)
+			__df1and2.insert(len(__df1and2.columns), NEW_Y3_GOLD_CM_FLUX_COV_HDR, y3_gold_flux_cov_griz)
 		
 
 	if MATCH_CAT1 == 'base':
@@ -4453,7 +4366,7 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 
 			if PLOT_COMPLETENESS: numStackTile, numStackReal = len(ALL_TILES), len(ALL_REALIZATIONS)
 
-			fnFlagLog, fnMagErrLog, fnColorLog, fnMagDiffOutliersLog, fnMagCompletenessLog, fnGaussAperLog, fnFluxSigmaClipLog, fnPercentRecoveredLog, fnObjsIn1SigMagLog = get_log_filenames(tile=t, realization=r)
+			fnFlagLog, fnMagErrLog, fnColorLog, fnMagDiffOutliersLog, fnMagCompletenessLog, fnGaussAperLog, fnFluxSigmaClipLog, fnPercentRecoveredLog, fnObjsIn1SigMagLog, fnMatchLog = outputs.get_log_filenames(balrog_run=BALROG_RUN, match_type=MATCH_TYPE, output_directory=OUTPUT_DIRECTORY, tile=t, realization=r)
 
 			fnFlagLog, fnMagErrLog, fnColorLog, fnMagDiffOutliersLog, fnMagCompletenessLog, fnFluxSigmaClipLog, fnPercentRecoveredLog, fnObjsIn1SigMagLog = write_log_file_headers(fn_mag_err_log=fnMagErrLog, fn_flag_log=fnFlagLog, fn_color_log=fnColorLog, fn_mag_diff_outliers_log=fnMagDiffOutliersLog, fn_mag_completeness_log=fnMagCompletenessLog, fn_flux_sigma_clip_log=fnFluxSigmaClipLog, fn_percent_recovered_log=fnPercentRecoveredLog, fn_num_objs_in_1sig_mag_log=fnObjsIn1SigMagLog)
 
@@ -4545,7 +4458,7 @@ def get_coadd_catalog_for_matcher(cat_type, inj_percent, inj, realization, mag_h
 		# Get list of filenames #
 		fn_griz = []
 		for b in ALL_BANDS:
-			fn_griz.append(get_catalog.get_catalog_filename(cat_type=cat_type, inj=inj, inj_percent=inj_percent, realization=realization, tile=tile, band=b, base_path_to_catalogs=BASE_PATH_TO_CATS, balrog_run=BALROG_RUN))
+			fn_griz.append(get_and_match_catalogs.get_catalog_filename(cat_type=cat_type, inj=inj, inj_percent=inj_percent, realization=realization, tile=tile, band=b, base_path_to_catalogs=BASE_PATH_TO_CATS, balrog_run=BALROG_RUN))
 		fn_coadd_cat_g, fn_coadd_cat_r, fn_coadd_cat_i, fn_coadd_cat_z = fn_griz
 
 		# Get coadd magnitude (mag_c) and magnitude error to be of form '(m_g, m_r, m_i, m_z)'. Recall that this is a string #
