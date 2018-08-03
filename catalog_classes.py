@@ -1,5 +1,6 @@
 """
-Store catalog headers and properties (e.g. is the catalog Balrog-injected (if so get its injection percent), Balrog-base, measured, truth, etc).
+Store catalog headers and properties.
+e.g. is the catalog: Balrog-injected (if so get its injection percent), Balrog-base, measured, truth, etc.
 
 
 Docstrings are repeated often, but included in each function for clarity.
@@ -7,10 +8,10 @@ Docstrings are repeated often, but included in each function for clarity.
 Comments are ABOVE the code they refer to.
 """
 
+import sys
 
 
 
-#TODO DeepMOF, DeepSOF will need different title-piece
 
 class CoaddCatalog():
 	"""Declare headers for coadd catalogs.
@@ -58,6 +59,8 @@ class CoaddCatalog():
 		# Flux of each object is a single number (not an array) #
 		self.cm_flux_hdr = 'FLUX_AUTO{}'.format(suf) #FIXME not CM flux
 
+		self.flux_hdr = 'FLUX_AUTO{}'.format(suf)
+
                 # Flux covariance matrix #
 		self.cm_flux_cov_hdr = None
 
@@ -91,6 +94,176 @@ class CoaddCatalog():
                 # `angle` required by DS9 region files for ellipses (http://ds9.si.edu/doc/ref/region.html) is given by 90+THETA_J2000 #
                 # Units: degrees #
                 self.angle = 'THETA_J2000{}'.format(suf)
+
+
+
+
+class DeepSNMOFCatalog():
+	"""Declare headers for MOF catalogs.
+	Data for the headers .... are arrays of form ({data}_g, {data}_r, {data}_i, {data}_z)."""
+
+	def __init__(self, inj, inj_percent, suf, model='cm'):
+		"""Declare headers for the catalog matched via `join=1and2`. Declare descriptive constants.
+
+		Parameters
+		----------
+		inj (bool)
+			If `True` the catalog is Balrog-injected. If `False` the catalog is not Balrog-injected ('base').
+			Set by `INJ1` or `INJ2`.
+
+		inj_percent (int)
+			Considered if `inj=True`, otherwise ignored.
+			Injection density percentage for the catalog.
+			Set by `INJ1_PERCENT` or `INJ2_PERCENT`.
+			Note that a 10% injection density corresponds to 5,000 injected objects.
+
+		suf (str)
+			Allowed values: '_1', '_2'
+			Once the catalogs `MATCH_CAT1` and `MATCH_CAT2` are matched via `join=1and2` with STILTS, each header changes.
+			'hdr' --> 'hdr_1' or 'hdr' --> 'hdr_2'
+			The suffix `suf` refers to whether the catalog served as `in1` or `in2` in `ms_matcher` (where `in1`, `in2`, and `join` are STILTS parameters).
+		"""
+
+		# For plot title and filenames #
+		if inj:
+			self.title_piece = '{}% Inj Deep SN MOF Cat'.format(inj_percent)
+		if inj is False:
+			self.title_piece = 'Deep SN MOF Cat'
+		# Axes labels will include {observable}_meas #
+		self.axlabel = 'meas'
+
+		# Magnitude of each object is an array (mag_g, mag_r, mag_i, mag_z) #
+		self.mag_hdr = 'cm_mag{}'.format(suf)
+
+		self.mag_err_hdr = None
+
+		self.cm_flux_hdr = 'cm_flux{}'.format(suf)
+
+
+		# Flux covariance matrix #
+		self.cm_flux_cov_hdr = 'cm_flux_cov{}'.format(suf)
+
+		# Size squared of object. Units for cm_T: arcseconds squared #
+		self.cm_t_hdr = 'cm_T'  + str(suf)
+		self.cm_t_err_hdr = 'cm_T_err'  + str(suf)
+
+		#TODO
+		self.flux_hdr = '{}_flux{}'.format(model, suf)
+		self.mag_hdr = '{}_mag{}'.format(model, suf)
+		self.flux_err = '{}_flux_err{}'.format(model, suf)
+
+		### Flags ###
+		self.flags_hdr = 'flags{}'.format(suf)
+		self.obj_flags_hdr = 'obj_flags{}'.format(suf)
+		self.psf_flags_hdr = 'psf_flags{}'.format(suf)
+		self.cm_flags_hdr = 'cm_flags{}'.format(suf)
+		self.cm_max_flags_hdr = 'cm_max_flags{}'.format(suf)
+		self.cm_flags_r_hdr = 'cm_flags_r{}'.format(suf)
+		self.cm_mof_flags_hdr = 'cm_mof_flags{}'.format(suf)
+
+		### For region file ###
+		# Units for both RA and Dec: degrees #
+		self.ra_hdr = 'ra{}'.format(suf)
+		self.dec_hdr = 'dec{}'.format(suf)
+
+		# Semi-major axis #
+		self.a_hdr = None
+		# Semi-minor axis #
+		self.b_hdr = None
+
+		# For DS9 region file #
+		self.angle = None
+
+
+
+
+
+
+class DeepSNSOFCatalog():
+	"""Declare headers for SOF catalogs.
+	Data for the headers .... are arrays of form ({data}_g, {data}_r, {data}_i, {data}_z)."""
+
+	def __init__(self, cat_type_pair, inj, inj_percent, suf, model='cm'):
+		"""Declare headers for the catalog matched via `join=1and2`. Declare descriptive constants.
+
+		Parameters
+		----------
+		cat_type_pair (str)
+			Refers to the catalog type that will be matched with the SOF catalog in `ms_matcher`.
+			Set by `MATCH_CAT1` or `MATCH_CAT2`.
+
+		inj (bool)
+			If `True` the catalog is Balrog-injected. If `False` the catalog is not Balrog-injected ('base').
+			Set by `INJ1` or `INJ2`.
+
+		inj_percent (int)
+			Considered if `inj=True`, otherwise ignored.
+			Injection density percentage for the catalog.
+			Set by `INJ1_PERCENT` or `INJ2_PERCENT`.
+			Note that a 10% injection density corresponds to 5,000 injected objects.
+
+		suf (str)
+			Allowed values: '_1', '_2'
+			Once the catalogs `MATCH_CAT1` and `MATCH_CAT2` are matched via `join=1and2` with STILTS, each header changes.
+			'hdr' --> 'hdr_1' or 'hdr' --> 'hdr_2'
+			The suffix `suf` refers to whether the catalog served as `in1` or `in2` in `ms_matcher` (where `in1`, `in2`, and `join` are STILTS parameters).
+
+		model (str)
+		"""
+
+		# For plot title and filenames #
+		if inj:
+			self.title_piece = '{}% Inj Deep SN SOF Cat'.format(inj_percent)
+		if inj is False:
+			self.title_piece = 'Deep SN SOF Cat'
+
+		# Axes labels will include {observable}_meas #
+		self.axlabel = 'meas'
+
+		# Magnitude of each object is an array (mag_g, mag_r, mag_i, mag_z) #
+		self.mag_hdr = 'cm_mag{}'.format(suf)
+
+		if cat_type_pair == 'star_truth':
+			self.mag_hdr = 'psf_mag{}'.format(suf)
+
+		self.mag_err_hdr = None
+
+		# Flux of each object is a single number (not an array) #
+		self.cm_flux_hdr = 'cm_flux{}'.format(suf)
+
+
+		#TODO
+		self.flux_hdr = '{}_flux{}'.format(model, suf)
+		self.mag_hdr = '{}_mag{}'.format(model, suf)
+		self.flux_err = '{}_flux_err{}'.format(model, suf)
+
+		# Flux covariance matrix #
+		self.cm_flux_cov_hdr = 'cm_flux_cov{}'.format(suf)
+
+		# Size squared of object. Units for cm_T: arcseconds squared #
+		self.cm_t_hdr = 'cm_T'  + str(suf)
+		self.cm_t_err_hdr = 'cm_T_err'  + str(suf)
+
+		### Flags ###
+		self.flags_hdr = 'flags{}'.format(suf)
+		self.obj_flags_hdr = 'obj_flags{}'.format(suf)
+		self.psf_flags_hdr = 'psf_flags{}'.format(suf)
+		self.cm_flags_hdr = 'cm_flags{}'.format(suf)
+		self.cm_max_flags_hdr = 'cm_max_flags{}'.format(suf)
+		self.cm_flags_r_hdr = 'cm_flags_r{}'.format(suf)
+		self.cm_mof_flags_hdr = None
+
+                # Units for both RA and Dec: degrees #
+                self.ra_hdr = 'ra{}'.format(suf)
+                self.dec_hdr = 'dec{}'.format(suf)
+
+                # Semi-major axis #
+                self.a_hdr = None
+                # Semi-minor axis #
+                self.b_hdr = None
+
+                # For DS9 region file #
+                self.angle = None
 
 
 
@@ -287,6 +460,9 @@ class MOFCatalog():
                         Once the catalogs `MATCH_CAT1` and `MATCH_CAT2` are matched via `join=1and2` with STILTS, each header changes.
                         'hdr' --> 'hdr_1' or 'hdr' --> 'hdr_2'
                         The suffix `suf` refers to whether the catalog served as `in1` or `in2` in `ms_matcher` (where `in1`, `in2`, and `join` are STILTS parameters).
+
+		model (str)
+			Allowed values: 'cm',
 		"""
 
 		# For plot title and filenames #
@@ -366,6 +542,9 @@ class StarTruthCatalog():
                         Once the catalogs `MATCH_CAT1` and `MATCH_CAT2` are matched via `join=1and2` with STILTS, each header changes.
                         'hdr' --> 'hdr_1' or 'hdr' --> 'hdr_2'
                         The suffix `suf` refers to whether the catalog served as `in1` or `in2` in `ms_matcher` (where `in1`, `in2`, and `join` are STILTS parameters).
+
+		model (str)
+			Allowed values: 'psf'
 		"""	
 
 		if model == 'cm':
@@ -504,10 +683,9 @@ class Y3GoldCatalog():
 
 		#TODO find and replace `bandplacehold` with actual band
                 band = 'r'
-		self.flux_hdr = '{}_flux_bandplacehold{}'.format(model, suf)
-                self.flux_hdr = '{}_flux_{}{}'.format(model, band, suf)
-                self.mag_hdr = '{}_mag_{}{}'.format(model, band, suf)
-                self.flux_err_hdr = '{}_flux_err_{}{}'.format(model, band, suf)
+		self.flux_hdr = '{}_flux_bandplacehold{}'.format(y3_model, suf)
+                #self.mag_hdr = '{}_mag_{}{}'.format(y3_model, band, suf)
+                self.flux_err_hdr = '{}_flux_err_{}{}'.format(y3_model, band, suf)
                 #self.mag_err_hdr = '{}_mag_err_{}{}'.format(model, band, suf)
 
                 # Size squared of object. Units for cm_T: arcseconds squared #
