@@ -3,11 +3,11 @@ Get injection percent.
 Note that star truth catalogs and galaxy truth catalogs in the same `base_path_to_catalogs` may not have the same number of injected objects.
 """
 
-from astropy.io import fits
+import fitsio
 import os
 
 # From BalVal #
-import get_and_match_catalogs
+import manipulate_catalogs
 
 
 
@@ -38,7 +38,7 @@ def get_injection_percent(cat_types, tile, realization, base_path_to_catalogs, b
 
 
 	### Read truth catalog ###
-	data = fits.open(__fn_cat)[1].data
+	data = fitsio.read(__fn_cat, hud=1)
 	__num_rows = len(data)
 
 	# Approximate objects per tile: 50,000 #
