@@ -1,5 +1,5 @@
 """
-Labels for plots.
+Get plot labels.
 Can be overwritten if `OVERWRITE_AXLABELS=True` in `set_constants.py`.
 """
 
@@ -13,7 +13,7 @@ from catalog_headers import TITLE_PIECE1, TITLE_PIECE2
 
 def get_magnitude_axlabel(inj, mag_hdr, meas_or_true_cat, match_cat, band, inj_percent):
 	"""Get labels for the horizontal axis. 
-	Note that `'{}'.format()` does not render TeX.
+	Note that `'{}'.format()` does not render TeX reliably.
 
 	Parameters
 	----------
@@ -23,7 +23,6 @@ def get_magnitude_axlabel(inj, mag_hdr, meas_or_true_cat, match_cat, band, inj_p
 
 	mag_hdr, cm_t_hdr, cm_t_err (str) 
 		Headers in the matched catalog that refer to the magnitude, cm_T (size), and cm_T error.
-
 	match_cat (str)
 		Catalog containing the data the hax_label describes. Set by `MATCH_CAT1` or `MATCH_CAT2`. 
 	band (str)
@@ -135,7 +134,8 @@ def get_short_difference_axlabel(axlabel_a, axlabel_b, band):
 
 
 	if PLOT_FLUX:
-		__short_axlabel = __short_axlabel.replace('mag', 'flux')
+		__short_axlabel = '%s/$\sigma_{flux\_meas}$' % __short_axlabel.replace('mag', 'flux')
+		
 
 
 	# Default labels #
@@ -188,4 +188,52 @@ def get_plot_suptitle(realization, tile, number_of_stacked_realizations, number_
 		__plot_title = 'Normalized. ' + __plot_title 
 
 	return __plot_title 
+
+
+
+def get_colorbar_for_magnitude_plot_axlabel(df_1and2, cm_t_hdr, cm_t_err_hdr, idx_good, clean_mag1, clean_mag2, meas_or_true_cat, inj_percent, inj):
+	"""Get the label for the colorbar of the magnitude plot.
+	This function will return `None` if no colorbar is to be added to the plot.
+
+	Parameters
+	----------
+	df_1and2 (pandas DataFrame)
+		DataFrame for the matched (join=1and2) catalog.
+
+	cm_t_hdr, cm_t_err_hdr (str)
+		Matched (join=1and2) catalog headers for cm_T (size squared) and cm_T_err. Can be `None`.
+		idx_good (list of ints)
+		Indices of objects without flags.		
+
+	clean_mag1, clean_mag2 (list of floats)
+		meas_or_true_cat (str)
+		Allowed values: 'true' 'meas'	
+
+	Returns
+	-------
+	__cbar_label (str)
+		Label for colorbar. Includes LaTeX \bf{} formatting. Can be `None`.
+	"""
+
+	if 'true' in meas_or_true_cat:
+		sys.exit('ERROR. Colorbars should describe measured catalog values, not truth catalog values.')
+
+
+	### Colorbar label ###
+	# Prefix to labels #
+	if inj:
+		pref = '{}%_inj'.format(inj_percent)
+	if inj is False:
+		pref = 'base'
+	if 'y3_gold' in match_cat:
+		pref = 'Y3_{}'.format(pref)
+
+	# `[:-2]` to remove the suffix '_1' or '_2' from the header #
+	if CM_T_CBAR:
+		__cbar_label = '{}_{}_{}'.format(pref, cm_t_hdr[:-2], meas_or_true_cat)
+	if CM_T_ERR_CBAR:
+		__cbar_label = '{}_{}_{}'.format(pref, cm_t_err_hdr[:-2], meas_or_true_cat)
+
+
+	return __cbar_label
 
