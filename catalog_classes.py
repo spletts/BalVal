@@ -65,7 +65,7 @@ class CoaddCatalog():
 		self.cm_flux_cov_hdr = None
 
 		#TODO
-		self.flux_err = 'FLUXERR_AUTO{}'.format(suf)
+		self.flux_err_hdr = 'FLUXERR_AUTO{}'.format(suf)
 
 		# Size squared of object. Units for cm_T: arcseconds squared #
 		self.cm_t_hdr = None
@@ -150,7 +150,7 @@ class DeepSNMOFCatalog():
 		#TODO
 		self.flux_hdr = '{}_flux{}'.format(model, suf)
 		self.mag_hdr = '{}_mag{}'.format(model, suf)
-		self.flux_err = '{}_flux_err{}'.format(model, suf)
+		self.flux_err_hdr = '{}_flux_err{}'.format(model, suf)
 
 		### Flags ###
 		self.flags_hdr = 'flags{}'.format(suf)
@@ -235,7 +235,7 @@ class DeepSNSOFCatalog():
 		#TODO
 		self.flux_hdr = '{}_flux{}'.format(model, suf)
 		self.mag_hdr = '{}_mag{}'.format(model, suf)
-		self.flux_err = '{}_flux_err{}'.format(model, suf)
+		self.flux_err_hdr = '{}_flux_err{}'.format(model, suf)
 
 		# Flux covariance matrix #
 		self.cm_flux_cov_hdr = 'cm_flux_cov{}'.format(suf)
@@ -317,7 +317,7 @@ class GalaxyTruthCatalog():
 		#TODO
 		self.flux_hdr = '{}_flux{}'.format(model, suf)
 		self.mag_hdr = '{}_mag{}'.format(model, suf)
-		self.flux_err = '{}_flux_err{}'.format(model, suf)
+		self.flux_err_hdr = '{}_flux_err{}'.format(model, suf)
 
 		# Flux covariance matrix #
 		self.cm_flux_cov_hdr = 'cm_flux_cov{}'.format(suf)
@@ -403,7 +403,7 @@ class SOFCatalog():
 		#TODO
 		self.flux_hdr = '{}_flux{}'.format(model, suf)
                 self.mag_hdr = '{}_mag{}'.format(model, suf)
-                self.flux_err = '{}_flux_err{}'.format(model, suf)
+                self.flux_err_hdr = '{}_flux_err{}'.format(model, suf)
 
                 # Flux covariance matrix #
 		self.cm_flux_cov_hdr = 'cm_flux_cov{}'.format(suf)
@@ -491,7 +491,7 @@ class MOFCatalog():
 		#TODO
                 self.flux_hdr = '{}_flux{}'.format(model, suf)
                 self.mag_hdr = '{}_mag{}'.format(model, suf)
-                self.flux_err = '{}_flux_err{}'.format(model, suf)
+                self.flux_err_hdr = '{}_flux_err{}'.format(model, suf)
 
                 ### Flags ###
 		self.flags_hdr = 'flags{}'.format(suf)
