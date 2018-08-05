@@ -418,7 +418,6 @@ def get_percent_recovered(full_data, clean_data, inj_percent, tile, band, realiz
 			__mag_hdr, __flag_hdr, __cm_flag_hdr = M_HDR2[:-2], FLAGS_HDR2[:-2], CM_FLAGS_HDR2[:-2]
 
 		# Read catalog #
-		#data = fits.open(fn_truth_catalog)[1].data
 		data = fitsio.read(fn_truth_catalog, hud=1)
 		truth_magnitude_griz = data[__mag_hdr]
 
@@ -459,3 +458,18 @@ def get_percent_recovered(full_data, clean_data, inj_percent, tile, band, realiz
 
 
 	return __percent_recovered_flags_in, __percent_recovered_flags_rm 
+
+
+
+
+def get_colorbar_data():
+	"""Get colorbar for magnitude plot.
+
+	Parameters
+	----------
+
+	Returns
+	-------
+	"""
+
+	return 0
