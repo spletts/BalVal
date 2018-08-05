@@ -127,6 +127,7 @@ CM_FLUX_HDR1, CM_FLUX_HDR2 = CLASS1.cm_flux_hdr, CLASS2.cm_flux_hdr
 CM_FLUX_COV_HDR1, CM_FLUX_COV_HDR2 = CLASS1.cm_flux_cov_hdr, CLASS2.cm_flux_cov_hdr
 
 FLUX_HDR1, FLUX_HDR2 = CLASS1.flux_hdr, CLASS2.flux_hdr
+FLUX_ERR_HDR1, FLUX_ERR_HDR2 = CLASS1.flux_err_hdr, CLASS2.flux_err_hdr
 
 # For signal to noise calculation #
 CM_T_HDR1, CM_T_HDR2 = CLASS1.cm_t_hdr, CLASS2.cm_t_hdr
