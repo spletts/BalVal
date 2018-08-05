@@ -7,6 +7,7 @@ TODO search for get_directory
 
 from collections import OrderedDict
 import csv
+import numpy as np
 import os
 import sys
 
@@ -14,7 +15,12 @@ from set_constants import *
 
 
 PLOT_TYPES = OrderedDict({'cornerhist2d':CORNER_HIST_2D, 'scatter':SCATTER, 'hist2d':HIST_2D, 'completeness':PLOT_COMPLETENESS, 'cbar_cm_t':CM_T_CBAR, 'cbar_cm_t_err':CM_T_ERR_CBAR, 'hexbin':HEXBIN})
-
+if PLOT_FLUX is False:
+	# Find which plot type is `True`. Note if `PLOT_FLUX` these are all `False` #
+	IDX = np.where(PLOT_TYPES.values())[0][0]
+	DISPLAY = PLOT_TYPES.keys()[IDX]
+if PLOT_FLUX:
+	DISPLAY = 'histogram'
 
 
 
@@ -150,8 +156,8 @@ def get_color_plot_filename(balrog_run, match_type, output_directory, realizatio
 	plotDirectory = get_directory(tile=tile, realization=realization, low_level_dir=['plots', 'color'], output_directory=output_directory, balrog_run=balrog_run, match_type=match_type)
 
 	# Find which plot type is `True` #
-	__idx = np.where(PLOT_TYPES.values())[0]
-	__plot_type = PLOT_TYPES.keys()[__idx]
+	__idx = np.where(PLOT_TYPES.values())[0][0] #FIXME use const at top
+	__plot_type = DISPLAY 
 
 
 	if COLOR_YLOW is None and COLOR_YHIGH is None:
@@ -228,7 +234,7 @@ def get_magnitude_plot_filename(balrog_run, match_type, output_directory, realiz
 
 	# Find which plot type is `True` #
 	__idx = np.where(PLOT_TYPES.values())[0][0]
-	__plot_type = PLOT_TYPES.keys()[__idx]
+	__plot_type = DISPLAY 
 
 	if MAG_YLOW is None and MAG_YHIGH is None:
 		# Default scale for the vertical axis (vax) #
@@ -481,14 +487,6 @@ def write_log_file_headers(fn_mag_err_log, fn_flag_log, fn_color_log, fn_mag_dif
 		writer = csv.writer(csvfile, delimiter=',')
 		writer.writerow(['TILE', 'REALIZATION', 'BAND', 'GAUSSIAN_APER_APPLIED', 'NUM_OBJS_FLAGS_RM', 'NUM_OBJS_CLIPPED']) 
 	csvfile.close()
-
-
-	### Log file for flags... ###
-	if LOG_FLAGS:
-		with open(fn_flag_log, 'wb') as csvfile:
-			writer = csv.writer(csvfile, delimiter=',')
-			writer.writerow(['TILE', 'REALIZATION', 'FLAG1_HEADER', 'FLAG2_HEADER', 'FLAG1_VALUE', 'FLAG2_VALUE', 'MAG1', 'MAG2', 'RUN_TYPE'])
-		csvfile.close()
 
 
 	return fn_flag_log, fn_mag_err_log, fn_color_log, fn_mag_diff_outliers_log, fn_mag_completeness_log, fn_flux_sigma_clip_log, fn_percent_recovered_log, fn_num_objs_in_1sig_mag_log
