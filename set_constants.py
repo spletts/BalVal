@@ -13,17 +13,17 @@ import calculate_injection_percent
 ALL_BANDS = ['g', 'r', 'i', 'z']
 
 ### For catalogs ###
-MATCH_CAT1, MATCH_CAT2 = 'deep_sn_sof', 'y3_gold_2_2'
-INJ1, INJ2 = False, False 
-
+MATCH_CAT1, MATCH_CAT2 = 'gal_truth', 'mof'
+INJ1, INJ2 = True, True 
+NOTICE = False
 
 ### For plots ###
 # Observable #
 PLOT_COLOR = False
-PLOT_FLUX = False
-PLOT_MAG = True
+PLOT_FLUX = True
+PLOT_MAG = False
 
-SAVE_PLOT = False
+SAVE_PLOT = True
 SHOW_PLOT = True
 
 # Display magnitude #
@@ -31,12 +31,14 @@ PLOT_COMPLETENESS = False
 HIST_2D = False
 HEXBIN = False
 # Can be used for color plot and magnitude plot #
-CORNER_HIST_2D = True 
+CORNER_HIST_2D = False 
 SCATTER = False
 
 # For flux plots #
-PLOT_GAUSS_APER_FLUX = False
-PLOT_CM_FLUX = True
+PLOT_GAUSS_APER_FLUX = True
+PLOT_CM_FLUX = False
+PLOT_GAUSSIAN_FIT = False
+PLOT_PEAK = True
 TRIM_NORM_FLUX_DIFF = False
 NORMALIZE_NORM_FLUX_DIFF_VIA_DENSITY = True
 RAW_NORM_FLUX_DIFF = False
@@ -54,12 +56,12 @@ CM_T_CBAR = False
 
 MAG_YLOW, MAG_YHIGH = -1, 1 
 COLOR_YLOW, COLOR_YHIGH = None, None
-FLUX_XLOW, FLUX_XHIGH = -7, 7
+FLUX_XLOW, FLUX_XHIGH = -8, 8 
 
 STACK_REALIZATIONS = False
 STACK_TILES = False
 
-OVERRIDE_AXLABELS = True
+OVERRIDE_AXLABELS = False
 
 VERBOSE_ING = True
 VERBOSE_ED = True
