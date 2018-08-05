@@ -6,6 +6,7 @@ TODO search for get_directory
 """
 
 from collections import OrderedDict
+import csv
 import os
 import sys
 
@@ -148,9 +149,9 @@ def get_color_plot_filename(balrog_run, match_type, output_directory, realizatio
 
 	plotDirectory = get_directory(tile=tile, realization=realization, low_level_dir=['plots', 'color'], output_directory=output_directory, balrog_run=balrog_run, match_type=match_type)
 
-        # Find which plot type is `True` #
-        __idx = np.where(PLOT_TYPES.values())
-        __plot_type = PLOT_TYPES.keys()[__idx]
+	# Find which plot type is `True` #
+	__idx = np.where(PLOT_TYPES.values())[0]
+	__plot_type = PLOT_TYPES.keys()[__idx]
 
 
 	if COLOR_YLOW is None and COLOR_YHIGH is None:
@@ -158,14 +159,14 @@ def get_color_plot_filename(balrog_run, match_type, output_directory, realizatio
 	if COLOR_YLOW is not None and COLOR_YHIGH is not None:
 		ylim = '{}y{}'.format(COLOR_YLOW, COLOR_YHIGH)
 
-        if RUN_TYPE is None:
-                endname = '{}_{}_{}_{}_{}_{}.png'.format(tile, realization, match_type, 'placehold', __plot_type, ylim)
-        if RUN_TYPE is not None:
-                endname = '{}_{}_{}_{}_{}_{}_{}.png'.format(tile, realization, match_type, RUN_TYPE, 'placehold', __plot_type, ylim)
+	if RUN_TYPE is None:
+		__fn_end = '{}_{}_{}_{}_{}_{}.png'.format(tile, realization, match_type, 'placehold', __plot_type, ylim)
+	if RUN_TYPE is not None:
+		__fn_end = '{}_{}_{}_{}_{}_{}_{}.png'.format(tile, realization, match_type, RUN_TYPE, 'placehold', __plot_type, ylim)
 
 
         ### Get complete filename (including path) ###
-        __fn_plot = os.path.join(plotDirectory, endname)
+        __fn_plot = os.path.join(plotDirectory, __fn_end)
 
 	return __fn_plot
 
@@ -182,7 +183,7 @@ def get_flux_plot_filename(balrog_run, match_type, output_directory, realization
         -------
         """
 
-	plotDirectory = get_directory(tile=tile, realization=realization, low_level_dir=['plots', 'color'], output_directory=output_directory, balrog_run=balrog_run, match_type=match_type)
+	plotDirectory = get_directory(tile=tile, realization=realization, low_level_dir=['plots', 'flux'], output_directory=output_directory, balrog_run=balrog_run, match_type=match_type)
 
 	if PLOT_GAUSS_APER_FLUX and SIGMA_CLIP_NORM_FLUX_DIFF:
 		plot_type = '{}_sigma_clip_gauss_aper_norm_flux_diff_histogram'.format(int(N))
@@ -196,7 +197,7 @@ def get_flux_plot_filename(balrog_run, match_type, output_directory, realization
 
 	if FLUX_XLOW is None and FLUX_XHIGH is None:
 		xlim = ''
-	if FLUX_LOW is not None and FLUX_XHIGH is not None:
+	if FLUX_XLOW is not None and FLUX_XHIGH is not None:
 		xlim = '{}y{}'.format(FLUX_XLOW, FLUX_XHIGH)
 
 
@@ -223,10 +224,10 @@ def get_magnitude_plot_filename(balrog_run, match_type, output_directory, realiz
         -------
         """
 
-	plotDirectory = get_directory(tile=tile, realization=realization, low_level_dir=['plots', 'color'], output_directory=output_directory, balrog_run=balrog_run, match_type=match_type)
+	plotDirectory = get_directory(tile=tile, realization=realization, low_level_dir=['plots', 'magnitude'], output_directory=output_directory, balrog_run=balrog_run, match_type=match_type)
 
 	# Find which plot type is `True` #
-	__idx = np.where(PLOT_TYPES.values())
+	__idx = np.where(PLOT_TYPES.values())[0][0]
 	__plot_type = PLOT_TYPES.keys()[__idx]
 
 	if MAG_YLOW is None and MAG_YHIGH is None:
@@ -272,15 +273,15 @@ def get_plot_filename(balrog_run, match_type, output_directory, realization, til
         """
 
 	if PLOT_COLOR:
-		__fn_plot = get_color_plot_filename(output_directory=output_directory, realization=realization)
+		__fn_plot = get_color_plot_filename(balrog_run=balrog_run, match_type=match_type, output_directory=output_directory, realization=realization, tile=tile)
 
 
 	if PLOT_FLUX:
-		__fn_plot = get_flux_plot_filename(output_directory=output_directory, realization=realization)
+		__fn_plot = get_flux_plot_filename(balrog_run=balrog_run, match_type=match_type, output_directory=output_directory, realization=realization, tile=tile)
 
 
 	if PLOT_MAG:
-		__fn_plot = get_magnitude_plot_filename(output_directory=output_directory, realization=realization)
+		__fn_plot = get_magnitude_plot_filename(balrog_run=balrog_run, match_type=match_type, output_directory=output_directory, realization=realization, tile=tile)
 
 
 	'''
@@ -362,7 +363,7 @@ def get_matched_catalog_filenames(balrog_run, match_type, output_directory, real
 
 
 
-def get_ngmix_compatible_catalog_filename(balrog_run, match_type, output_directory, realization, tile):
+def get_ngmix_compatible_catalog_filename(balrog_run, fn_unmatched_cat, match_type, output_directory, realization, tile):
 	"""
 
 	Parameters
@@ -403,3 +404,91 @@ def get_reformatted_coadd_catalog_filename(balrog_run, match_type, output_direct
 	__fn_coadd_for_matcher = os.path.join(catalogFileDirectory, '{}_i_cat_reformatted.fits'.format(tile))
 
 	return __fn_coadd_for_matcher 
+
+
+
+def make_region_files():
+
+
+	return 0
+
+
+def write_log_file_headers(fn_mag_err_log, fn_flag_log, fn_color_log, fn_mag_diff_outliers_log, fn_mag_completeness_log, fn_flux_sigma_clip_log, fn_percent_recovered_log, fn_num_objs_in_1sig_mag_log):
+	"""Write headers to log files.
+
+	Parameters
+	----------
+	Returns
+	-------
+	"""
+
+	### Percent recovered log ###
+	if MATCH_CAT1 in ('gal_truth', 'star_truth') or MATCH_CAT2 in ('gal_truth', 'star_truth'):
+		with open(fn_percent_recovered_log, 'wb') as csvfile:
+			writer = csv.writer(csvfile, delimiter=',')
+			writer.writerow(['TILE', 'REALIZATION', 'BAND', 'TOTAL_OBJS_IN_MATCH1AND2', 'TOTAL_FLAGGED_OBJS_IN_MATCH1AND2', 'TOTAL_FLAGGED_OBJS_IN_TRUTH', '%_RECOVERED_FLAGS_IN', '%_RECOVERED_FLAGS_RM', 'RUN_TYPE'])
+		csvfile.close()
+
+
+	### Number of objects in 1sigma_mag_meas ###
+	if PLOT_MAG:
+		with open(fn_num_objs_in_1sig_mag_log, 'wb') as csvfile:
+			writer = csv.writer(csvfile, delimiter=',')
+			writer.writerow(['TILE', 'REALIZATION', 'BAND', 'TOTAL_OBJS_IN_MATCH1AND2', 'TOTAL_FLAGGED_OBJS_IN_MATCH1AND2', 'TOTAL_OBJS_IN_1SIGMA_MAG_MEAS', 'NORMALIZED', 'RUN_TYPE'])
+		csvfile.close()
+
+	### Flag log? ###
+
+
+	### Log for magnitude error calculation ###
+	with open(fn_mag_err_log, 'wb') as csvfile:
+		writer = csv.writer(csvfile, delimiter=',')
+		if ('truth' in MATCH_CAT1 and SWAP_HAX is False) or ('truth' in MATCH_CAT2 and SWAP_HAX):
+			# mag_true #
+			writer.writerow(['TILE', 'REALIZATION', 'BAND', 'NUM_OBJS_IN_BIN', 'MAG_TRUE_BIN_LHS', 'MAG_TRUE_BIN_RHS', 'MEDIAN_HAX_MAG_TRUE', 'MEDIAN_MAG_ERROR'])
+		else:
+			# mag_meas #
+			writer.writerow(['TILE', 'REALIZATION', 'BAND', 'NUM_OBJS_IN_BIN', 'MAG_MEAS_BIN_LHS', 'MAG_MEAS_BIN_RHS', 'MEDIAN_HAX_MAG_MEAS', 'MEDIAN_MAG_ERROR'])	
+	csvfile.close()
+
+
+	### Log file for color calculation ###
+	with open(fn_color_log, 'wb') as csvfile:
+		writer = csv.writer(csvfile, delimiter=',')
+		if 'truth' in MATCH_CAT1:
+			writer.writerow(['TILE', 'REALIZATION', 'COLOR', 'MAG_TRUE_BIN', 'OBJS_IN_MAG_BIN', 'TOTAL_OBJECTS_NO_FLAGS', 'RUN_TYPE'])
+		if 'truth' not in MATCH_CAT1:
+			writer.writerow(['TILE', 'REALIZATION', 'COLOR', 'MAG_MEAS_BIN', 'OBJS_IN_MAG_BIN', 'TOTAL_OBJECTS_NO_FLAGS', 'RUN_TYPE'])
+	csvfile.close()
+
+
+	### Log file for magnitude outliers ###
+	with open(fn_mag_diff_outliers_log, 'wb') as csvfile:
+		writer = csv.writer(csvfile, delimiter=',')
+		writer.writerow(['TILE', 'REALIZATION', 'BAND', 'MAG1', 'MAG2', 'MAG_DIFF'])
+	csvfile.close()
+
+
+	### Log file for magnitude completeness calculation ###
+	with open(fn_mag_completeness_log, 'wb') as csvfile:
+		writer = csv.writer(csvfile, delimiter=',')
+		writer.writerow(['TILE', 'REALIZATION', 'BAND', 'INJ_PERCENT', 'TRUTH_MAG_BIN_LHS', 'TRUTH_MAG_BIN_RHS', 'MATCH_CAT_OBJS_IN_BIN', 'TRUTH_CAT_OBJS_IN_BIN'])
+	csvfile.close()
+
+
+	### Log file for sigma clipping done in `()` ###
+	with open(fn_flux_sigma_clip_log, 'wb') as csvfile:
+		writer = csv.writer(csvfile, delimiter=',')
+		writer.writerow(['TILE', 'REALIZATION', 'BAND', 'GAUSSIAN_APER_APPLIED', 'NUM_OBJS_FLAGS_RM', 'NUM_OBJS_CLIPPED']) 
+	csvfile.close()
+
+
+	### Log file for flags... ###
+	if LOG_FLAGS:
+		with open(fn_flag_log, 'wb') as csvfile:
+			writer = csv.writer(csvfile, delimiter=',')
+			writer.writerow(['TILE', 'REALIZATION', 'FLAG1_HEADER', 'FLAG2_HEADER', 'FLAG1_VALUE', 'FLAG2_VALUE', 'MAG1', 'MAG2', 'RUN_TYPE'])
+		csvfile.close()
+
+
+	return fn_flag_log, fn_mag_err_log, fn_color_log, fn_mag_diff_outliers_log, fn_mag_completeness_log, fn_flux_sigma_clip_log, fn_percent_recovered_log, fn_num_objs_in_1sig_mag_log
