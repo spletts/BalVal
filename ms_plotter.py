@@ -1504,9 +1504,9 @@ def normalized_flux_difference_histogram_plotter(tile, realization, band, df_1an
 	if SIGMA_CLIP_NORM_FLUX_DIFF:
 		### N-sigma clip ###
 		try:
-			masked_clipped_norm_flux_diff = sigma_clip(normFluxDiff, sigma=N)
+			masked_clipped_norm_flux_diff = sigma_clip(normFluxDiff, sigma=N, iters=NUM_ITERS)
 		except:
-			masked_clipped_norm_flux_diff = sigma_clip(normFluxDiff, sig=N)
+			masked_clipped_norm_flux_diff = sigma_clip(normFluxDiff, sig=N, iters=NUM_ITERS)
 		# Remove masked objects that did not survive clipping #
 		clipped_norm_flux_diff = masked_clipped_norm_flux_diff.data[~masked_clipped_norm_flux_diff.mask]
 
@@ -1560,7 +1560,7 @@ def normalized_flux_difference_histogram_plotter(tile, realization, band, df_1an
 
 
 	# Note: this is the peak of the raw distribution #
-	if PLOT_PEAK:
+	if PLOT_PEAKS:
 		### Get median of data. Get x-value corresponding to peak of data distribution ###
 		__bin_size, __bin_edges = np.histogram(normFluxDiff, __flux_hist_bins, density=NORMALIZE_NORM_FLUX_DIFF_VIA_DENSITY)
 		# Find bin with max counts #

@@ -1,10 +1,11 @@
 """
-Set constants that describe the catalogs.
-Set constants that determine the plot.
-Set color coding of plot.
+Set constants that determine the catalogs.
+Set constants that describe plot attributes.
+Set the color coding of plot.
 See 'Table of Constants' in README.md (https://github.com/spletts/BalVal/blob/master/README.md)
 Catches error.
-Displays properties.
+
+Comments are ABOVE the code they refer to.
 """
 
 import numpy as np
@@ -26,29 +27,32 @@ PLOT_COLOR = False
 PLOT_FLUX = True
 PLOT_MAG = False
 
-SAVE_PLOT = True
+SAVE_PLOT = False
 SHOW_PLOT = True
 
-# Display magnitude #
-PLOT_COMPLETENESS = False
+# Display #
 HIST_2D = False
 HEXBIN = False
 # Can be used for color plot and magnitude plot #
 CORNER_HIST_2D = False 
 SCATTER = False
+COLOR_YLOW, COLOR_YHIGH = None, None
 
 # For flux plots #
 PLOT_GAUSS_APER_FLUX = True
-PLOT_CM_FLUX = False
-PLOT_GAUSSIAN_FIT = False
-PLOT_PEAK = True
+PLOT_CM_FLUX = True
+PLOT_GAUSSIAN_FIT = True
+PLOT_PEAKS = False
 TRIM_NORM_FLUX_DIFF = False
 NORMALIZE_NORM_FLUX_DIFF_VIA_DENSITY = True
 RAW_NORM_FLUX_DIFF = False
 SIGMA_CLIP_NORM_FLUX_DIFF = True
 N = 3.0
+NUM_ITERS = None #20
+FLUX_XLOW, FLUX_XHIGH = -8, 8
 
 # For magnitude plots #
+PLOT_COMPLETENESS = False
 NORMALIZE = False
 PLOT_68P = True
 PLOT_34P_SPLIT = True
@@ -56,21 +60,16 @@ PLOT_MAG_ERR = True
 CENTER_ERR_ABT_ZERO = False
 CM_T_ERR_CBAR = False
 CM_T_CBAR = False
+MAG_YLOW, MAG_YHIGH = -1, 1
 
-MAG_YLOW, MAG_YHIGH = -1, 1 
-COLOR_YLOW, COLOR_YHIGH = None, None
-FLUX_XLOW, FLUX_XHIGH = -8, 8 
 
 STACK_REALIZATIONS = False
 STACK_TILES = False
 
-OVERRIDE_AXLABELS = False
+OVERWRITE_AXLABELS = False
 
 VERBOSE_ING = True
 VERBOSE_ED = True
-
-# FOF analysis #
-RUN_TYPE = None
 
 SWAP_HAX = False
 SWAP_ORDER_OF_SUBTRACTION = False
@@ -78,6 +77,7 @@ SWAP_ORDER_OF_SUBTRACTION = False
 
 # Defaults overwritten if necessary #
 Y3_MODEL, Y3_FIT = 'CM', None
+
 
 ### Handle nonsensical combinations ###
 
@@ -102,10 +102,9 @@ if RUN_TYPE is None:
 if RUN_TYPE is not None:
 	if VERBOSE_ING: print 'Doing FOF analysis ... \n '
         # Overwrite MATCH_CATs #
-        if MOF:
-                MATCH_CAT1, MATCH_CAT2 = 'mof', 'mof'
-        if MOF is False:
-                MATCH_CAT1, MATCH_CAT2 = 'sof', 'sof'
+	#NOTE set me 
+        FOF_FIT = 'mof'
+	MATCH_CAT1, MATCH_CAT2 = FOF_FIT, FOF_FIT
 
 
 # Only refers to printouts within get_floats_from_string(), get_matrix_diagonal_element(), and bin_and_cut_measured_magnitude_error() # 
@@ -154,7 +153,6 @@ COMPLETENESS_MAG_BINS = np.arange(15, 30, 1)
 COMPLETENESS_PLOT_MAG_BINS = []
 for i in np.arange(0, len(COMPLETENESS_MAG_BINS)-1):
         COMPLETENESS_PLOT_MAG_BINS.append(np.median([COMPLETENESS_MAG_BINS[i], COMPLETENESS_MAG_BINS[i+1]]))
-
 
 
 
