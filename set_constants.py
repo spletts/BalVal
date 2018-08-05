@@ -3,9 +3,12 @@ Set constants that describe the catalogs.
 Set constants that determine the plot.
 Set color coding of plot.
 See 'Table of Constants' in README.md (https://github.com/spletts/BalVal/blob/master/README.md)
+Catches error.
+Displays properties.
 """
 
 import numpy as np
+import sys
 
 # From BalVal #
 import calculate_injection_percent
@@ -15,7 +18,7 @@ ALL_BANDS = ['g', 'r', 'i', 'z']
 ### For catalogs ###
 MATCH_CAT1, MATCH_CAT2 = 'gal_truth', 'mof'
 INJ1, INJ2 = True, True 
-NOTICE = False
+NOTICE = True
 
 ### For plots ###
 # Observable #
@@ -153,5 +156,70 @@ for i in np.arange(0, len(COMPLETENESS_MAG_BINS)-1):
         COMPLETENESS_PLOT_MAG_BINS.append(np.median([COMPLETENESS_MAG_BINS[i], COMPLETENESS_MAG_BINS[i+1]]))
 
 
-# Used if LOG_FLAGS is True #
-FLAG_IDX = []
+
+
+
+def catch_error(cmd_line_realizations, cmd_line_tiles):
+	"""Find errors created by setting parameters and command line arguments in an incompatible way."""
+
+	__err_msg = None
+
+	if cmd_line_realizations[0] == 'None' and INJ1 and INJ2: __err_msg = 'Realization of None at cmd line must be used with INJ1=True ot INJ2=True'
+
+	if STACK_REALIZATIONS and len(cmd_line_realizations) == 1: __err_msg = 'STACK_REALIZATIONS must be used with multiple realizations'
+	#if STACK_REALIZATIONS and realizations[0] != 'all': __err_msg = 'STACK_REALIZATIONS is True must be used with realization = all'
+	if STACK_TILES and ('.dat' not in cmd_line_tiles[0] and len(cmd_line_tiles) == 1): __err_msg = 'STACK_TILES must be used with multiple tiles'
+	if MAG_YLOW is not None and MAG_YHIGH is not None and MAG_YHIGH == MAG_YLOW: __err_msg = 'MAG_YLOW and MAG_YHIGH cannot be equal'
+	if NORMALIZE and PLOT_MAG_ERR is False: __err_msg = 'If NORMALIZE is True so must be PLOT_MAG_ERR'
+
+	if NORMALIZE and PLOT_COLOR: __err_msg = 'Script not equipped to normalize color plots'
+
+	if PLOT_FLUX is False and PLOT_COLOR is False and PLOT_MAG is False: __err_msg = 'Must plot one observable'
+
+	if PLOT_FLUX and PLOT_GAUSS_APER_FLUX:
+		if 'star_truth' in (MATCH_CAT1, MATCH_CAT2): 
+			__err_msg = 'Star truth catalogs do not have the necessary  headers to perform Gaussian aperture flux measurement'
+		if  'coadd' in (MATCH_CAT1, MATCH_CAT2):
+                        __err_msg = 'Coadd catalogs do not have the necessary headers to perform Gaussian aperture flux measurement'
+
+	# Colorbar errors #
+	cbar_counter = 0
+	if HEXBIN: cbar_counter += 1
+	if CM_T_ERR_CBAR: cbar_counter += 1
+	if HIST_2D: cbar_counter += 1
+	if CORNER_HIST_2D: cbar_counter += 1
+	if CM_T_CBAR: cbar_counter += 1 
+	#TODO add NORMALIZE
+	if cbar_counter > 1: __err_msg = 'Only one colorbar can be used. Edit HEXBIN, CM_T_ERR_CBAR, HIST_2D, CM_T_CBAR'
+
+	if INJ1 is False and INJ2 is False and cmd_line_realizations[0] != 'None': __err_msg = 'If INJ1 and INJ2 are False realizations must be None at cmd line'
+
+	if ('truth' in MATCH_CAT1 and INJ1 is False) or ('truth' in MATCH_CAT2 and INJ2 is False): __err_msg = 'Truth catalogs are injected'
+
+	if PLOT_COMPLETENESS and 'truth' not in MATCH_CAT1 and 'truth' not in MATCH_CAT2: __err_msg = 'Completeness plots must be made with a truth catalog'
+
+	if PLOT_FLUX and PLOT_COMPLETENESS: __err_msg = 'Script not equipped to make flux completeness plots'
+
+	plt_type_counter = 0
+	if PLOT_COMPLETENESS: plt_type_counter += 1
+	if PLOT_FLUX: plt_type_counter += 1
+	if plt_type_counter > 1: __err_msg = 'Pick one plot type...' #TODO
+
+	display_type_counter = 0
+	if HIST_2D: display_type_counter += 1
+	if CORNER_HIST_2D: display_type_counter += 1 
+	if HEXBIN: display_type_counter += 1
+	if SCATTER: display_type_counter += 1
+	if PLOT_MAG and display_type_counter == 0 and PLOT_COMPLETENESS is False: __err_msg = 'Pick at least one display for magnitude plot'
+
+	if display_type_counter > 1: __err_msg = 'Pick only one display for plot'
+
+	if PLOT_COLOR and SCATTER is False and CORNER_HIST_2D is False: __err_msg = 'Color plots currently only made for CORNER_HIST_2D' #TODO
+
+	if PLOT_FLUX and CORNER_HIST_2D: __err_msg = 'Flux plots cannot be corner plots'
+	#TODO not normalize and plot_color simult.
+
+	if 'y3_gold' in MATCH_CAT1 and INJ1: __err_msg = 'Y3 Gold catalogs are not Balrog-injected'
+	if 'y3_gold' in MATCH_CAT2 and INJ2: __err_msg = 'Y3 Gold catalogs are not Balrog-injected'
+
+	return __err_msg
