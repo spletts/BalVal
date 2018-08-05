@@ -50,21 +50,31 @@ Note that `/home/s1/mspletts/setup_ngmixer_gaussap.sh` points to `ngmixer` as cl
 ___
 ##### Contents of Repository
 
-- `ms_matcher`: matches two catalogs on RA and Dec using [STILTS](http://www.star.bris.ac.uk/~mbt/stilts/). Returns a CSV.
+- `catalog_classes.py`: Each catalog type (see `MATCH_CAT1` in 'Table of Constants') and their relevant and allowed headers.
 
-- `ms_fof_matcher`: creates a number of catalogs needed to analyse FOF groups. Catalogs are matched using STILTS. Returns CSVs.
+- `catalog_headers.py`: Contains headers for `MATCH_CAT1` and `MATCH_CAT2` (established in `set_constants.py`).
 
-- `ms_par.py`: analyses FOF groups changed and unchanged after Balrog-injection. This is called by `ms_fof_matcher`. 
+- `set_constants.py`: Set catalog and plot attributes. User interacts with this. 
 
-- `ms_plotter.py`: Calls the above scripts and analyses the matched catalog produced by `ms_matcher` or the end results of `ms_fof_matcher`, and produces various comparison plots (see 'Table of Constants').
+- `stilts_matcher`: matches two catalogs on RA and Dec using [STILTS](http://www.star.bris.ac.uk/~mbt/stilts/). Returns a CSV.
 
-Note that the CSVs created after matching two catalogs have converted arrays in FITS files. For example, if a cell contains an array of form `(1 2 3 4)` it is converted to a string of form `'(1, 2, 3, 4)'`. Similarly for matrices, etc.
+- `fof_stilts_matcher`: creates a number of catalogs needed to analyse FOF groups. Catalogs are matched using STILTS. Returns CSVs.
+
+- `ms_par.py`: analyses FOF groups changed and unchanged after Balrog-injection. This is called by `fof_stilts_matcher`. 
+
+- `outputs.py`: Creates and writes to various outputs.
+
+- `analysis.py`: Conducts analysis for plots. E.g. remove flags, error analysis, ...
+
+- `ms_plotter.py`: Produces various comparison plots (see 'Table of Constants').
+
+Note that the CSVs created after matching two catalogs with STILTS have converted arrays in FITS files. For example, if a cell contains an array of form `(1 2 3 4)` it is converted to a string of form `'(1, 2, 3, 4)'`. Similarly for matrices, etc.
 
 
 
 # Table of Constants
 
-These constants are set within `ms_plotter.py`. Docstrings describe parameters but a [Table of Function Parameters](https://docs.google.com/spreadsheets/d/1utJdA9SpigrbDTsmtHcqcECP9sARHeFNUXdp47nyyro/edit?usp=sharing) is also available.
+These constants are set within `set_constants.py`. Docstrings describe parameters but a [Table of Function Parameters](https://docs.google.com/spreadsheets/d/1utJdA9SpigrbDTsmtHcqcECP9sARHeFNUXdp47nyyro/edit?usp=sharing) is also available.
 
 
 Parameter(s) | Type | Description <br> `allowed values` (if Type not bool)
@@ -76,6 +86,8 @@ Parameter(s) | Type | Description <br> `allowed values` (if Type not bool)
 | `PLOT_COLOR` | bool | If `True` colors g-r, r-i, and i-z are plotted. Creates a 2x2 grid with subplots corresponding to different magnitude bins (currently \[20,21), \[21,22), \[22,23), and \[23,24)). Magnitudes are binned according to values in `MATCH_CAT1` for the leading filter (g for g-r, etc). By default (`SWAP_HAX=False`) the color difference is calculated via color_from_match_cat1 - color_from_match_cat2. This order is reversed if `SWAP_HAX=True`.
 | `PLOT_FLUX` | bool | If `True` a 1D histogram of Delta_Flux/Sigma_Flux is plotted along with a standard Gaussian (mean=0, standard_deviation=1) and a fit to the 1D histogram. Delta_Flux is computed as truth_flux minus {SOF/MOF/coadd}\_flux. Sigma_Flux is computed using only the measured catalog (SOF/MOF/coadd).
 | `PLOT_CM_FLUX` | bool | If `True` the cm_flux is plotted. Note that this and `PLOT_GAUSS_APER_FLUX` can be `True` and both will be plotted on the same plot.
+| `PLOT_GAUSSIAN_FIT` | bool | If `True` and `PLOT_FLUX=True` a fit to the distribution(s) is plotted. Distrubtions plural if `PLOT_CM_FLUX=True` and `PLOT_GAUSS_APER_FLUX=True`.
+| `PLOT_PEAK` | bool | If `True` and `PLOT_FLUX=True` a dashed vertical line representing the median of the distribution(s) is plotted. 
 | `PLOT_GAUSS_APER_FLUX` | bool | If `True` and `PLOT_FLUX=True` a Gaussian aperture method is used to measure the flux.
 | `SIGMA_CLIP_NORM_FLUX_DIFF` | bool | Used if `PLOT_FLUX=True`. If `True` the normalized (to measured flux error) flux differences are sigma clipped to `N`-sigma.
 | `N` | float | Used if `PLOT_FLUX=True` and `SIGMA_CLIP_NORM_FLUX_DIFF=True` to perform `N`-sigma clip.
@@ -108,7 +120,7 @@ Parameter(s) | Type | Description <br> `allowed values` (if Type not bool)
 | `NO_DIR_MAKE` | bool| If `True` nonexistent directories will be created. If `False`, `sys.exit()` will be invoked when nonexistent directories are encountered.
 | `SWAP_HAX` | bool | If `False` (default) `MATCH_CAT1` values are plotted on the horizontal axis. If `True` `MATCH_CAT2` values are plotted on the horizontal axis. Considered if `PLOT_COLOR` or `PLOT_MAG`.
 | `SWAP_ORDER_OF_SUBTRACTION` | bool | If `False`, plots the observable from `MATCH_CAT1` minus the observable from `MATCH_CAT2`. IF `True`, plots the observable from `MATCH_CAT2` minus the observable from `MATCH_CAT1`. Only considered if `PLOT_COLOR` or `PLOT_MAG`. 
-| `OVERRIDE_AXLABELS` | bool | If `True` the axes labels created in `ms_plotter.get_short_difference_axlabel()` will be overwritten with a generic `$\Delta$ flux_{band}/meas_flux_err` for the horizontal axis if `PLOT_FLUX`, `$\Delta$ ({color})` for the vertical axis if `PLOT_COLOR`, and `$\Delta$ mag_{band}` for the vertical axis if `PLOT_MAG`. <br>`ms_plotter.get_short_difference_axlabel()` attempts to produce an axis label that describes `$\Delta$ mag` by including the order of subtraction (of the observables from `MATCH_CAT1` and `MATCH_CAT2`), whether the observables are from Balrog-base or Balrog-injected catalogs, the injection percent (if applicable), and whether the observables are from truth or measured catalogs. 
+| `OVERRIDE_AXLABELS` | bool | If `True` the axes labels created in `plot_labels.get_short_difference_axlabel()` will be overwritten with a generic `$\Delta$ flux_{band}/meas_flux_err` for the horizontal axis if `PLOT_FLUX`, `$\Delta$ ({color})` for the vertical axis if `PLOT_COLOR`, and `$\Delta$ mag_{band}` for the vertical axis if `PLOT_MAG`. <br>`plot_labels.get_short_difference_axlabel()` attempts to produce an axis label that describes `$\Delta$ mag` by including the order of subtraction (of the observables from `MATCH_CAT1` and `MATCH_CAT2`), whether the observables are from Balrog-base or Balrog-injected catalogs, the injection percent (if applicable), and whether the observables are from truth or measured catalogs. 
 | `RUN_TYPE` | str or `None` | FOF groups (if any) to analyse. <br> `None` `'ok'` `'rerun'` <br>`'ok'`: FOF groups *un*changed after Balrog-injection. <br>`'rerun'`: FOF groups changed after Balrog-injection. <br>`None`: FOF analysis not conducted. <br>If `RUN_TYPE='rerun'` or `RUN_TYPE='ok'` then `MATCH_CAT1` `MATCH_CAT2` `INJ1` and `INJ2` will be overwritten.
 | `VERBOSE_ING` | bool | If `True` status and progress of script will print to screen. For example, 'Plotting...', 'calculating...', 'overwriting...', etc.
 | `VERBOSE_ED` | bool | If `True` results will print to screen. For example, 'got...', 'flagged...', 'checked...', etc. Note that many of these printouts are also saved in a log file.
@@ -116,21 +128,21 @@ Parameter(s) | Type | Description <br> `allowed values` (if Type not bool)
 
 The following functions contain `__overwrite`:
 
-`get_and_reformat_base_catalog()`
+`...get_and_reformat_base_catalog()`
 
-`get_coadd_catalog_for_matcher()`
+`...get_coadd_catalog_for_matcher()`
 
-`fof_matcher()`
+`...fof_matcher()`
 
-`make_ngmixer_gaussap_compatible_catalog()`, 
+`...make_ngmixer_gaussap_compatible_catalog()`, 
 
-`matcher()`
+`...matcher()`
 
-`stack_realizations()`
+`...stack_realizations()`
 
-`stack_tiles()`
+`...stack_tiles()`
 
-`write_to_region_files()`. 
+`...write_to_region_files()`. 
 
 If `__overwrite=True` a `raw_input()` prompt will appear to ensure that files are to be overwritten. In these instances, press 'Enter' to continue and 'Control+c' to stop the process.
 
@@ -141,9 +153,9 @@ Log files, matched catalogs, and plot names are printed with a proceeding `-----
 
 If user does not have access to DES machines at FNAL:
 
-Replace `/data/des71.a/data/mspletts/balrog_validation_tests/scripts/BalVal/ms_matcher` (in `ms_plotter.matcher()`) with the correct path to `ms_matcher`. Similarly for `ms_fof_matcher` in `ms_plotter.fof_matcher()`.
+Replace `/data/des71.a/data/mspletts/balrog_validation_tests/scripts/BalVal/stilts_matcher` (in `manipulate_catalogs.match_catalogs()`) with the correct path to `stilts_matcher`. Similarly for `fof_stilts_matcher`.
 
-User should edit the paths to catalogs in `ms_plotter.get_catalog_filename()`. 
+User should edit the paths to catalogs in `manipulate_catalogs.get_catalog_filename()`. 
 
 ...
 
@@ -152,16 +164,18 @@ User should edit the paths to catalogs in `ms_plotter.get_catalog_filename()`.
 
 The following is relevant if `MATCH_CAT1` or `MATCH_CAT2` is a Y3 Gold catalog.
 
-By default, `ms_plotter.py` tries to access Y3 Gold catalogs saved in `/data/des71.a/data/mspletts/balrog_validation_tests/y3_gold_catalogs/`. 
+By default, `manipulate_catalogs.get_catalog_filename()` tries to access Y3 Gold catalogs saved in `/data/des71.a/data/mspletts/balrog_validation_tests/y3_gold_catalogs/`. 
 
-If the user has access to FNAL DES machines, and necessary Y3 Gold catalogs are not already in the directory above, user will need to download the Y3 Gold catalogs with the headers found in: `/data/des71.a/data/mspletts/balrog_validation_tests/y3_gold_catalogs/y3_gold_general_column_query.sql` and edit `ms_plotter.get_catalog_filename()` with the correct path to the Y3 Gold catalogs.
+If the user has access to FNAL DES machines, and necessary Y3 Gold catalogs are not already in the directory above, user will need to download the Y3 Gold catalogs with the headers found in: `/data/des71.a/data/mspletts/balrog_validation_tests/y3_gold_catalogs/y3_gold_general_column_query.sql` and edit `manipulate_catalogs.get_catalog_filename()` with the correct path to the Y3 Gold catalogs.
+
+In general, user can edit path to catalogs in `manipulate_catalogs.get_catalog_filename()`.
 
 
 ---
 
-# Directory Structure
+# Output Directory Structure
 
-If user wishes to change the directory structure imposed below, make changes to `ms_plotter.get_directory()`
+If user wishes to change the directory structure imposed below, make changes to `outputs.get_directory()`
 
 Directory names are determined by the constants that follow.
 
@@ -174,7 +188,7 @@ Directory names are determined by the constants that follow.
 then `MATCH_TYPE=10%_inj_gal_truth_cat_10%_inj_sof_cat`. Note that `MATCH_TYPE` reflects the order in which the catalogs were matched in `ms_matcher`.
 
 
-### Condensed Directory Structure
+### Condensed Output Directory Structure
 
 Below are solely the directories and not the files that will be created within them.
 
@@ -226,7 +240,7 @@ Below are solely the directories and not the files that will be created within t
 ```
 
 
-### Full Directory Structure 
+### Full Output Directory Structure 
 
 ```
 {OUTPUT_DIRECTORY}
@@ -334,8 +348,8 @@ Below are solely the directories and not the files that will be created within t
                               {tile}_{realization}_{MATCH_TYPE}_{RUN_TYPE}_match2not1.reg
                 
 ```
-`{realization}` and `{tile}` will be `stack` if `STACK_REALIZATIONS=True` and `STACK_TILES=True`, respectively.
 
+`{realization}` and `{tile}` will be `stack` if `STACK_REALIZATIONS=True` and `STACK_TILES=True`, respectively.
 
 Log files are CSVs although they have `.log` extensions. Not all log files will be written to; for example, if `PLOT_MAG=False`, 'mag_completeness.log' will not be created and an empty 'dummy.log' will replace it.
 
@@ -350,7 +364,7 @@ Matching is performed first, then catalogs are stacked.
 
 ___
 # `flagged* objects`
-Docstrings in `ms_plotter.py` frequently make reference to `flagged* objects` which refer to specific flag cuts employed in `ms_plotter.get_good_index_using_primary_flags()` but described below for clarity.
+Docstrings frequently make reference to `flagged* objects` which refer to specific flag cuts employed in `analysis.get_good_index_using_primary_flags()` but described below for clarity.
 
 In general, the following catalog headers are considered: 'flags' and 'cm_flags'. Exceptions are listed below. 
 
