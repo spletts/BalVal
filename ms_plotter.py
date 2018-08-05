@@ -1982,14 +1982,6 @@ def get_magnitude_plot_variables(band, df_1and2, mag_hdr1, mag_hdr2, mag_err_hdr
 	if MATCH_CAT1 not in ('gal_truth', 'star_truth') and MATCH_CAT2 not in ('gal_truth', 'star_truth'):
 		percentRecoveredFlagsIncluded, percentRecoveredFlagsRemoved = None, None
 
-        ### Write flags to log file ###
-        if LOG_FLAGS:
-                for i in np.arange(0, len(FLAG_HDR_LIST), 2):
-                        # Bad index #
-                        temp_idx = log_flags(df_1and2=df_1and2, band=band, realization=realization, flag_hdr1=FLAG_HDR_LIST[i], flag_hdr2=FLAG_HDR_LIST[i+1], full_mag1=fullMag1, full_mag2=fullMag2, tile=tile, fn_flag_log=fn_flag_log)[1]
-                #FLAG_IDX.append(temp_idx)
-                FLAG_IDX.extend(temp_idx)
-
 
 	return magErr1, magErr2, cleanMag1, cleanMag2, idxGood, fullMag1, fullMag2, magAxLabel1, magAxLabel2, magVaxLabel, percentRecoveredFlagsIncluded, percentRecoveredFlagsRemoved 
 

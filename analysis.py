@@ -108,7 +108,7 @@ def get_matrix_diagonal_element(df, band, sq_matrices_hdr):
 
 		if band == 'g':
  			i, j = 2, 0
-			idx1 = 0 + 1
+			idx1 = 0 + i
 			idx2 = matrix.find(',')
 
 		if band == 'r':

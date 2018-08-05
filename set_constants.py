@@ -109,7 +109,6 @@ if RUN_TYPE is not None:
 VERBOSE_MINOR = False
 
 # Not currently in use or under constructrion #
-LOG_FLAGS = False
 PLOT_FLAGGED_OBJS = True
 
 
