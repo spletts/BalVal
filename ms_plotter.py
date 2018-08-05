@@ -208,300 +208,6 @@ if NOTICE:
 
 ################################################################### Analysis ###################################################################
 
-#def get_floats_from_string(df, band, four_elmt_arrs_hdr):
-	"""Transform a list of strings of form '[ (1, 2, 3, 4), (1, 2, 3, 4), ... ]' to a list of floats of form '[1,1,...]' (if band="g"), '[2,2,...]' ("r"), '[3,3,...]' ("i"), or '[4,4,...]' ("z"). This is necessary for CSVs created from stilts_matcher or fof_stilts_matcher because arrays in FITS files of form (m_g, m_r, m_i, m_z) are converted to strings. 
-
-	Parameters
-	----------
-        df (pandas DataFrame)
-        
-	band (str)
-		Allowed values: 'g' 'r' 'i' 'z'.
-        
-	hdr (str)
-		Header refers to a column name in the matched catalog. Must refer to a list of strings where each element is of form '(1,2,3,4)'.
-        
-	Returns
-	-------
-        __elmts (list of floats)
-		Collection of the numbers corresponding to a particular index in a list of form '[ (1, 2, 3, 4), (1, 2, 3, 4), ... ]. 
-	"""
-	'''
-	strings = df[four_elmt_arrs_hdr]; __elmts = []
-
-	# Each element (elmt) is of form '(1, 2, 3, 4)' #
-	for elmt in strings:
-
-		if band == 'g':
-			i = 1
-			idx1 = elmt.find('(') + i
-			idx2 = elmt.find(',')
-
-		if band == 'r':
-			i = 2
-			idx1 = elmt.replace(',', ';', 0).find(',') + i
-			idx2 = elmt.replace(',', ';', 1).find(',')
-
-		if band == 'i':
-			i = 2
-			idx1 = elmt.replace(',', ';', 1,).find(',') + i
-			idx2 = elmt.replace(',', ';', 2).find(',')
-
-		if band == 'z':
-			i = 2
-			idx1 = elmt.replace(',', ';', 2).find(',') + i
-			idx2 = elmt.find(')')
-
-		__elmts.append(float(elmt[idx1:idx2]))
-
-	if VERBOSE_MINOR:
-		print 'Got {} for {}-band...'.format(four_elmt_arrs_hdr, band)
-		print ' Check: ', strings[0], ' & ', __elmts[0], '\n'
-
-
-	return __elmts
-	'''
-
-
-
-def get_matrix_diagonal_element(df, band, sq_matrices_hdr):
-	"""Transforms a list of 4x4 matrices where each element is a string of form '((11,12,13,14), (21,22,23,24), (31,32,33,34), (41,42,43,44))' into a list of either the 11 (if band is "g"), 22 ("r"), 33 ("i"), or 44 ("z") matrix elements. This is necessary for CSVs created from stilts_matcher or fof_stilts_matcher because arrays in FITS files of form (m_g, m_r, m_i, m_z) are converted to strings.
-
-	Parameters
-	----------
-	df (pandas DataFrame)
-
-	band (str)
-		Allowed values: 'g' 'r' 'i' 'z'.
-
-	sq_matrices_hdr (str)
-		Header refers to a column name in the matched catalog. Must refer to a list of strings where each element is of form '((11,12,13,14), (21,22,23,24), (31,32,33,34), (41,42,43,44))'.
-
-        Returns
-	-------
-	__matrix_diagonals (list of floats)
-		Collection of the numbers corresponding to a particular diagonal element in a list of 4-by-4 matrices.
-	"""
-
-	matrices = df[sq_matrices_hdr]; __matrix_diagonals = []
-
-	# Each element in `matrices` is a matrix of form '((11,12,13,14), (21,22,23,24), (31,32,33,34), (41,42,43,44))' #
-	for matrix in matrices:
-
-		if band == 'g':
- 			i, j = 2, 0
-			idx1 = 0
-			idx2 = matrix.find(',')
-
-		if band == 'r':
-			i, j = 2, 0
-			idx1 = matrix.replace(',', ';', 4).find(',')
-			idx2 = matrix.replace(',', ';', 5).find(',')
-
-		if band == 'i':
-			i, j = 2, 0
-			idx1 = matrix.replace(',', ';', 9).find(',')
-			idx2 = matrix.replace(',', ';', 10).find(',')
-
-		if band == 'z':
-			i, j = 2, -1
-			idx1 = matrix.replace(',', ';', 14).find(',')
-			idx2 = matrix.replace(',', ';', 15).find(',')
-
-		__matrix_diagonals.append(float(matrix[idx1+i:idx2+j]))
-
-	if VERBOSE_MINOR:
-		print 'Got {} for {}-band'.format(sq_matrices_hdr, band)
-		print ' Check: ', matrices[0], ' & ', __matrix_diagonals[0], '\n'
-
-
-	return __matrix_diagonals
-
-
-
-
-def get_good_indices_using_primary_flags(df_1and2, full_mag1, full_mag2, cm_flag_hdr1, cm_flag_hdr2, flag_hdr1, flag_hdr2, band):
-	"""Get indices of objects without flags* where flags* used are indicated in README.md. Store flagged indices if PLOT_FLAGGED_OBJS is True.
-
-	Parameters
-	----------
-	df_1and2 (pandas DataFrame)
-
-	band (str)
-		Used if analysing Y3 Gold catalog. Can be `None`.
-
-	full_mag1, full_mag2 (list of floats)
-		Uncleaned lists containing magnitudes. 
-
-	Returns
-	-------
-	__idx_good (list of ints)
-	
-	__idx_bad (list of ints)
-		Is empty if PLOT_FLAGGED_OBJS is False.
-	"""
-
-	if VERBOSE_ING: print 'Removing flagged* objects from {}-band data...'.format(band)
-
-	if cm_flag_hdr2 is None and cm_flag_hdr1 is None and flag_hdr1 is None and flag_hdr2 is None:
-                sys.exit('No headers to clean flags with...')
-
-	# If one catalog does not have the appropriate header, check it twice in the catalog that does have it so code still runs #
-	if cm_flag_hdr2 is None:
-                cm_flag_hdr2 = cm_flag_hdr1
-
-        if cm_flag_hdr1 is None:
-                cm_flag_hdr1 = cm_flag_hdr2
-
-        if flag_hdr1 is None:
-                flag_hdr1 = flag_hdr2
-
-        if flag_hdr2 is None:
-                flag_hdr2 = flag_hdr1
-
-
-        ### Get flags ###
-        flag1, flag2 = df_1and2[flag_hdr1], df_1and2[flag_hdr2]
-        cm_flag1, cm_flag2 = df_1and2[cm_flag_hdr1], df_1and2[cm_flag_hdr2]
-
-	# Base catalogs #
-	if MATCH_CAT1 == 'base': bsuf = '_1'
-        if MATCH_CAT2 == 'base': bsuf = '_2'
-        if 'base' in (MATCH_CAT1, MATCH_CAT2):
-                base_flag1 = np.array(analysis.get_floats_from_string(df=df_1and2, band=band, four_elmt_arrs_hdr=NEW_BASE_FLAG_GRIZ_HDR+bsuf))
-                base_flag2 = np.array(analysis.get_floats_from_string(df=df_1and2, band=band, four_elmt_arrs_hdr=NEW_BASE_IMAFLAG_ISO_GRIZ_HDR+bsuf))
-	if 'base' not in (MATCH_CAT1, MATCH_CAT2):
-                base_flag1, base_flag2 = np.zeros(len(df_1and2.index)), np.zeros(len(df_1and2.index))
-
-	# Y3 Gold catalogs #
-	if 'y3_gold' in MATCH_CAT1 or 'y3_gold' in MATCH_CAT2:
-                if 'y3_gold' in MATCH_CAT1:
-                        suf = '_1'
-                if 'y3_gold' in MATCH_CAT2:
-                        suf = '_2'
-                if Y3_FIT.upper() == 'MOF':
-			y3_gold_mof_cm_flag = df_1and2['MOF_CM_MOF_FLAGS'+suf]
-
-		y3_gold_se_flag = df_1and2['SEXTRACTOR_FLAGS_'+band.upper()+suf]
-		y3_gold_imaflag = df_1and2['IMAFLAGS_ISO_'+band.upper()+suf]
-
-	if 'y3_gold_se_flag' not in locals(): y3_gold_se_flag = np.zeros(len(df_1and2.index))
-	if 'y3_gold_imaflag' not in locals(): y3_gold_imaflag = np.zeros(len(df_1and2.index)) 
-	if 'y3_gold_mof_cm_flag' not in locals(): y3_gold_mof_cm_flag = np.zeros(len(df_1and2.index)) 
-
-	if PLOT_GAUSS_APER_FLUX:
-		gap_flag1 = df_1and2[GAUSS_APER_FLAGS_HDR+'_1']
-		gap_flag2 = df_1and2[GAUSS_APER_FLAGS_HDR+'_2']
-	if PLOT_GAUSS_APER_FLUX is False:
-		gap_flag1, gap_flag2 = np.zeros(len(df_1and2.index)), np.zeros(len(df_1and2.index))
-	
-
-	# Make arrays to take absolute value in next step #
-	full_mag1, full_mag2 = np.array(full_mag1), np.array(full_mag2)
-
-
-	#  Get rid of these objects; 37.5 corresponds to a negative flux #
-	__idx_good = np.where( (abs(full_mag1) != 9999.0) & (abs(full_mag1) != 99.0) & (abs(full_mag1) != 37.5) & (abs(full_mag2) != 9999.0) & (abs(full_mag2) != 99.0) & (abs(full_mag2) != 9999.0) & (abs(full_mag2) != 99.0) & (abs(full_mag2) != 37.5) & (flag1 == 0) & (flag2 == 0) & (cm_flag1 == 0) & (cm_flag2 == 0) & (base_flag1 == 0) & (base_flag2 == 0) & (y3_gold_se_flag == 0) & (y3_gold_imaflag == 0) & (y3_gold_mof_cm_flag == 0) & (gap_flag1 == 0) & (gap_flag2 == 0) )[0]
-
-
-	if PLOT_FLAGGED_OBJS:
-		__idx_bad = np.where( (abs(full_mag1) != 9999.0) & (abs(full_mag1) != 99.0) & (abs(full_mag1) != 37.5) & (abs(full_mag2) != 9999.0) & (abs(full_mag2) != 99.0) & (abs(full_mag2) != 9999.0) & (abs(full_mag2) != 99.0) & ((flag2 != 0) | (flag1 != 0) | (cm_flag1 != 0) | (cm_flag2 != 0)) )[0]
-
-	if PLOT_FLAGGED_OBJS is False:
-		__idx_bad = None
-
-		
-        if VERBOSE_ED:
-		__flag_list = ''
-		if 'y3_gold' in MATCH_CAT1 or 'y3_gold' in MATCH_CAT2:
-			__flag_list += ' SEXTRACTOR_FLAGS_'+band.upper() + ', IMAFLAGS_ISO_'+band.upper()
-		if 'y3_gold' in MATCH_CAT1 or 'y3_gold' in MATCH_CAT2 and Y3_FIT.upper() == 'MOF':
-			 __flag_list += ', MOF_CM_MOF_FLAGS'+suf
-		if 'base' in (MATCH_CAT1, MATCH_CAT2):
-			__flag_list += NEW_BASE_FLAG_GRIZ_HDR+suf + ', ' + NEW_BASE_IMAFLAG_ISO_GRIZ_HDR+suf
-
-		print 'For {}-band, eliminated {} objects with magnitudes equal to +/- 9999, +/- 99, and 37.5 and objects with nonzero flags for the following headers: {}, {}, {}, {}, {}'.format(band, len(full_mag1) - len(__idx_good), flag_hdr1, flag_hdr2, cm_flag_hdr1, cm_flag_hdr2, __flag_list)
-
-
-	return __idx_good, __idx_bad	
-
-
-
-
-def log_flags(df_1and2, flag_hdr1, flag_hdr2, band, full_mag1, full_mag2, realization, tile, fn_flag_log):
-	"""Examine a particular flag and write to log file. Can also be used to check all flags in a list of flags.
-
-	Parameters
-	----------
-	df_1and2 (pandas DataFrame)
-
-	band (str)
-		Allowed values: 'g' 'r' 'i' 'z'.
-
-	full_mag1, full_mag2 (numpy.ndarray if directly from `df[hdr]` OR list of floats if from `analysis.get_floats_from_string()`) -- Values read directly from pandas DataFrame via `df[hdr]`; no objects removed using nonzero flag values and no quality cuts performed.
-
-	realization (str)
-		Allowed values: 0 1 2 None. Refers to Balrog injection and None refers to a one-realization run.
-
-	tile (str) 
-
-        Returns
-	-------
-	__idx_good (list of ints)
-		Indices of objects with flags values of zero.
-
-	__idx_bad (list of ints)
-		Indices of objects with nonzero flag values.
-	"""
-
-	__idx_good, __idx_bad = [], []; counter_idx_bad = 0
-
-	# If one catalog does not have the appropriate header, check it twice in the catalog that does have it so code still runs #
-	if flag_hdr1 is None:
-		flag_hdr1 = flag_hdr2
-
-	if flag_hdr2 is None:
-		flag_hdr2 = flag_hdr1
-
-
-	if VERBOSE_ING: print 'For tile: {} and {}-band, checking flags: {} and {}...'.format(tile, band, flag_hdr1, flag_hdr2)
-
-	### psf_flags are strings of form '(0,0,0,0)' ###
-	if flag_hdr1 is not None and flag_hdr2 is not None and 'psf' not in flag_hdr1 and 'psf' not in flag_hdr2:
-		flag1 = df_1and2[flag_hdr1]
-		flag2 = df_1and2[flag_hdr2]
-
-	if 'psf' in flag_hdr1 and 'psf' in flag_hdr2:
-		flag1 = analysis.get_floats_from_string(df=df_1and2, four_elmt_arrs_hdr=flag_hdr1, band=band)
-		flag2 = analysis.get_floats_from_string(df=df_1and2, four_elmt_arrs_hdr=flag_hdr2, band=band)
-
-
-	### Check for flags ###
-	for i in np.arange(0, len(full_mag1)):
-
-		if abs(full_mag1[i]) != 9999.0 and abs(full_mag2[i]) != 9999.0 and full_mag1[i] != 37.5 and full_mag2[i] != 37.5 and full_mag1[i] != 99.0 and full_mag2[i] != 99:
-			
-			if flag1[i] == 0 and flag2[i] == 0:
-				__idx_good.append(i)
-	
-			if flag1[i] != 0 or flag2[i] != 0:
-				__idx_bad.append(i)
-                                counter_idx_bad += 1
-
-				# Append to csv #
-				with open(fn_flag_log, 'a') as csvfile:
-					writer = csv.writer(csvfile, delimiter=',')
-					# TILE, REALIZATION, BAND, FLAG1_HEADER, FLAG2_HEADER, FLAG1_VALUE, FLAG2_VALUE, MAG1, MAG2, RUN_TYPE #
-					writer.writerow([tile, realization, band, flag_hdr1, flag_hdr2, flag1[i], flag2[i], full_mag1[i], full_mag2[i], str(RUN_TYPE)])
-
-
-	### Check if flags were found ###
-	if counter_idx_bad > 0 and VERBOSE_ED:
-		print ' Number of flagged objects for magnitudes=9999, 99, or 37.5, and flags {} and {}: {}\n'.format(flag_hdr1, flag_hdr2, counter_idx_bad)
-
-
-	return __idx_good, __idx_bad 
-
 
 
 
@@ -534,7 +240,7 @@ def calculate_measured_magnitude_error_from_flux(flux_cov_hdr, df_1and2, band, f
 
 	# Uncleaned lists for flux and flux covariance #
 	full_flux = analysis.get_floats_from_string(df=df_1and2, four_elmt_arrs_hdr=flux_hdr, band=band)
-	full_flux_cov = get_matrix_diagonal_element(df=df_1and2, sq_matrices_hdr=flux_cov_hdr, band=band)
+	full_flux_cov = analysis.get_matrix_diagonal_element(df=df_1and2, sq_matrices_hdr=flux_cov_hdr, band=band)
 
 	__mag_err_from_flux, flux, fluxcov = [], [], []; counter_neg = 0
 
@@ -1143,10 +849,10 @@ def get_colorbar_for_magnitude_plot_properties(df_1and2, cm_t_hdr, cm_t_err_hdr,
 	### Colorbar value ###
         if CM_T_ERR_CBAR:
                 # For measured catalog, cuts performed on truth catalogs #
-                cbarData = get_good_data(df_1and2=df_1and2, hdr=cm_t_err_hdr, idx_good=idx_good, str_of_arr=False, band=None)
+                cbarData = analysis.get_good_data(df_1and2=df_1and2, hdr=cm_t_err_hdr, idx_good=idx_good, str_of_arr=False, band=None)
 
         if CM_T_CBAR:
-                cbarData = get_good_data(df_1and2=df_1and2, hdr=cm_t_hdr, idx_good=idx_good, str_of_arr=False, band=None)
+                cbarData = analysis.get_good_data(df_1and2=df_1and2, hdr=cm_t_hdr, idx_good=idx_good, str_of_arr=False, band=None)
 
 
 	return cbarData, __cbar_label
@@ -1235,42 +941,6 @@ def get_color_plot_error(mag_err_hdr, flux_hdr, flux_cov_hdr, df, band, idx_good
 	return __color_error
 
 
-
-
-def get_good_data(df_1and2, hdr, idx_good, str_of_arr, band):
-	"""Get the data corresponding to indices of objects without flags* or indices of objects that satisfy quality cuts (if `
-
-	Parameters
-	----------
-	df_1and2 (pandas DataFrame)
-		DataFrame for the matched (via join=1and2) catalog.
-	
-	hdr (str)
-		Matched (via join=1and2) catalog header for the desired column of the DataFrame. 
-
-	idx_good (list of ints)
-		Indices of objects without flags* or indices of objects that satistfy quality cuts (if `
- 
-	str_of_arr (bool)
-		Set to `True` if the desired column of the DataFrame is a string of form '(data_g, data_r, data_i, data_z)'.
-
-	band (str) 
-		Can be `None`. Used if `magnitude=True`.
-
-	Returns
-	-------
-	clean_data (list of floats)
-		Contains column of the DataFrame with objects with flags* removed (or objects that do not pass quality cuts removed if `
-	"""
-
-	if str_of_arr:
-		fullData = analysis.get_floats_from_string(df=df_1and2, four_elmt_arrs_hdr=hdr, band=band)
-	if str_of_arr is False:
-                fullData = df_1and2[hdr]
-
-	__clean_data = np.array(fullData)[idx_good]
-
-	return __clean_data
 
 
 
@@ -2250,9 +1920,9 @@ def get_total_flux_error(df_1and2, idx_good, band):
 		__flux_err2 = np.sqrt(df_1and2[NEW_Y3_GOLD_CM_FLUX_COV_HDR+'_'+band.upper()+'_'+band.upper()+'_2'][idx_good])
 
 	if 'y3_gold' not in MATCH_CAT1 and 'truth' not in MATCH_CAT1 and MATCH_CAT1 != 'coadd':
-		__flux_err1 = np.sqrt(np.array(get_matrix_diagonal_element(df=df_1and2, band=band, sq_matrices_hdr=CM_FLUX_COV_HDR1))[idx_good])
+		__flux_err1 = np.sqrt(analysis.get_matrix_diagonal_element(df=df_1and2, band=band, sq_matrices_hdr=CM_FLUX_COV_HDR1)[idx_good])
 	if 'y3_gold' not in MATCH_CAT2 and 'truth' not in MATCH_CAT2 and MATCH_CAT2 != 'coadd':
-		__flux_err2 = np.sqrt(np.array(get_matrix_diagonal_element(df=df_1and2, band=band, sq_matrices_hdr=CM_FLUX_COV_HDR2))[idx_good])
+		__flux_err2 = np.sqrt(analysis.get_matrix_diagonal_element(df=df_1and2, band=band, sq_matrices_hdr=CM_FLUX_COV_HDR2)[idx_good])
 
 	if __flux_err1 is not None and __flux_err2 is not None: __flux_err = np.sqrt(np.power(__flux_err2, 2)+np.power(__flux_err1, 2))
 	if __flux_err1 is None: __flux_err = np.sqrt(np.power(__flux_err2, 2))
@@ -2288,12 +1958,12 @@ def get_magnitude_plot_variables(band, df_1and2, mag_hdr1, mag_hdr2, mag_err_hdr
         fullMag2 = analysis.get_floats_from_string(df=df_1and2, four_elmt_arrs_hdr=mag_hdr2, band=band)
 
         ### Remove objects with flags* or perform quality cuts ###
-	idxGood = get_good_indices_using_primary_flags(df_1and2=df_1and2, full_mag1=fullMag1, full_mag2=fullMag2, cm_flag_hdr1=CM_FLAGS_HDR1, cm_flag_hdr2=CM_FLAGS_HDR2, flag_hdr1=FLAGS_HDR1, flag_hdr2=FLAGS_HDR2, band=band)[0]
+	idxGood = analysis.get_good_indices_using_primary_flags(df_1and2=df_1and2, full_mag1=fullMag1, full_mag2=fullMag2, cm_flag_hdr1=CM_FLAGS_HDR1, cm_flag_hdr2=CM_FLAGS_HDR2, flag_hdr1=FLAGS_HDR1, flag_hdr2=FLAGS_HDR2, band=band)[0]
 
 
         # Magnitudes with flags* removed #
-        cleanMag1 = get_good_data(df_1and2=df_1and2, hdr=mag_hdr1, idx_good=idxGood, str_of_arr=True, band=band)
-        cleanMag2 = get_good_data(df_1and2=df_1and2, hdr=mag_hdr2, idx_good=idxGood, str_of_arr=True, band=band)
+        cleanMag1 = analysis.get_good_data(df_1and2=df_1and2, hdr=mag_hdr1, idx_good=idxGood, str_of_arr=True, band=band)
+        cleanMag2 = analysis.get_good_data(df_1and2=df_1and2, hdr=mag_hdr2, idx_good=idxGood, str_of_arr=True, band=band)
 
 
         ### Calculate errors. get_magnitude_error() will return array of zeros for truth catalogs. ###
@@ -3154,87 +2824,6 @@ def get_and_reformat_base_catalog(tile, realization):
 
 
 
-#def fof_matcher(realization, tile):
-        """Get catalogs to analyze. Return FOF-analysed catalogs.
-
-        Parameters
-	----------
-	realization (str) 
-
-	tile (str) 
-
-        Returns
-	-------
-	__fn_ok_1and2 OR __fn_rerun_1and2 (str) -- Complete filename for catalogs of type join=1and2. `RUN_TYPE` determines if 'ok' or 'rerun' catalog filename is returned. 
-
-	__fn_ok_1not2 OR __fn_rerun_1not2 (str) -- Complete filename for catalogs of type join=1not2. `RUN_TYPE` determines if 'ok' or 'rerun' catalog filename is returned.
-
-	__fn_ok_2not1 OR __fn_rerun_2not1 (str) -- Complete filename for catalogs of type join=2not1. `RUN_TYPE` determines if 'ok' or 'rerun' catalog filename is returned.
-        """
-	'''
-        ### Filenames for input catalogs used in fof_stilts_matcher ###
-        # MOF or SOF #
-	#FIXME
-        if MOF:
-                mof = os.path.join(BASE_PATH_TO_CATS, 'y3v02', tile, 'mof', tile+'_mof.fits')
-                inj_mof = os.path.join(BASE_PATH_TO_CATS, 'y3v02', 'balrog_images', realization, tile, 'mof', tile+'_mof.fits')
-                fof = os.path.join(BASE_PATH_TO_CATS, 'y3v02', tile, 'mof', tile+'_fofslist.fits')
-                inj_fof = os.path.join(BASE_PATH_TO_CATS, 'y3v02', 'balrog_images', realization, tile, 'mof', tile+'_fofslist.fits')
-        if MOF is False:
-                mof = os.path.join(BASE_PATH_TO_CATS, 'y3v02', tile, 'sof', tile+'_sof.fits')
-                inj_mof = os.path.join(BASE_PATH_TO_CATS, 'y3v02', 'balrog_images', realization, tile, 'sof', tile+'_sof.fits')
-                fof = os.path.join(BASE_PATH_TO_CATS, 'y3v02', tile, 'sof', tile+'_fofslist.fits')
-                inj_fof = os.path.join(BASE_PATH_TO_CATS, 'y3v02', 'balrog_images', realization, tile, 'sof', tile+'_fofslist.fits')
-        # Coadds. Using i-band #
-        coadd = os.path.join(BASE_PATH_TO_CATS, 'y3v02', tile, 'coadd', tile+'_i_cat.fits')
-        inj_coadd = os.path.join(BASE_PATH_TO_CATS, 'y3v02', 'balrog_images', realization, tile, 'coadd', tile+'_i_cat.fits')
-
-
-        ### Filenames for outputs of fof_matcher ###
-	outdir = get_directory(tile=tile, realization=realization, low_level_dir='catalog_compare')
-
-
-	### Create filenames for output catalogs created by fof_stilts_matcher ###
-        fofcoadd = os.path.join(outdir, tile+'_num_match_fof_coadd.csv')
-        fofgroups = os.path.join(outdir, tile+'_fofgroups.csv')
-	inj_fofcoadd = os.path.join(outdir, tile+'_'+realization + '_num_match_inj_fof_inj_coadd.csv')
-        inj_fofgroups = os.path.join(outdir, tile+'_'+realization + '_inj_fofgroups.csv')
-        origfof_injfof = os.path.join(outdir, tile+'_'+realization + '_inj_fofgroup_fofgroup_match1and2.csv')
-        ok = os.path.join(outdir, tile+'_'+realization + '.ok')
-        rerun = os.path.join(outdir, tile+'_'+realization + '.rerun')
-        ok_inj_mof = os.path.join(outdir, tile+'_'+realization + '_ok_inj_mof.csv')
-        rerun_inj_mof = os.path.join(outdir, tile+'_'+realization + '_rerun_inj_mof.csv')
-        ok_mof = os.path.join(outdir, tile+'_'+realization + '_ok_mof.csv')
-        rerun_mof = os.path.join(outdir, tile+'_'+realization + '_rerun_mof.csv')
-
-        __fn_ok_1and2 = os.path.join(outdir, tile+'_'+realization + '_ok_inj_mof_ok_mof_match1and2.csv')
-	__fn_ok_1not2 = os.path.join(outdir, tile+'_'+realization + '_ok_inj_mof_ok_mof_match1not2.csv')
-        __fn_ok_2not1 = os.path.join(outdir, tile+'_'+realization + '_ok_inj_mof_ok_mof_match2not1.csv')
-
-        __fn_rerun_1and2 = os.path.join(outdir, tile+'_'+realization + '_rerun_inj_mof_rerun_mof_match1and2.csv')
-	__fn_rerun_1not2 = os.path.join(outdir, tile+'_'+realization + '_rerun_inj_mof_rerun_mof_match1not2.csv')
-	__fn_rerun_2not1 = os.path.join(outdir, tile+'_'+realization + '_rerun_inj_mof_rerun_mof_match2not1.csv')
-
-        # Output directory for files made in par.py #
-        parpy_outdir = os.path.join(outdir, tile+'_'+realization)
-
-
-        # WARNING: May need to overwrite if matching was interupted #
-        __overwrite = False 
-	if __overwrite: raw_input('`__overwrite=True` in `fof_matcher()`. Press enter to procees and ctrl+c to stop.')
-
-        ### Check file existence of last file made in fof_matcher ###
-        if os.path.isfile(__fn_rerun_1and2) is False or (os.path.isfile(__fn_rerun_1and2) and __overwrite):
-
-                ### Run fof_matcher ###
-                subprocess.call(['/data/des71.a/data/mspletts/balrog_validation_tests/scripts/BalVal/fof_stilts_matcher', fof, inj_fof, mof, inj_mof, coadd, inj_coadd, parpy_outdir, fofcoadd, fofgroups, inj_fofcoadd, inj_fofgroups, origfof_injfof, ok, rerun, ok_inj_mof, rerun_inj_mof, ok_mof, rerun_mof, __fn_ok_1and2, __fn_rerun_1and2, __fn_ok_1not2, __fn_rerun_1not2, __fn_ok_2not1, __fn_ok_2not1])
-
-
-	if RUN_TYPE == 'ok':
-		return __fn_ok_1and2, __fn_ok_1not2, __fn_ok_2not1
-	if RUN_TYPE == 'rerun':
-		return __fn_rerun_1and2, __fn_rerun_1not2, __fn_rerun_2not1
-	'''
 
 
 
