@@ -5,7 +5,7 @@ Conducts various [Balrog-GalSim](https://github.com/sweverett/Balrog-GalSim) val
 ___
 ### Table of Contents
 
-[Running BalVal](http://github.com)
+[Running BalVal](https://github.com/spletts/BalVal/blob/master/README.md#running-balval)
  
   - [Dependencies](https://github.com/spletts/BalVal/blob/master/README.md#dependencies)
   
@@ -67,7 +67,7 @@ Note that `/home/s1/mspletts/setup_ngmixer_gaussap.sh` points to `ngmixer` as cl
 
 Requires [`corner.py`](https://github.com/dfm/corner.py) to make corner plots.
 
-___
+
 ### Contents of Repository
 
 See docstring and the beginning of each script for more detail.
@@ -96,6 +96,7 @@ Note that after matching two catalogs with STILTS, the output CSV contains array
 
 
 
+___
 # Table of Constants
 
 These constants are set within `set_constants.py`. Docstrings describe parameters but a [Table of Function Parameters](https://docs.google.com/spreadsheets/d/1utJdA9SpigrbDTsmtHcqcECP9sARHeFNUXdp47nyyro/edit?usp=sharing) is also available.
@@ -166,11 +167,6 @@ Colormaps and colors for plots are set by the following in `set_constants.py`: `
 
 
 ___
-
-
-
----
-
 # Directory Structure
 
 ### Expected Catalog Directory Structure
