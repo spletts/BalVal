@@ -1,8 +1,10 @@
 """
-Get output files.
+Name and write to output files.
+E.g. log files, 
+region files for objects,
+plot filename.
 
-e.g. log files (...), region files (...), and plot filename.
-TODO search for get_directory
+Comments are ABOVE the code they refer to.
 """
 
 from collections import OrderedDict
@@ -129,13 +131,13 @@ def get_log_filenames(balrog_run, match_type, output_directory, realization, til
 
 	__fn_match_log = os.path.join(logFileDirectory, '{}_matched_catalogs.log'.format(repeated_str))
 
-	print '-----> Saving log file for flags as: {}'.format(__fn_flag_log)
-	print '-----> Saving log file for magnitude error and bins used as: {}'.format(__fn_mag_err_log)
-	if PLOT_COLOR: print '-----> Saving log file for color plot as: {}'.format(__fn_color_log)
-	print '-----> Saving log file for outlier MagnitudeDifference as: {}'.format(__fn_mag_diff_outliers_log)
-	print '-----> Saving log file for completeness plot as: {}'.format(__fn_mag_completeness_log)
-	if PLOT_FLUX: print '-----> Saving log file for sigma clipping as: {}'.format(__fn_flux_sigma_clip_log)
-	if PLOT_GAUSS_APER_FLUX: print '-----> Saving Gaussian aperture calculation details as: {}'.format(__fn_gauss_aper_log)
+	print 'Saving log file for flags as:\n----->{}'.format(__fn_flag_log)
+	print 'Saving log file for magnitude error and bins used as:\n----->{}'.format(__fn_mag_err_log)
+	if PLOT_COLOR: print 'Saving log file for color plot as:\n----->{}'.format(__fn_color_log)
+	print 'Saving log file for outlier MagnitudeDifference as:\n----->{}'.format(__fn_mag_diff_outliers_log)
+	print 'Saving log file for completeness plot as:\n----->{}'.format(__fn_mag_completeness_log)
+	if PLOT_FLUX: print 'Saving log file for sigma clipping as:\n----->{}'.format(__fn_flux_sigma_clip_log)
+	if PLOT_FLUX and PLOT_GAUSS_APER_FLUX: print 'Saving Gaussian aperture calculation details as:\n----->{}'.format(__fn_gauss_aper_log)
 
 
 	return __fn_flag_log, __fn_mag_err_log, __fn_color_log, __fn_mag_diff_outliers_log, __fn_mag_completeness_log, __fn_gauss_aper_log, __fn_flux_sigma_clip_log, __fn_percent_recovered_log, __fn_num_objs_in_1sig_mag_log, __fn_match_log 
@@ -335,6 +337,12 @@ def get_region_filenames(balrog_run, match_type, output_directory, realization, 
 	__fn_reg_2not1 = os.path.join(regionFileDirectory, '{}_match2not1.reg'.format(repeated_str))
 
 
+	if MAKE_REG:
+		print 'Saving region files as...'
+		print '----->', __fn_reg_1and2
+		print '----->', __fn_reg_1not2
+                print '----->', __fn_reg_2not1
+
 	return __fn_reg_1and2, __fn_reg_1not2, __fn_reg_2not1 
 
 
@@ -485,7 +493,7 @@ def write_log_file_headers(fn_mag_err_log, fn_flag_log, fn_color_log, fn_mag_dif
 	### Log file for sigma clipping done in `()` ###
 	with open(fn_flux_sigma_clip_log, 'wb') as csvfile:
 		writer = csv.writer(csvfile, delimiter=',')
-		writer.writerow(['TILE', 'REALIZATION', 'BAND', 'GAUSSIAN_APER_APPLIED', 'NUM_OBJS_FLAGS_RM', 'NUM_OBJS_CLIPPED']) 
+		writer.writerow(['TILE', 'REALIZATION', 'BAND', 'GAUSSIAN_APER_APPLIED', 'NUM_OBJS_FLAGS_RM', 'N-SIGMA_CLIP' 'NUM_OBJS_CLIPPED']) 
 	csvfile.close()
 
 

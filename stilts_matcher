@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Run: $chmod +x ms_matcher
+# Run: $chmod +x stilts_matcher
 
 in1=$1
 in2=$2

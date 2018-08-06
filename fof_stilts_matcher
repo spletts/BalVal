@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Run: $chmod +x fof_matcher
+# Run: $chmod +x fof_stilts_matcher
 
 ### Input filenames ###
 fof=$1

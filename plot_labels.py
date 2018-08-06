@@ -1,6 +1,8 @@
 """
 Get plot labels.
-Can be overwritten if `OVERWRITE_AXLABELS=True` in `set_constants.py`.
+Plot labels will be overwritten if `OVERWRITE_AXLABELS=True` in `set_constants.py`.
+
+Comments are ABOVE the code they refer to.
 """
 
 from difflib import SequenceMatcher
@@ -45,7 +47,7 @@ def get_magnitude_axlabel(inj, mag_hdr, meas_or_true_cat, match_cat, band, inj_p
 	if inj is False:
 		__mag_axlabel = 'base_%s' %  __mag_axlabel
 
-	if OVERRIDE_AXLABELS:
+	if OVERWRITE_AXLABELS:
 		__mag_axlabel = 'mag_\\bf{%s}' % band
 
 	return __mag_axlabel
@@ -76,7 +78,7 @@ def get_color_axlabel(inj, meas_or_true_cat, match_cat, band, inj_percent):
 		__color_axlabel = 'Y3_%s' % __color_axlabel
 
 
-	if OVERRIDE_AXLABELS:
+	if OVERWRITE_AXLABELS:
 		__color_axlabel = '$\\bf{(%s)}$_%s' % (WRITE_COLORS[band], meas_or_true_cat)
 
 	return __color_axlabel 
@@ -139,7 +141,7 @@ def get_short_difference_axlabel(axlabel_a, axlabel_b, band):
 
 
 	# Default labels #
-	if OVERRIDE_AXLABELS:
+	if OVERWRITE_AXLABELS:
 		if PLOT_COLOR: __short_axlabel = '$\Delta(\\bf{%s})$' % WRITE_COLORS[band]
 		if PLOT_FLUX: __short_axlabel = '$\Delta$flux_$\\bf{%s}/$meas_flux_err' % band
 		if PLOT_MAG: __short_axlabel = '$\Delta$mag_$\\bf{%s}$' % band 

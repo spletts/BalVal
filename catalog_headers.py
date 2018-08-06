@@ -2,6 +2,8 @@
 Get headers for the catalogs.
 Get other catalog properties dependent on `class` (e.g. `title_piece` and `MATCH_TYPE`) 
 Set new header names that will be used if catalogs are reformatted.
+
+Comments are ABOVE the code they refer to.
 """
 
 # From BalVal #
@@ -28,7 +30,7 @@ def get_class(cat_type, cat_type_pair, inj, inj_percent, suf):
 	inj (bool)
 
 	suf (str)
-		Refers to the order in which `cat_type` was matched (via join=1and2) in ms_matcher (order set by `in1` and `in2` in STILTS script). Allowed values: '_1' '_2'.
+		Refers to the order in which `cat_type` was matched (via join=1and2) in stilts_matcher (order set by `in1` and `in2` in STILTS script). Allowed values: '_1' '_2'.
 
 	Returns
 	-------
@@ -111,7 +113,7 @@ MATCH_TYPE = get_match_type(title_piece1=TITLE_PIECE1, title_piece2=TITLE_PIECE2
 
 ### Headers ###
 
-# RA and Dec will be passed to `ms_matcher`. `ms_matcher` accepts 'ra' and input, not 'ra_1' (for example). #
+# RA and Dec will be passed to `stilts_matcher`. `stilts_matcher` accepts 'ra' and input, not 'ra_1' (for example). #
 # 'ra_1' --> 'ra' #
 RA_HDR1, RA_HDR2 = CLASS1.ra_hdr[:-2], CLASS2.ra_hdr[:-2]
 DEC_HDR1, DEC_HDR2 = CLASS1.dec_hdr[:-2], CLASS2.dec_hdr[:-2]
@@ -181,6 +183,6 @@ if 'y3_gold' in MATCH_CAT2:
 # For region file #
 MAJOR_AX_HDR1, MAJOR_AX_HDR2 = CLASS1.a_hdr, CLASS2.a_hdr 
 MINOR_AX_HDR1, MINOR_AX_HDR2 = CLASS1.b_hdr, CLASS2.b_hdr
-ANGLE1, ANGLE2 = CLASS1.angle, CLASS2.angle
+ANGLE_HDR1, ANGLE_HDR2 = CLASS1.angle, CLASS2.angle
 
 FLAG_HDR_LIST = [ FLAGS_HDR1, FLAGS_HDR2, CM_FLAGS_HDR1, CM_FLAGS_HDR2, CM_MOF_FLAGS_HDR1, CM_MOF_FLAGS_HDR2, OBJ_FLAGS_HDR1, OBJ_FLAGS_HDR2, PSF_FLAGS_HDR1, PSF_FLAGS_HDR2, CM_MAX_FLAGS_HDR1, CM_MAX_FLAGS_HDR2, CM_FLAGS_R_HDR1, CM_FLAGS_R_HDR2 ]

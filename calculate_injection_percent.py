@@ -1,6 +1,8 @@
 """
 Get injection percent.
 Note that star truth catalogs and galaxy truth catalogs in the same `base_path_to_catalogs` may not have the same number of injected objects.
+
+Comments are ABOVE the code they refer to.
 """
 
 import fitsio

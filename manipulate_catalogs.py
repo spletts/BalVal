@@ -7,6 +7,8 @@ Manipulate catalogs in the following ways:
     Add a column necessary to perform Gaussian aperture measured flux (via `ngmixer`)
     Add columns to coadd catalog.
     ...
+
+Comments are ABOVE the code they refer to.
 """
 
 import fitsio
@@ -356,7 +358,7 @@ def match_catalogs(realization, tile, inj1, inj2, inj1_percent, inj2_percent, ou
 	if 'coadd' == MATCH_CAT2 or (PLOT_GAUSS_APER_FLUX and PLOT_FLUX): 
 		input_cat2 = reformat_catalog(cat_type=MATCH_CAT2, inj=INJ2, inj_percent=inj2_percent, realization=realization, tile=tile, mag_hdr=M_HDR2, mag_err_hdr=M_ERR_HDR2, flux_hdr=FLUX_HDR2, flux_err_hdr=FLUX_ERR_HDR2, fn_match=__fn_match_1and2, base_path_to_catalogs=base_path_to_catalogs, balrog_run=balrog_run, match_type=MATCH_TYPE, output_directory=output_directory) 
 
-	if 'coadd' not in (MATCH_CAT1, MATCH_CAT2) and PLOT_GAUSS_APER_FLUX is False:
+	if 'coadd' not in (MATCH_CAT1, MATCH_CAT2) and PLOT_FLUX is False:
 		input_cat1 = get_catalog_filename(cat_type=MATCH_CAT1, inj=inj1, inj_percent=inj1_percent, realization=realization, tile=tile, band=None, base_path_to_catalogs=base_path_to_catalogs, balrog_run=balrog_run)
 		input_cat2 = get_catalog_filename(cat_type=MATCH_CAT2, inj=inj2, inj_percent=inj2_percent, realization=realization, tile=tile, band=None, base_path_to_catalogs=base_path_to_catalogs, balrog_run=balrog_run)
 
@@ -831,3 +833,4 @@ def fof_matcher(realization, tile):
 		return __fn_ok_1and2, __fn_ok_1not2, __fn_ok_2not1
 	if RUN_TYPE == 'rerun':
 		return __fn_rerun_1and2, __fn_rerun_1not2, __fn_rerun_2not1
+

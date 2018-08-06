@@ -19,20 +19,20 @@ ALL_BANDS = ['g', 'r', 'i', 'z']
 ### For catalogs ###
 MATCH_CAT1, MATCH_CAT2 = 'gal_truth', 'mof'
 INJ1, INJ2 = True, True 
-NOTICE = True
+NOTICE = False
 
 ### For plots ###
 # Observable #
 PLOT_COLOR = False
-PLOT_FLUX = True
-PLOT_MAG = False
+PLOT_FLUX = False
+PLOT_MAG = True
 
 SAVE_PLOT = False
 SHOW_PLOT = True
 
 # Display #
 HIST_2D = False
-HEXBIN = False
+HEXBIN = True
 # Can be used for color plot and magnitude plot #
 CORNER_HIST_2D = False 
 SCATTER = False
@@ -41,8 +41,8 @@ COLOR_YLOW, COLOR_YHIGH = None, None
 # For flux plots #
 PLOT_GAUSS_APER_FLUX = True
 PLOT_CM_FLUX = True
-PLOT_GAUSSIAN_FIT = True
-PLOT_PEAKS = False
+PLOT_GAUSSIAN_FIT = False
+PLOT_PEAKS = True
 TRIM_NORM_FLUX_DIFF = False
 NORMALIZE_NORM_FLUX_DIFF_VIA_DENSITY = True
 RAW_NORM_FLUX_DIFF = False
@@ -68,8 +68,8 @@ STACK_TILES = False
 
 OVERWRITE_AXLABELS = False
 
-VERBOSE_ING = True
-VERBOSE_ED = True
+VERBOSE_ING = False
+VERBOSE_ED = False
 
 SWAP_HAX = False
 SWAP_ORDER_OF_SUBTRACTION = False

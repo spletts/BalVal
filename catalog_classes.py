@@ -1,6 +1,6 @@
 """
 Store catalog headers and properties.
-e.g. is the catalog: Balrog-injected (if so get its injection percent), Balrog-base, measured, truth, etc.
+E.g. is the catalog: Balrog-injected (if so get its injection percent), Balrog-base, measured, truth, etc.
 
 
 Docstrings are repeated often, but included in each function for clarity.
