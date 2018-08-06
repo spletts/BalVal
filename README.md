@@ -20,19 +20,19 @@ ___
 ___
 # Running BalVal
 
-General: `$python ms_plotter.py {BASE_PATH_TO_CATS} {OUTPUT_DIRECTORY} {realization(s)} {tile(s)}`
+General: `$python plotter.py {BASE_PATH_TO_CATS} {OUTPUT_DIRECTORY} {realization(s)} {tile(s)}`
 
-Ex: `$python ms_plotter.py /data/des71.a/data/kuropat/des2247-4414_sof/ /BalVal/ 0,1 DES2247-4414`
+Ex: `$python plotter.py /data/des71.a/data/kuropat/des2247-4414_sof/ /BalVal/ 0,1 DES2247-4414`
 
 `None` is an allowed value for `{realization(s)}`. User can list realizations at the command line with commas and _no_ spaces separating the realizations (similarly for tiles). `{tile(s)}` can also be specified with a `.dat` file.
 
 After the above command is issued, a prompt will appear so that the user can confirm plot attributes. This is to prevent plots from being overwritten when testing new additions to the script. User can comment `NOTICE` to remove this prompt. 
 
-User sets plot attributes and catalog attributes within `ms_plotter.py`. A table of user-set attributes is in 'Table of Constants'.
+User sets plot attributes and catalog attributes within `plotter.py`. A table of user-set attributes is in 'Table of Constants'.
 
 ##### Dependencies
 
-`ms_plotter.py` requires [`ngmixer`](https://github.com/esheldon/ngmixer) to measure fluxes using a Gaussian aperture. 
+Requires [`ngmixer`](https://github.com/esheldon/ngmixer) to measure fluxes using a Gaussian aperture. 
 
 If user has access to the DES machines at FNAL: 
 1. Use `matplotlib v2.2.2`, via 
@@ -66,7 +66,9 @@ ___
 
 - `analysis.py`: Conducts analysis for plots. E.g. remove flags, error analysis, ...
 
-- `ms_plotter.py`: Produces various comparison plots (see 'Table of Constants').
+- `plotter.py`: Produces various comparison plots (see 'Table of Constants').
+
+- `region_files.py`: Writes to region files.
 
 Note that the CSVs created after matching two catalogs with STILTS have converted arrays in FITS files. For example, if a cell contains an array of form `(1 2 3 4)` it is converted to a string of form `'(1, 2, 3, 4)'`. Similarly for matrices, etc.
 
@@ -81,7 +83,7 @@ Parameter(s) | Type | Description <br> `allowed values` (if Type not bool)
 :---: | :---: | ---
 |`MATCH_CAT1` `MATCH_CAT2` | str | Type of catalogs to analyse. <br>`coadd` `gal_truth` `mof` `sof` `star_truth` `y3_gold_2_0` `y3_gold_2_2`
 | `INJ1` `INJ2` | bool | If `True` then `MATCH_CAT1` `MATCH_CAT2` are Balrog-injected. If `False` then `MATCH_CAT1` `MATCH_CAT2` are base catalogs.
-|`INJ1_PERCENT` `INJ2_PERCENT` | int | These are set my `ms_plotter.get_injection_percent()`. User should hardcode these if `{BASE_PATH_TO_CATS}` contains catalogs with different injection percents (for example, the Balrog run for TAMU had both 10% and 20% injections).
+|`INJ1_PERCENT` `INJ2_PERCENT` | int | These are set by `...get_injection_percent()`. User should hardcode these if `{BASE_PATH_TO_CATS}` contains catalogs with different injection percents (for example, the Balrog run for TAMU had both 10% and 20% injections).
 | `PLOT_MAG` | bool | If `True` plots of g-, r-, i-, and z-band magnitude are created.
 | `PLOT_COLOR` | bool | If `True` colors g-r, r-i, and i-z are plotted. Creates a 2x2 grid with subplots corresponding to different magnitude bins (currently \[20,21), \[21,22), \[22,23), and \[23,24)). Magnitudes are binned according to values in `MATCH_CAT1` for the leading filter (g for g-r, etc). By default (`SWAP_HAX=False`) the color difference is calculated via color_from_match_cat1 - color_from_match_cat2. This order is reversed if `SWAP_HAX=True`.
 | `PLOT_FLUX` | bool | If `True` a 1D histogram of Delta_Flux/Sigma_Flux is plotted along with a standard Gaussian (mean=0, standard_deviation=1) and a fit to the 1D histogram. Delta_Flux is computed as truth_flux minus {SOF/MOF/coadd}\_flux. Sigma_Flux is computed using only the measured catalog (SOF/MOF/coadd).
@@ -107,13 +109,13 @@ Parameter(s) | Type | Description <br> `allowed values` (if Type not bool)
 | `CM_T_ERR_CBAR` | bool | Used if `PLOT_MAG=True`. If `True` a colorbar is added to the plot according to the *measured* cm_T error. `NORMALIZE` must be False.
 | `PLOT_MAG_ERR` | bool | If `True` and and `PLOT_MAG` the 1sigma magnitude error curve is plotted. `NORMALIZE` must be False.
 | `MAG_YLOW`, `MAG_YHIGH` | int, float or `None` | Limits for the vertical axis of the magnitude plot. `None` results in default scaling.
-| `SAVE_PLOT` | bool | If `True` plot is saved using name assigned by `ms_plotter.get_plot_save_name()`.
+| `SAVE_PLOT` | bool | If `True` plot is saved using name assigned by `outputs.get_plot_filename()`.
 | `SHOW_PLOT` | bool | If `True` plot is displayed after it is created.
 | `STACK_REALIZATIONS` | bool | If `True` catalogs are matched then stacked. One stacked realization catalog is produced per tile. Plotting resumes with stacked catalog. Must be used with, for example, `0,1,2` at the command line.
 | `STACK_TILES` | bool | If `True` catalogs are matched then stacked. One stacked tile catalog is produced per realization. Must be used with, for example, `DES0220-0207,DES0222+0043` at the command line.
 | `CENTER_ERR_ABT_ZERO`| bool | If `True` the plot of the magnitude error is centered about zero. This (minorly) affects the number of objects within 1sigma_mag. If `False` the plot of the magnitude error is centered about the median of the vertical axis data each bin.
-| `PLOT_68P` | bool | Considered if `PLOT_MAG=True` and `NORMALIZE=True`. If `True` the 68th percentile of the vertical axis data in each bin are plotted. Bins refer to the magnitude bins used in the magnitude error calculation. Exists in `ms_plotter.normalized_delta_magnitude_plotter()`.
-| `PLOT_34P_SPLIT` | bool | Considered if `PLOT_MAG=True` and `NORMALIZE=True`. If `True` the 34th percentile of the positive and negative vertical axis data in each bin are plotted separately. Bins refer to the magnitude bins used in the magnitude error calculation. Exists in `ms_plotter.normalized_delta_magnitude_plotter()`.
+| `PLOT_68P` | bool | Considered if `PLOT_MAG=True` and `NORMALIZE=True`. If `True` the 68th percentile of the vertical axis data in each bin are plotted. Bins refer to the magnitude bins used in the magnitude error calculation. Exists in `analysis.normalized_delta_magnitude_plotter()`.
+| `PLOT_34P_SPLIT` | bool | Considered if `PLOT_MAG=True` and `NORMALIZE=True`. If `True` the 34th percentile of the positive and negative vertical axis data in each bin are plotted separately. Bins refer to the magnitude bins used in the magnitude error calculation. Exists in `analysis.normalized_delta_magnitude_plotter()`.
 | `SUBPLOT` | bool | If `True` four subplots are created in a 2x2 grid. If `False` plots are created individually.
 | `MOF` | bool | Only used if `RUN_TYPE` is not `None`. Does `BASEPATH` entered at command line contain MOF (`MOF=True` or SOF `MOF=False` catalogs?
 | `MAKE_REG`| bool | If `True`, three DS9 region files created containing 1) objects in both catalogs, 2) objects in the first not the second catalog, 3) objects in the second not the first catalog.
