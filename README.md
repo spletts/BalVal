@@ -1,4 +1,4 @@
- # BalVal
+# BalVal
 
 Conducts various [Balrog-GalSim](https://github.com/sweverett/Balrog-GalSim) validation tests.
 
@@ -28,7 +28,7 @@ Ex: `$python plotter.py /data/des71.a/data/kuropat/des2247-4414_sof/ /BalVal/ 0,
 
 After the above command is issued, a prompt will appear so that the user can confirm plot attributes. This is to prevent plots from being overwritten when testing new additions to the script. User can set `NOTICE=False` in `set_constants.py` to remove this prompt. 
 
-User sets plot attributes and catalog attributes within `plotter.py`. A table of user-set attributes is in 'Table of Constants'.
+User sets plot attributes and catalog attributes within `set_constants.py`. User-set attributes are listed in a [Table of Constants](https://github.com/spletts/BalVal/blob/master/README.md#table-of-constants).
 
 ##### Dependencies
 
@@ -46,31 +46,34 @@ Note that `/home/s1/mspletts/setup_ngmixer_gaussap.sh` points to `ngmixer` as cl
 {modified code} 
 ### - ###
 ```
+.
 
 ___
 ##### Contents of Repository
 
-- `catalog_classes.py`: Each catalog type (see `MATCH_CAT1` in 'Table of Constants') and their relevant and allowed headers.
+See docstring and the beginning of each script for more detail.
 
-- `catalog_headers.py`: Contains headers for `MATCH_CAT1` and `MATCH_CAT2` (established in `set_constants.py`).
+- `set_constants.py`: Set catalog and plot attributes. User interacts with this.
 
-- `set_constants.py`: Set catalog and plot attributes. User interacts with this. 
+- `plotter.py`: Produces plots. User runs this script.
 
-- `stilts_matcher`: matches two catalogs on RA and Dec using [STILTS](http://www.star.bris.ac.uk/~mbt/stilts/). Returns a CSV.
+- `catalog_classes.py`: Contains the relevant and permitted headers for each catalog type (see `MATCH_CAT1`, `MATCH_CAT2` in [Table of Constants](https://github.com/spletts/BalVal/blob/master/README.md#table-of-constants) for allowed catalog types).
 
-- `fof_stilts_matcher`: creates a number of catalogs needed to analyse FOF groups. Catalogs are matched using STILTS. Returns CSVs.
+- `catalog_headers.py`: Contains headers for `MATCH_CAT1` and `MATCH_CAT2` (`MATCH_CAT1` and `MATCH_CAT2` are established in `set_constants.py`). 
 
-- `ms_par.py`: analyses FOF groups changed and unchanged after Balrog-injection. This is called by `fof_stilts_matcher`. 
+- `stilts_matcher`: Matches two catalogs on RA and Dec using [STILTS](http://www.star.bris.ac.uk/~mbt/stilts/). Returns a CSV.
 
-- `outputs.py`: Creates and writes to various outputs.
+- `fof_stilts_matcher`: Creates a number of catalogs needed to analyse FOF groups. Catalogs are matched using [STILTS](http://www.star.bris.ac.uk/~mbt/stilts/). Returns CSVs.
 
-- `analysis.py`: Conducts analysis for plots. E.g. remove flags, error analysis, ...
+- `ms_par.py`: Analyses FOF groups changed and unchanged after Balrog-injection. This is called by `fof_stilts_matcher`. Written by Brian Yanny.
 
-- `plotter.py`: Produces various comparison plots (see 'Table of Constants').
+- `outputs.py`: Creates and writes to various output files.
+
+- `analysis.py`: Conducts analysis needed to make plots. E.g. remove flags, error analysis, etc.
 
 - `region_files.py`: Writes to region files.
 
-Note that the CSVs created after matching two catalogs with STILTS have converted arrays in FITS files. For example, if a cell contains an array of form `(1 2 3 4)` it is converted to a string of form `'(1, 2, 3, 4)'`. Similarly for matrices, etc.
+Note that after matching two catalogs with STILTS, the output CSV contains arrays converted to strings. For example, if a cell contains an array of form `(1 2 3 4)` in an input FITS file, it is converted to a string of form `'(1, 2, 3, 4)'` in the matched CSVs. Similarly for matrices, etc.
 
 
 
@@ -81,7 +84,7 @@ These constants are set within `set_constants.py`. Docstrings describe parameter
 
 Parameter(s) | Type | Description <br> `allowed values` (if Type not bool)
 :---: | :---: | ---
-|`MATCH_CAT1` `MATCH_CAT2` | str | Type of catalogs to analyse. <br>`coadd` `gal_truth` `mof` `sof` `star_truth` `y3_gold_2_0` `y3_gold_2_2`
+|`MATCH_CAT1` `MATCH_CAT2` | str | Type of catalogs to analyse. <br>`'coadd'` `'gal_truth'` `'mof'` `'sof'` `'star_truth'` `'y3_gold_2_0'` `'y3_gold_2_2'`, `'deep_sn_sof'`, `'deep_sn_sof'`
 | `INJ1` `INJ2` | bool | If `True` then `MATCH_CAT1` `MATCH_CAT2` are Balrog-injected. If `False` then `MATCH_CAT1` `MATCH_CAT2` are base catalogs.
 |`INJ1_PERCENT` `INJ2_PERCENT` | int | These are set by `...get_injection_percent()`. User should hardcode these if `{BASE_PATH_TO_CATS}` contains catalogs with different injection percents (for example, the Balrog run for TAMU had both 10% and 20% injections).
 | `PLOT_MAG` | bool | If `True` plots of g-, r-, i-, and z-band magnitude are created.
@@ -125,22 +128,32 @@ Parameter(s) | Type | Description <br> `allowed values` (if Type not bool)
 | `NO_DIR_MAKE` | bool| If `True` nonexistent directories will be created. If `False`, `sys.exit()` will be invoked when nonexistent directories are encountered.
 | `SWAP_HAX` | bool | If `False` (default) `MATCH_CAT1` values are plotted on the horizontal axis. If `True` `MATCH_CAT2` values are plotted on the horizontal axis. Considered if `PLOT_COLOR` or `PLOT_MAG`.
 | `SWAP_ORDER_OF_SUBTRACTION` | bool | If `False`, plots the observable from `MATCH_CAT1` minus the observable from `MATCH_CAT2`. IF `True`, plots the observable from `MATCH_CAT2` minus the observable from `MATCH_CAT1`. Only considered if `PLOT_COLOR` or `PLOT_MAG`. 
-| `OVERRIDE_AXLABELS` | bool | If `True` the axes labels created in `plot_labels.get_short_difference_axlabel()` will be overwritten with a generic `$\Delta$ flux_{band}/meas_flux_err` for the horizontal axis if `PLOT_FLUX`, `$\Delta$ ({color})` for the vertical axis if `PLOT_COLOR`, and `$\Delta$ mag_{band}` for the vertical axis if `PLOT_MAG`. <br>`plot_labels.get_short_difference_axlabel()` attempts to produce an axis label that describes `$\Delta$ mag` by including the order of subtraction (of the observables from `MATCH_CAT1` and `MATCH_CAT2`), whether the observables are from Balrog-base or Balrog-injected catalogs, the injection percent (if applicable), and whether the observables are from truth or measured catalogs. 
+| `OVERWRITE_AXLABELS` | bool | If `True` the axes labels created in `plot_labels.get_short_difference_axlabel()` will be overwritten with a generic `$\Delta$ flux_{band}/meas_flux_err` for the horizontal axis if `PLOT_FLUX`, `$\Delta$ ({color})` for the vertical axis if `PLOT_COLOR`, and `$\Delta$ mag_{band}` for the vertical axis if `PLOT_MAG`. <br>`plot_labels.get_short_difference_axlabel()` attempts to produce an axis label that describes `$\Delta$ mag` by including the order of subtraction (of the observables from `MATCH_CAT1` and `MATCH_CAT2`), whether the observables are from Balrog-base or Balrog-injected catalogs, the injection percent (if applicable), and whether the observables are from truth or measured catalogs. But this doesn't always look nice! Particularly if the 
 | `RUN_TYPE` | str or `None` | FOF groups (if any) to analyse. <br> `None` `'ok'` `'rerun'` <br>`'ok'`: FOF groups *un*changed after Balrog-injection. <br>`'rerun'`: FOF groups changed after Balrog-injection. <br>`None`: FOF analysis not conducted. <br>If `RUN_TYPE='rerun'` or `RUN_TYPE='ok'` then `MATCH_CAT1` `MATCH_CAT2` `INJ1` and `INJ2` will be overwritten.
 | `FOF_FIT` | str or `None` | Considered if `RUN_TYPE != None`. <br> `'mof'`, `'sof'`. 
 | `VERBOSE_ING` | bool | If `True` status and progress of script will print to screen. For example, 'Plotting...', 'calculating...', 'overwriting...', etc.
 | `VERBOSE_ED` | bool | If `True` results will print to screen. For example, 'got...', 'flagged...', 'checked...', etc. Note that many of these printouts are also saved in a log file.
 | `NOTICE` | bool | If `True` after issuing `$python plotter.py ...` at the command line a summary of the catalog and prompt attributes is printed to the screen, followed by `raw_input()` so that user can review before running the script.
+| `SAVE_BAD_IDX` | bool | If `True` the indices of objects with flags* are stored.
+| `CORNER_2D_HIST_LVLS` | 1D array | If `CORNER_2D_HIST=True` this is used as `levels` in [`corner.py`](https://github.com/dfm/corner.py).
+| `CORNER_HIST_2D_LVLS_CLRS` | list of str | If `CORNER_2D_HIST=True` this is used as the color(s) for the `levels` above.
+| `CORNER_HIST_2D_LVLS_CLRS_LABEL` | list of str | If `CORNER_2D_HIST=True` this is used to label `levels`.
 
-If `CORNER_2D_HIST`, the following are relevant:
-`LVLS`
-`CLRS_FOR_LVLS`
 
-For color-coding:
+##### Plot colors
+Colors and colormaps for plots are set by the following in `set_constants.py`:
+
 `CMAPS`
+
 `PT_COLORS`
-`GAUSS_FIT_COLORS`
-...
+
+`FIT_TO_FLUX`
+
+`GAP_FLUX_HIST`
+
+`FLUX_HIST`
+
+`FIT_TO_FLUX`.
 
 
 The following functions contain `__overwrite`:
@@ -153,7 +166,7 @@ The following functions contain `__overwrite`:
 
 `...make_ngmixer_gaussap_compatible_catalog()`, 
 
-`...matcher()`
+`manipulate_catalogs.match_catalogs()`
 
 `...stack_realizations()`
 
@@ -165,6 +178,18 @@ If `__overwrite=True` a `raw_input()` prompt will appear to ensure that files ar
 
 Log files, matched catalogs, and plot names are printed with a proceeding `----->` for ease of finding and opening these files.
 
+In general, user can edit path to catalogs in `manipulate_catalogs.get_catalog_filename()`.
+
+
+##### Note about Y3 Gold catalogs and Deep SN Coadds
+
+The following is relevant if either `MATCH_CAT1` or `MATCH_CAT2` is a Y3 Gold catalog or a deep SN coadd chip.
+
+By default, `manipulate_catalogs.get_catalog_filename()` tries to access Y3 Gold catalogs and deep SN coadds in `/data/des71.a/data/mspletts/balrog_validation_tests/y3_gold_catalogs/` and `/data/des71.a/data/mspletts/balrog_validation_tests/deep_sn_catalogs/`, respectively. 
+
+If user has access to FNAL DES machines, and necessary Y3 Gold catalogs are not already in the directory above, user will need to download the Y3 Gold catalogs with the headers found in: `/data/des71.a/data/mspletts/balrog_validation_tests/y3_gold_catalogs/y3_gold_general_column_query.sql` and edit `manipulate_catalogs.get_catalog_filename()` with the correct path to the Y3 Gold catalogs.
+
+
 
 ##### Warnings
 
@@ -172,27 +197,14 @@ If user does not have access to DES machines at FNAL:
 
 Replace `/data/des71.a/data/mspletts/balrog_validation_tests/scripts/BalVal/stilts_matcher` (in `manipulate_catalogs.match_catalogs()`) with the correct path to `stilts_matcher`. Similarly for `fof_stilts_matcher`.
 
-User should edit the paths to catalogs in `manipulate_catalogs.get_catalog_filename()`. 
-
 ...
-
-
-##### Note about Y3 Gold catalogs
-
-The following is relevant if `MATCH_CAT1` or `MATCH_CAT2` is a Y3 Gold catalog.
-
-By default, `manipulate_catalogs.get_catalog_filename()` tries to access Y3 Gold catalogs saved in `/data/des71.a/data/mspletts/balrog_validation_tests/y3_gold_catalogs/`. 
-
-If the user has access to FNAL DES machines, and necessary Y3 Gold catalogs are not already in the directory above, user will need to download the Y3 Gold catalogs with the headers found in: `/data/des71.a/data/mspletts/balrog_validation_tests/y3_gold_catalogs/y3_gold_general_column_query.sql` and edit `manipulate_catalogs.get_catalog_filename()` with the correct path to the Y3 Gold catalogs.
-
-In general, user can edit path to catalogs in `manipulate_catalogs.get_catalog_filename()`.
 
 
 ---
 
 # Output Directory Structure
 
-If user wishes to change the directory structure imposed below, make changes to `outputs.get_directory()`
+If user wishes to change the output directory structure imposed below, make changes to `outputs.get_directory()`
 
 Directory names are determined by the constants that follow.
 
@@ -298,25 +310,25 @@ Below are solely the directories and not the files that will be created within t
                     |
                     +---- log_files
                     |   |   {tile}_{realization}_{MATCH_TYPE}_color_from_mag.log
+                    |   |   {tile}_{realization}_{MATCH_TYPE}_num_objs_in_1sig_mag.log
                     |   |   {tile}_{realization}_{MATCH_TYPE}_flags.log
-                    |   |   {tile}_{realization}_{MATCH_TYPE}_flux_from_gaussian_aperture.log
-                    |   |   {tile}_{realization}_{modified_match_type}_mag_completeness.log
+                    |   |   {tile}_{realization}_{MATCH_TYPE}_mag_completeness.log
                     |   |   {tile}_{realization}_{MATCH_TYPE}_mag_error_computation.log
                     |   |   {tile}_{realization}_{MATCH_TYPE}_matched_catalogs.log
-                    |   |   {tile}_{realization}_{MATCH_TYPE}_main.log
                     |   |   {tile}_{realization}_{MATCH_TYPE}_outlier_mag_diffs.log
                     |   |   {tile}_{realization}_{MATCH_TYPE}_sigma_clip_flux.log
+                    |   |   {tile}_{realization}_{MATCH_TYPE}_flux_from_gaussian_aperture.log
                     |   |
                     |   +---- fof_analysis
                     |           {tile}_{realization}_{MATCH_TYPE}_{RUN_TYPE}_color_from_mag.log
+                    |           {tile}_{realization}_{MATCH_TYPE}_{RUN_TYPE}_num_objs_in_1sig_mag.log
                     |           {tile}_{realization}_{MATCH_TYPE}_{RUN_TYPE}_flags.log
-                    |           {tile}_{realization}_{MATCH_TYPE}_{RUN_TYPE}_flux_from_gaussian_aperture.log
-                    |           {tile}_{realization}_{mod_match_type}_{RUN_TYPE}_mag_completeness.log
+                    |           {tile}_{realization}_{MATCH_TYPE}_{RUN_TYPE}_mag_completeness.log
                     |           {tile}_{realization}_{MATCH_TYPE}_{RUN_TYPE}_mag_error_computation.log
                     |           {tile}_{realization}_{MATCH_TYPE}_{RUN_TYPE}_matched_catalogs.log
-                    |           {tile}_{realization}_{MATCH_TYPE}_{RUN_TYPE}_main.log
                     |           {tile}_{realization}_{MATCH_TYPE}_{RUN_TYPE}_outlier_mag_diffs.log
                     |           {tile}_{realization}_{MATCH_TYPE}_{RUN_TYPE}_sigma_clip_flux.log
+                    |           {tile}_{realization}_{MATCH_TYPE}_{RUN_TYPE}_flux_from_gaussian_aperture.log
                     |
                     +---- plots
                     |   |
@@ -370,9 +382,6 @@ Below are solely the directories and not the files that will be created within t
 
 Log files are CSVs although they have `.log` extensions. Not all log files will be written to; for example, if `PLOT_MAG=False`, 'mag_completeness.log' will not be created and an empty 'dummy.log' will replace it.
 
-Plot save names ending with '\_.png' have default axes.
-
-`modified_match_type` is `MATCH_TYPE` unless `PLOT_COMPLETENESS=True` in which case both 10% and 20% Balrog-injected matched catalogs are plotted in the same window (if applicable). `modified_match_type` removes the percent injected from `MATCH_TYPE`. That is, `MATCH_TYPE=10%_inj_gal_truth_cat_10%_inj_sof_cat` results in `match_type=inj_gal_truth_cat_inj_sof_cat`.
 
 ___
 ##### Stacking multiple realizations or multiple tiles
