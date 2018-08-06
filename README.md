@@ -1,4 +1,4 @@
-# BalVal
+ # BalVal
 
 Conducts various [Balrog-GalSim](https://github.com/sweverett/Balrog-GalSim) validation tests.
 
