@@ -11,4 +11,4 @@ from . import calculate_injection_percent
 from . import analysis
 from . import plot_labels
 from . import region_files
-from . import ms_plotter
+from . import plotter
