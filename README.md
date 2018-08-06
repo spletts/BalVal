@@ -105,7 +105,7 @@ These constants are set within `set_constants.py`. Docstrings describe parameter
 Parameter(s) | Type | Description <br> `allowed values` (if Type not bool)
 :---: | :---: | ---
 |`MATCH_CAT1` `MATCH_CAT2` | str | Type of catalogs to analyse. <br>`'coadd'` `'gal_truth'` `'mof'` `'sof'` `'star_truth'` `'y3_gold_2_0'` `'y3_gold_2_2'`, `'deep_sn_mof'`, `'deep_sn_sof'`
-| `INJ1` `INJ2` | bool | If `True` then `MATCH_CAT1` `MATCH_CAT2` are Balrog-injected. If `False` then `MATCH_CAT1` `MATCH_CAT2` are base catalogs.
+| `INJ1` `INJ2` | bool | If `INJ1=True` then `MATCH_CAT1` is are Balrog-injected. If `False` then `MATCH_CAT1` is a base (non-injected) catalog. Similarly for `INJ2` and `MATCH_CAT2`.
 |`INJ1_PERCENT` `INJ2_PERCENT` | int | These are set by `...get_injection_percent()`. User should hardcode these if `{BASE_PATH_TO_CATS}` contains catalogs with different injection percents (for example, the Balrog run for TAMU had both 10% and 20% injections).
 | `PLOT_MAG` | bool | If `True` plots of g-, r-, i-, and z-band magnitude are created.
 | `PLOT_COLOR` | bool | If `True` colors g-r, r-i, and i-z are plotted. Creates a 2x2 grid with subplots corresponding to different magnitude bins (currently \[20,21), \[21,22), \[22,23), and \[23,24)). Magnitudes are binned according to values in `MATCH_CAT1` for the leading filter (g for g-r, etc). By default (`SWAP_HAX=False`) the color difference is calculated via color_from_match_cat1 - color_from_match_cat2. This order is reversed if `SWAP_HAX=True`.
