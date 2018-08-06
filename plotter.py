@@ -1,11 +1,8 @@
 """
 Creates various plots for Balrog validation testing.
 
-To run: $python ms_plotter.py base_path_to_catalogs output_directory realization tile
-Example: $python ms_plotter.py /data/des71.a/data/kuropat/des2247-4414_sof/ /Users/mspletts/BalVal/ 0 DES2247-4414
-
-Relies on `stilts_matcher`. User may need to replace `/data/des71.a/data/mspletts/balrog_validation_tests/scripts/BalVal/stilts_matcher` with the correct path to `stilts_matcher`.
-FOF analysis relies on `fof_stilts_matcher`. User may need to replace `/data/des71.a/data/mspletts/balrog_validation_tests/scripts/BalVal/ms_fof_matcher` with the correct path to `ms_fof_matcher`.
+To run: $python plotter.py base_path_to_catalogs output_directory realization tile
+Example: $python plotter.py /data/des71.a/data/kuropat/des2247-4414_sof/ /Users/mspletts/BalVal/ 0 DES2247-4414
 
 Docstrings describe function parameters and function returns, but a GoogleSheet is also availabe: https://docs.google.com/spreadsheets/d/1utJdA9SpigrbDTsmtHcqcECP9sARHeFNUXdp47nyyro/edit?usp=sharing
 
@@ -134,7 +131,7 @@ if NOTICE:
 	['If plotting 1sigma_meas curve, center about zero? (else centered about medians) :\t {}'.format(CENTER_ERR_ABT_ZERO)],
 	['Normalize magnitude plot to magnitude error? :\t {}'.format(NORMALIZE)],
 	['If PLOT_MAG and NORMALIZE, plot percentiles? :\t {}, {}'.format(PLOT_68P, PLOT_34P_SPLIT)],
-	['Make region files? :\t {}'.format(MAKE_REG)],
+	['Make region files? :\t {}'.format(MAKE_REGION_FILES)],
 	['FOF analysis? :\t {}'.format(RUN_TYPE)]
 	]
 
@@ -290,7 +287,7 @@ def stacked_magnitude_completeness_subplotter(mag_hdr1, mag_hdr2, mag_err_hdr1, 
                 if 'COSMOS' not in BALROG_RUN:
 			# Make subplots #
                         plt.subplot(1, 2, 1)
-                        plt.plot(COMPLETENESS_PLOT_MAG_BINS,np.nanmean(__completeness1[:,k,:], axis=0) , color='blue')
+                        plt.plot(COMPLETENESS_PLOT_MAG_BINS, np.nanmean(__completeness1[:,k,:], axis=0) , color='blue')
                         plt.axhline(y=1, color='black', linestyle='-', linewidth=0.7)
                         plt.axhline(y=0, color='black', linestyle='-', linewidth=0.7)
                         plt.axhline(y=0.9, color='orange', linestyle='--', linewidth=0.7)
@@ -859,18 +856,18 @@ def color_subplotter(band, df_1and2, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_h
 				__sym_ylim = np.min([abs(__ylow), __yhigh])
 
 			# Plot density bins #
-                        #corner.hist2d(__hax_color[i], __vax_color[i], bins=np.array([__bin_x, __bin_y]), no_fill_contours=False, color=get_color(band=band)[0], levels=LVLS, contour_kwargs={'colors':CLRS, 'cmap':None, 'linewidths':__lw})
+                        #corner.hist2d(__hax_color[i], __vax_color[i], bins=np.array([__bin_x, __bin_y]), no_fill_contours=False, color=get_color(band=band)[0], levels=CORNER_2D_HIST_LVLS, contour_kwargs={'colors':CORNER_HIST_2D_LVLS_CLRS, 'cmap':None, 'linewidths':__lw})
 
 			# Plot points and not density bins #
-			corner.hist2d(__hax_color[i], __vax_color[i], plot_density=False, bins=np.array([__bin_x, __bin_y]), no_fill_contours=True, color=PT_COLORS[band], levels=LVLS, contour_kwargs={'colors':CLRS, 'cmap':None, 'linewidths':__lw}, data_kwargs={'alpha':0.35, 'ms':1.75})
+			corner.hist2d(__hax_color[i], __vax_color[i], plot_density=False, bins=np.array([__bin_x, __bin_y]), no_fill_contours=True, color=PT_COLORS[band], levels=CORNER_2D_HIST_LVLS, contour_kwargs={'colors':CORNER_HIST_2D_LVLS_CLRS, 'cmap':None, 'linewidths':__lw}, data_kwargs={'alpha':0.35, 'ms':1.75})
 
 			if COLOR_YLOW is None and COLOR_YHIGH is None:
 				# Force symmetric vertical axis #
 				plt.ylim([-1*__sym_ylim, __sym_ylim])
 
 			# Work-around for contour label #
-			for j in np.arange(0, len(LVLS)):
-				plt.plot([0.5, 0.5], [0.5, 0.5], color=CLRS_LABEL[j], label='$P_{'+str(round(LVLS[j], 2))[2:]+'}$', linewidth=__lw)
+			for j in np.arange(0, len(LVLS_FOR_CORNER_2D_HIST)):
+				plt.plot([0.5, 0.5], [0.5, 0.5], color=CORNER_HIST_2D_LVLS_CLRS_LABEL[j], label='$P_{'+str(round(LVLS_FOR_CORNER_2D_HIST[j], 2))[2:]+'}$', linewidth=__lw)
 			plt.legend().draggable()
 
 
@@ -1092,10 +1089,10 @@ def normalized_magnitude_difference_plotter(mag_hdr1, mag_hdr2, cbar_data, mag_e
 		__sym_ylim = np.mean([abs(__ylow), __yhigh])
 
 		__lw = 0.9
-                corner.hist2d(plotHaxMag, plotMagnitudeDifferenceag, bins=np.array([__bin_x, __bin_y]), no_fill_contours=True, levels=LVLS, color=PT_COLORS[band], contour_kwargs={'colors':CLRS, 'cmap':None, 'linewidth':__lw})
+                corner.hist2d(plotHaxMag, plotMagnitudeDifferenceag, bins=np.array([__bin_x, __bin_y]), no_fill_contours=True, levels=CORNER_2D_HIST_LVLS, color=PT_COLORS[band], contour_kwargs={'colors':CORNER_HIST_2D_LVLS_CLRS, 'cmap':None, 'linewidth':__lw})
 		# Work-around for contour labels #
-		for j in np.arange(0, len(LVLS)):
-			plt.plot([0.5, 0.5], [0.5, 0.5], color=CLRS_LABEL[j], label='$P_{'+str(round(LVLS[j], 2))[2:]+'}$', linewidth=__lw)
+		for j in np.arange(0, len(LVLS_FOR_CORNER_2D_HIST)):
+			plt.plot([0.5, 0.5], [0.5, 0.5], color=CORNER_HIST_2D_LVLS_CLRS_LABEL[j], label='$P_{'+str(round(LVLS_FOR_CORNER_2D_HIST[j], 2))[2:]+'}$', linewidth=__lw)
 		plt.legend().draggable()
 
 		if MAG_YLOW is not None and MAG_YHIGH is not None:
@@ -1261,11 +1258,11 @@ def magnitude_difference_plotter(mag_hdr1, mag_hdr2, cbar_data, mag_err1, mag_er
 		__sym_ylim = np.mean([abs(__ylow), __yhigh])
 
 		# Plot points and not density bins #
-		#corner.hist2d(__hax_mag, __mag_diff, plot_density=False, bins=np.array([__bin_x, __bin_y]), no_fill_contours=True, color=get_color(band=band)[0], levels=LVLS, contour_kwargs={'colors':CLRS, 'cmap':None, 'linewidths':__lw}, data_kwargs={'alpha':0.25, 'ms':1.75})
+		#corner.hist2d(__hax_mag, __mag_diff, plot_density=False, bins=np.array([__bin_x, __bin_y]), no_fill_contours=True, color=get_color(band=band)[0], levels=CORNER_2D_HIST_LVLS, contour_kwargs={'colors':CORNER_HIST_2D_LVLS_CLRS, 'cmap':None, 'linewidths':__lw}, data_kwargs={'alpha':0.25, 'ms':1.75})
 
 		# Only the densest regions of the plot are binned so increase bin size of plt.hist2d() #
 		# SLACK channel corner.hist2d "draws 1- and 2-sigma contours automatically."Correct 1sigma levels: http://corner.readthedocs.io/en/latest/pages/sigmas.html #
-		corner.hist2d(__hax_mag, __mag_diff, bins=np.array([__bin_x, __bin_y]), no_fill_contours=True, levels=LVLS, color=PT_COLORS[band], contour_kwargs={'colors':CLRS, 'cmap':None, 'linewidths':__lw}) 
+		corner.hist2d(__hax_mag, __mag_diff, bins=np.array([__bin_x, __bin_y]), no_fill_contours=True, levels=CORNER_2D_HIST_LVLS, color=PT_COLORS[band], contour_kwargs={'colors':CORNER_HIST_2D_LVLS_CLRS, 'cmap':None, 'linewidths':__lw}) 
 
 		if MAG_YLOW is None and MAG_YHIGH is None:
 			plt.ylim([-1*__sym_ylim, __sym_ylim])
@@ -1273,8 +1270,8 @@ def magnitude_difference_plotter(mag_hdr1, mag_hdr2, cbar_data, mag_err1, mag_er
 			plt.ylim([MAG_YLOW, MAG_YHIGH])
 
 		# Work-around for contour labels #
-		for j in np.arange(0, len(LVLS)):
-			plt.plot([0.5, 0.5], [0.5, 0.5], color=CLRS_LABEL[j], label='$P_{'+str(round(LVLS[j], 2))[2:]+'}$', linewidth=__lw)
+		for j in np.arange(0, len(LVLS_FOR_CORNER_2D_HIST)):
+			plt.plot([0.5, 0.5], [0.5, 0.5], color=CORNER_HIST_2D_LVLS_CLRS_LABEL[j], label='$P_{'+str(round(LVLS_FOR_CORNER_2D_HIST[j], 2))[2:]+'}$', linewidth=__lw)
 		plt.legend().draggable()
 
 	### Axes labels ###
@@ -2094,7 +2091,7 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 			### Region files ###
 			#TODO PLOT_COMPLETENESS df1and2 created in another function --> cannot call write_to_region_files()
 			if PLOT_COMPLETENESS is False:
-				if MAKE_REG:
+				if MAKE_REGION_FILES:
 					region_files.write_region_files(df_1and2=df1and2, df_1not2=df1not2, df_2not1=df2not1, realization=r, tile=t, balrog_run=BALROG_RUN, output_directory=OUTPUT_DIRECTORY)
 
 

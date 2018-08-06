@@ -77,10 +77,6 @@ def get_floats_from_string(df, band, four_elmt_arrs_hdr):
 
 		__elmts[k] = float(elmt[idx1:idx2])
 
-	if VERBOSE_MINOR:
-		print 'Got {} for {}-band...'.format(four_elmt_arrs_hdr, band)
-		print ' Check: ', strings[0], ' & ', __elmts[0], '\n'
-
 
 	return __elmts
 
@@ -135,10 +131,6 @@ def get_matrix_diagonal_element(df, band, sq_matrices_hdr):
 			idx2 = matrix.replace(',', ';', 15).find(',')
 
 		__matrix_diagonals[k] = float(matrix[idx1:idx2+j])
-
-	if VERBOSE_MINOR:
-		print 'Got {} for {}-band'.format(sq_matrices_hdr, band)
-		print ' Check: {} & {}'.format(matrices[0], __matrix_diagonals[0])
 
 
 	return __matrix_diagonals
@@ -218,7 +210,7 @@ def get_additional_flags(cat_type, suf, band):
 
 #TODO pass mag hdrs?
 def get_good_indices_using_primary_flags(df_1and2, full_mag1, full_mag2, cm_flag_hdr1, cm_flag_hdr2, flag_hdr1, flag_hdr2, band=None):
-	"""Get indices of objects without flags* where flags* used are indicated in README.md. Store flagged indices if PLOT_FLAGGED_OBJS is True.
+	"""Get indices of objects without flags* where flags* used are indicated in README.md. Store flagged indices if SAVE_BAD_IDX is True.
 	Magnitude headers are necessary (not simply explicit flag headers) to search for mag=37.5 which is a negative flux.
 
 	Parameters
@@ -233,7 +225,7 @@ def get_good_indices_using_primary_flags(df_1and2, full_mag1, full_mag2, cm_flag
 	__idx_good (list of ints)
 	
 	__idx_bad (list of ints)
-		Is empty if PLOT_FLAGGED_OBJS is False.
+		Is empty if SAVE_BAD_IDX is False.
 	"""
 
 	if VERBOSE_ING: print 'Removing flagged* objects from {}-band data...'.format(band)
@@ -340,10 +332,10 @@ def get_good_indices_using_primary_flags(df_1and2, full_mag1, full_mag2, cm_flag
 		__idx_good_tot = __idx_good
 
 
-	if PLOT_FLAGGED_OBJS:
+	if SAVE_BAD_IDX:
 		__all_idx = np.arange(0, len(df_1and2.index))
 		__idx_bad = list(set(__all_idx) - set(__idx_good_tot))
-	if PLOT_FLAGGED_OBJS is False:
+	if SAVE_BAD_IDX is False:
 		__idx_bad = None
 
 		

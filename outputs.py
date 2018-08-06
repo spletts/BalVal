@@ -337,7 +337,7 @@ def get_region_filenames(balrog_run, match_type, output_directory, realization, 
 	__fn_reg_2not1 = os.path.join(regionFileDirectory, '{}_match2not1.reg'.format(repeated_str))
 
 
-	if MAKE_REG:
+	if MAKE_REGION_FILES:
 		print 'Saving region files as...'
 		print '----->', __fn_reg_1and2
 		print '----->', __fn_reg_1not2
