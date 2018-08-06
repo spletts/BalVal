@@ -20,19 +20,19 @@ ___
 ___
 # Running BalVal
 
-General: `$python ms_plotter.py {BASE_PATH_TO_CATS} {OUTPUT_DIRECTORY} {realization(s)} {tile(s)}`
+General: `$python plotter.py {BASE_PATH_TO_CATS} {OUTPUT_DIRECTORY} {realization(s)} {tile(s)}`
 
-Ex: `$python ms_plotter.py /data/des71.a/data/kuropat/des2247-4414_sof/ /BalVal/ 0,1 DES2247-4414`
+Ex: `$python plotter.py /data/des71.a/data/kuropat/des2247-4414_sof/ /BalVal/ 0,1 DES2247-4414`
 
 `None` is an allowed value for `{realization(s)}`. User can list realizations at the command line with commas and _no_ spaces separating the realizations (similarly for tiles). `{tile(s)}` can also be specified with a `.dat` file.
 
-After the above command is issued, a prompt will appear so that the user can confirm plot attributes. This is to prevent plots from being overwritten when testing new additions to the script. User can comment `NOTICE` to remove this prompt. 
+After the above command is issued, a prompt will appear so that the user can confirm plot attributes. This is to prevent plots from being overwritten when testing new additions to the script. User can set `NOTICE=False` in `set_constants.py` to remove this prompt. 
 
-User sets plot attributes and catalog attributes within `ms_plotter.py`. A table of user-set attributes is in 'Table of Constants'.
+User sets plot attributes and catalog attributes within `plotter.py`. A table of user-set attributes is in 'Table of Constants'.
 
 ##### Dependencies
 
-`ms_plotter.py` requires [`ngmixer`](https://github.com/esheldon/ngmixer) to measure fluxes using a Gaussian aperture. 
+Requires [`ngmixer`](https://github.com/esheldon/ngmixer) to measure fluxes using a Gaussian aperture. 
 
 If user has access to the DES machines at FNAL: 
 1. Use `matplotlib v2.2.2`, via 
@@ -66,7 +66,9 @@ ___
 
 - `analysis.py`: Conducts analysis for plots. E.g. remove flags, error analysis, ...
 
-- `ms_plotter.py`: Produces various comparison plots (see 'Table of Constants').
+- `plotter.py`: Produces various comparison plots (see 'Table of Constants').
+
+- `region_files.py`: Writes to region files.
 
 Note that the CSVs created after matching two catalogs with STILTS have converted arrays in FITS files. For example, if a cell contains an array of form `(1 2 3 4)` it is converted to a string of form `'(1, 2, 3, 4)'`. Similarly for matrices, etc.
 
@@ -81,49 +83,64 @@ Parameter(s) | Type | Description <br> `allowed values` (if Type not bool)
 :---: | :---: | ---
 |`MATCH_CAT1` `MATCH_CAT2` | str | Type of catalogs to analyse. <br>`coadd` `gal_truth` `mof` `sof` `star_truth` `y3_gold_2_0` `y3_gold_2_2`
 | `INJ1` `INJ2` | bool | If `True` then `MATCH_CAT1` `MATCH_CAT2` are Balrog-injected. If `False` then `MATCH_CAT1` `MATCH_CAT2` are base catalogs.
-|`INJ1_PERCENT` `INJ2_PERCENT` | int | These are set my `ms_plotter.get_injection_percent()`. User should hardcode these if `{BASE_PATH_TO_CATS}` contains catalogs with different injection percents (for example, the Balrog run for TAMU had both 10% and 20% injections).
+|`INJ1_PERCENT` `INJ2_PERCENT` | int | These are set by `...get_injection_percent()`. User should hardcode these if `{BASE_PATH_TO_CATS}` contains catalogs with different injection percents (for example, the Balrog run for TAMU had both 10% and 20% injections).
 | `PLOT_MAG` | bool | If `True` plots of g-, r-, i-, and z-band magnitude are created.
 | `PLOT_COLOR` | bool | If `True` colors g-r, r-i, and i-z are plotted. Creates a 2x2 grid with subplots corresponding to different magnitude bins (currently \[20,21), \[21,22), \[22,23), and \[23,24)). Magnitudes are binned according to values in `MATCH_CAT1` for the leading filter (g for g-r, etc). By default (`SWAP_HAX=False`) the color difference is calculated via color_from_match_cat1 - color_from_match_cat2. This order is reversed if `SWAP_HAX=True`.
 | `PLOT_FLUX` | bool | If `True` a 1D histogram of Delta_Flux/Sigma_Flux is plotted along with a standard Gaussian (mean=0, standard_deviation=1) and a fit to the 1D histogram. Delta_Flux is computed as truth_flux minus {SOF/MOF/coadd}\_flux. Sigma_Flux is computed using only the measured catalog (SOF/MOF/coadd).
 | `PLOT_CM_FLUX` | bool | If `True` the cm_flux is plotted. Note that this and `PLOT_GAUSS_APER_FLUX` can be `True` and both will be plotted on the same plot.
 | `PLOT_GAUSSIAN_FIT` | bool | If `True` and `PLOT_FLUX=True` a fit to the distribution(s) is plotted. Distrubtions plural if `PLOT_CM_FLUX=True` and `PLOT_GAUSS_APER_FLUX=True`.
-| `PLOT_PEAK` | bool | If `True` and `PLOT_FLUX=True` a dashed vertical line representing the median of the distribution(s) is plotted. 
+| `PLOT_PEAKS` | bool | If `True` and `PLOT_FLUX=True` a dashed vertical line representing the median of the distribution(s) is plotted. 
 | `PLOT_GAUSS_APER_FLUX` | bool | If `True` and `PLOT_FLUX=True` a Gaussian aperture method is used to measure the flux.
 | `SIGMA_CLIP_NORM_FLUX_DIFF` | bool | Used if `PLOT_FLUX=True`. If `True` the normalized (to measured flux error) flux differences are sigma clipped to `N`-sigma.
 | `N` | float | Used if `PLOT_FLUX=True` and `SIGMA_CLIP_NORM_FLUX_DIFF=True` to perform `N`-sigma clip.
 | `NORMALIZE_NORM_FLUX_DIFF_VIA_DENSITY` | bool | Used if `PLOT_FLUX=True`. If `True` histograms are normalized (meaning area under the curve is 1).
+| `NUM_ITERS` | float OR `None` | Considered if `SIGMA_CLIP_NORM_FLUX_DIFF=True`. Number of iterations to use in `N`-sigma clipping. See [`iters`](http://docs.astropy.org/en/stable/api/astropy.stats.sigma_clip.html) documentation.
 | `RAW_NORM_FLUX_DIFF` | bool | Used if `PLOT_FLUX=True`. If `True` the normalized (to measured flux error) flux differences are plotted within percentile trimming nor sigma clipping. These normalized (to measured flux error) flux differences can be from Gaussian aperture measurements if `GAUSS_APER=True`.
 | `TRIM_NORM_FLUX_DIFF` | bool | If `True` and `PLOT_FLUX=True` histograms of Delta_Flux/Sigma_Flux (even those created using `GAUSS_APER`) include the 2<sup>nd</sup>-98<sup>th</sup> percentiles.
-| `FLUX_XLOW` `FLUX_XHIGH` | float OR `None` |
+| `FLUX_XLOW` `FLUX_XHIGH` | float OR `None` | Limits for the horizontal axis of the plot created if `PLOT_FLUX=True`. If these values are `None` default `matplotlib` scaling is used. Must both be float or both be `None`.
 | `COLOR_XLOW` `COLOR_XHIGH` | float OR `None` |
+| `Y3_MODEL` | str | <br> `'CM'`, `'PSF'`
+| `Y3_FIT` | str | Considered if `MATCH_CAT1` or `MATCH_CAT2` is a Y3 Gold catalog<br> `'MOF'`, `'SOF'`
 | `NORMALIZE` | bool | Used if `PLOT_MAG=True`. If `True` the magnitude plot is normalized according to the *measured* 1sigma magnitude error.
 | `HIST_2D` | bool | Used if `PLOT_MAG=True`. If `True` a `matplotlib.pyplot` 2D histogram is plotted.
 | `CORNER_HIST_2D` | bool | Used if `PLOT_MAG=True` or Used if `PLOT_COLOR=True`. If `True` `corner.hist2d` plots are created using [`corner.py`](https://github.com/dfm/corner.py).
-| `PLOT_DELTA_VAX` | bool | If `True` a difference is plotted on the vertical axis to produce a plot of form `x` versus `x-y`. If `False` a plot of form `x` versus `y` is produced.
 | `PLOT_COMPLETENESS` | bool | Used if `PLOT_MAG=True`. If `True` a 1x2 plot grid is produced with 10% injection {magnitude/color} completeness plot and 20% {magnitude/color} completeness plot, respectively (provided both injections are available for the particular `BALROG_RUN`). `PLOT_MAG` and `PLOT_COLOR` determines if the completeness plot displays magnitude or color completeness.
 | `SCATTER` | bool | Used if `PLOT_MAG=True`. If `True` a `matplotlib.pyplot.scatter()` plot is produced.
 |`HEXBIN` | bool | Used if `PLOT_MAG=True`. If `True` a density plot via `matplotlib.pyplot.hexbin()` is produced.
 |`CM_T_CBAR` | bool | Used if `PLOT_MAG=True`. If `True` a colorbar is added to the plot according to the *measured* cm_T. `NORMALIZE` must be False.
 | `CM_T_ERR_CBAR` | bool | Used if `PLOT_MAG=True`. If `True` a colorbar is added to the plot according to the *measured* cm_T error. `NORMALIZE` must be False.
 | `PLOT_MAG_ERR` | bool | If `True` and and `PLOT_MAG` the 1sigma magnitude error curve is plotted. `NORMALIZE` must be False.
-| `MAG_YLOW`, `MAG_YHIGH` | int, float or `None` | Limits for the vertical axis of the magnitude plot. `None` results in default scaling.
-| `SAVE_PLOT` | bool | If `True` plot is saved using name assigned by `ms_plotter.get_plot_save_name()`.
+| `MAG_YLOW`, `MAG_YHIGH` | int, float or `None` | Limits for the vertical axis of the magnitude plot. `None` results in default scaling. Must both be float or both be `None`.
+| `COLOR_YLOW`, `COLOR_YHIGH` | float OR `None` | Limits for the vertical axis of the plot created if `PLOT_COLOR=True`. If `False`, semi-default `matplotlib` scaling is used, with symmetric limits forced. Must both be float or both be `None`.
+| `SAVE_PLOT` | bool | If `True` plot is saved using name assigned by `outputs.get_plot_filename()`.
 | `SHOW_PLOT` | bool | If `True` plot is displayed after it is created.
 | `STACK_REALIZATIONS` | bool | If `True` catalogs are matched then stacked. One stacked realization catalog is produced per tile. Plotting resumes with stacked catalog. Must be used with, for example, `0,1,2` at the command line.
 | `STACK_TILES` | bool | If `True` catalogs are matched then stacked. One stacked tile catalog is produced per realization. Must be used with, for example, `DES0220-0207,DES0222+0043` at the command line.
 | `CENTER_ERR_ABT_ZERO`| bool | If `True` the plot of the magnitude error is centered about zero. This (minorly) affects the number of objects within 1sigma_mag. If `False` the plot of the magnitude error is centered about the median of the vertical axis data each bin.
-| `PLOT_68P` | bool | Considered if `PLOT_MAG=True` and `NORMALIZE=True`. If `True` the 68th percentile of the vertical axis data in each bin are plotted. Bins refer to the magnitude bins used in the magnitude error calculation. Exists in `ms_plotter.normalized_delta_magnitude_plotter()`.
-| `PLOT_34P_SPLIT` | bool | Considered if `PLOT_MAG=True` and `NORMALIZE=True`. If `True` the 34th percentile of the positive and negative vertical axis data in each bin are plotted separately. Bins refer to the magnitude bins used in the magnitude error calculation. Exists in `ms_plotter.normalized_delta_magnitude_plotter()`.
+| `PLOT_68P` | bool | Considered if `PLOT_MAG=True` and `NORMALIZE=True`. If `True` the 68th percentile of the vertical axis data in each bin are plotted. Bins refer to the magnitude bins used in the magnitude error calculation. Exists in `analysis.normalized_delta_magnitude_plotter()`.
+| `PLOT_34P_SPLIT` | bool | Considered if `PLOT_MAG=True` and `NORMALIZE=True`. If `True` the 34th percentile of the positive and negative vertical axis data in each bin are plotted separately. Bins refer to the magnitude bins used in the magnitude error calculation. Exists in `analysis.normalized_delta_magnitude_plotter()`.
 | `SUBPLOT` | bool | If `True` four subplots are created in a 2x2 grid. If `False` plots are created individually.
 | `MOF` | bool | Only used if `RUN_TYPE` is not `None`. Does `BASEPATH` entered at command line contain MOF (`MOF=True` or SOF `MOF=False` catalogs?
-| `MAKE_REG`| bool | If `True`, three DS9 region files created containing 1) objects in both catalogs, 2) objects in the first not the second catalog, 3) objects in the second not the first catalog.
+| `MAKE_REGION_FILES`| bool | If `True`, three DS9 region files created containing 1) objects in both `MATCH_CAT1` and `MATCH_CAT2`, 2) objects uniquely in `MATCH_CAT1` and not `MATCH_CAT2`, 3) objects uniquely in `MATCH_CAT2` and not `MATCH_CAT1`.
 | `NO_DIR_MAKE` | bool| If `True` nonexistent directories will be created. If `False`, `sys.exit()` will be invoked when nonexistent directories are encountered.
 | `SWAP_HAX` | bool | If `False` (default) `MATCH_CAT1` values are plotted on the horizontal axis. If `True` `MATCH_CAT2` values are plotted on the horizontal axis. Considered if `PLOT_COLOR` or `PLOT_MAG`.
 | `SWAP_ORDER_OF_SUBTRACTION` | bool | If `False`, plots the observable from `MATCH_CAT1` minus the observable from `MATCH_CAT2`. IF `True`, plots the observable from `MATCH_CAT2` minus the observable from `MATCH_CAT1`. Only considered if `PLOT_COLOR` or `PLOT_MAG`. 
 | `OVERRIDE_AXLABELS` | bool | If `True` the axes labels created in `plot_labels.get_short_difference_axlabel()` will be overwritten with a generic `$\Delta$ flux_{band}/meas_flux_err` for the horizontal axis if `PLOT_FLUX`, `$\Delta$ ({color})` for the vertical axis if `PLOT_COLOR`, and `$\Delta$ mag_{band}` for the vertical axis if `PLOT_MAG`. <br>`plot_labels.get_short_difference_axlabel()` attempts to produce an axis label that describes `$\Delta$ mag` by including the order of subtraction (of the observables from `MATCH_CAT1` and `MATCH_CAT2`), whether the observables are from Balrog-base or Balrog-injected catalogs, the injection percent (if applicable), and whether the observables are from truth or measured catalogs. 
 | `RUN_TYPE` | str or `None` | FOF groups (if any) to analyse. <br> `None` `'ok'` `'rerun'` <br>`'ok'`: FOF groups *un*changed after Balrog-injection. <br>`'rerun'`: FOF groups changed after Balrog-injection. <br>`None`: FOF analysis not conducted. <br>If `RUN_TYPE='rerun'` or `RUN_TYPE='ok'` then `MATCH_CAT1` `MATCH_CAT2` `INJ1` and `INJ2` will be overwritten.
+| `FOF_FIT` | str or `None` | Considered if `RUN_TYPE != None`. <br> `'mof'`, `'sof'`. 
 | `VERBOSE_ING` | bool | If `True` status and progress of script will print to screen. For example, 'Plotting...', 'calculating...', 'overwriting...', etc.
 | `VERBOSE_ED` | bool | If `True` results will print to screen. For example, 'got...', 'flagged...', 'checked...', etc. Note that many of these printouts are also saved in a log file.
+| `NOTICE` | bool | If `True` after issuing `$python plotter.py ...` at the command line a summary of the catalog and prompt attributes is printed to the screen, followed by `raw_input()` so that user can review before running the script.
+
+If `CORNER_2D_HIST`, the following are relevant:
+`LVLS`
+`CLRS_FOR_LVLS`
+
+For color-coding:
+`CMAPS`
+`PT_COLORS`
+`GAUSS_FIT_COLORS`
+...
 
 
 The following functions contain `__overwrite`:
