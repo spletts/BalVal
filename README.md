@@ -6,14 +6,29 @@ ___
 ### Table of Contents
 
 [Running BalVal](http://github.com)
+ 
+  - [Dependencies](https://github.com/spletts/BalVal/blob/master/README.md#dependencies)
+  
+  - [Contents of Repository](https://github.com/spletts/BalVal/blob/master/README.md#contents-of-repository)
 
 [Table of Constants](https://github.com/spletts/BalVal/blob/master/README.md#table-of-constants)
 
+  - [Plot Colors](https://github.com/spletts/BalVal/blob/master/README.md#plot-colors)
+
 [Directory Structure](https://github.com/spletts/BalVal/blob/master/README.md#directory-structure)
 
-  - [Condensed Directory Structure](https://github.com/spletts/BalVal/blob/master/README.md#condensed-directory-structure)
+  - [Expected Catalog Directory Structure](https://github.com/spletts/BalVal/blob/master/README.md#expected-catalog-directory-structure)
 
-  - [Full Directory Structure](https://github.com/spletts/BalVal/blob/master/README.md#full-directory-structure)
+    - [Y3 Gold Catalogs and Deep SN Coadds](https://github.com/spletts/BalVal/blob/master/README.md#y3-gold-catalogs-and-deep-sn-coadds)
+    
+  - [Condensed Output Directory Structure](https://github.com/spletts/BalVal/blob/master/README.md#condensed-output-directory-structure)
+
+  - [Full Output Directory Structure](https://github.com/spletts/BalVal/blob/master/README.md#full-output-directory-structure)
+  
+    - [Output Notes](https://github.com/spletts/BalVal/blob/master/README.md#output-notes)
+  
+  
+[Flagged* Objects](https://github.com/spletts/BalVal/blob/master/README.md#flagged-objects)
 
 
 
@@ -30,7 +45,10 @@ After the above command is issued, a prompt will appear so that the user can con
 
 User sets plot attributes and catalog attributes within `set_constants.py`. User-set attributes are listed in a [Table of Constants](https://github.com/spletts/BalVal/blob/master/README.md#table-of-constants).
 
-##### Dependencies
+
+### Dependencies
+
+Non-standard dependencies:
 
 Requires [`ngmixer`](https://github.com/esheldon/ngmixer) to measure fluxes using a Gaussian aperture. 
 
@@ -46,10 +64,11 @@ Note that `/home/s1/mspletts/setup_ngmixer_gaussap.sh` points to `ngmixer` as cl
 {modified code} 
 ### - ###
 ```
-.
+
+Requires [`corner.py`](https://github.com/dfm/corner.py) to make corner plots.
 
 ___
-##### Contents of Repository
+### Contents of Repository
 
 See docstring and the beginning of each script for more detail.
 
@@ -84,7 +103,7 @@ These constants are set within `set_constants.py`. Docstrings describe parameter
 
 Parameter(s) | Type | Description <br> `allowed values` (if Type not bool)
 :---: | :---: | ---
-|`MATCH_CAT1` `MATCH_CAT2` | str | Type of catalogs to analyse. <br>`'coadd'` `'gal_truth'` `'mof'` `'sof'` `'star_truth'` `'y3_gold_2_0'` `'y3_gold_2_2'`, `'deep_sn_sof'`, `'deep_sn_sof'`
+|`MATCH_CAT1` `MATCH_CAT2` | str | Type of catalogs to analyse. <br>`'coadd'` `'gal_truth'` `'mof'` `'sof'` `'star_truth'` `'y3_gold_2_0'` `'y3_gold_2_2'`, `'deep_sn_mof'`, `'deep_sn_sof'`
 | `INJ1` `INJ2` | bool | If `True` then `MATCH_CAT1` `MATCH_CAT2` are Balrog-injected. If `False` then `MATCH_CAT1` `MATCH_CAT2` are base catalogs.
 |`INJ1_PERCENT` `INJ2_PERCENT` | int | These are set by `...get_injection_percent()`. User should hardcode these if `{BASE_PATH_TO_CATS}` contains catalogs with different injection percents (for example, the Balrog run for TAMU had both 10% and 20% injections).
 | `PLOT_MAG` | bool | If `True` plots of g-, r-, i-, and z-band magnitude are created.
@@ -128,7 +147,7 @@ Parameter(s) | Type | Description <br> `allowed values` (if Type not bool)
 | `NO_DIR_MAKE` | bool| If `True` nonexistent directories will be created. If `False`, `sys.exit()` will be invoked when nonexistent directories are encountered.
 | `SWAP_HAX` | bool | If `False` (default) `MATCH_CAT1` values are plotted on the horizontal axis. If `True` `MATCH_CAT2` values are plotted on the horizontal axis. Considered if `PLOT_COLOR` or `PLOT_MAG`.
 | `SWAP_ORDER_OF_SUBTRACTION` | bool | If `False`, plots the observable from `MATCH_CAT1` minus the observable from `MATCH_CAT2`. IF `True`, plots the observable from `MATCH_CAT2` minus the observable from `MATCH_CAT1`. Only considered if `PLOT_COLOR` or `PLOT_MAG`. 
-| `OVERWRITE_AXLABELS` | bool | If `True` the axes labels created in `plot_labels.get_short_difference_axlabel()` will be overwritten with a generic `$\Delta$ flux_{band}/meas_flux_err` for the horizontal axis if `PLOT_FLUX`, `$\Delta$ ({color})` for the vertical axis if `PLOT_COLOR`, and `$\Delta$ mag_{band}` for the vertical axis if `PLOT_MAG`. <br>`plot_labels.get_short_difference_axlabel()` attempts to produce an axis label that describes `$\Delta$ mag` by including the order of subtraction (of the observables from `MATCH_CAT1` and `MATCH_CAT2`), whether the observables are from Balrog-base or Balrog-injected catalogs, the injection percent (if applicable), and whether the observables are from truth or measured catalogs. But this doesn't always look nice! Particularly if the 
+| `OVERWRITE_AXLABELS` | bool | If `True` the axes labels created in `plot_labels.get_short_difference_axlabel()` will be overwritten with a generic `$\Delta$ flux_{band}/meas_flux_err` for the horizontal axis if `PLOT_FLUX`, `$\Delta$ ({color})` for the vertical axis if `PLOT_COLOR`, and `$\Delta$ mag_{band}` for the vertical axis if `PLOT_MAG`. <br>`plot_labels.get_short_difference_axlabel()` attempts to produce an axis label that describes `$\Delta$ mag` by including the order of subtraction (of the observables from `MATCH_CAT1` and `MATCH_CAT2`), whether the observables are from Balrog-base or Balrog-injected catalogs, the injection percent (if applicable), and whether the observables are from truth or measured catalogs. But this doesn't always look nice! Particularly if the strings have a short common substring.
 | `RUN_TYPE` | str or `None` | FOF groups (if any) to analyse. <br> `None` `'ok'` `'rerun'` <br>`'ok'`: FOF groups *un*changed after Balrog-injection. <br>`'rerun'`: FOF groups changed after Balrog-injection. <br>`None`: FOF analysis not conducted. <br>If `RUN_TYPE='rerun'` or `RUN_TYPE='ok'` then `MATCH_CAT1` `MATCH_CAT2` `INJ1` and `INJ2` will be overwritten.
 | `FOF_FIT` | str or `None` | Considered if `RUN_TYPE != None`. <br> `'mof'`, `'sof'`. 
 | `VERBOSE_ING` | bool | If `True` status and progress of script will print to screen. For example, 'Plotting...', 'calculating...', 'overwriting...', etc.
@@ -138,71 +157,43 @@ Parameter(s) | Type | Description <br> `allowed values` (if Type not bool)
 | `CORNER_2D_HIST_LVLS` | 1D array | If `CORNER_2D_HIST=True` this is used as `levels` in [`corner.py`](https://github.com/dfm/corner.py).
 | `CORNER_HIST_2D_LVLS_CLRS` | list of str | If `CORNER_2D_HIST=True` this is used as the color(s) for the `levels` above.
 | `CORNER_HIST_2D_LVLS_CLRS_LABEL` | list of str | If `CORNER_2D_HIST=True` this is used to label `levels`.
+| `__overwrite` | bool | If `True` a `raw_input()` prompt will appear to ensure that files are to be overwritten. In these instances, press 'Enter' to continue and 'Control+c' to stop the process. This constant exisits within the following functions: `...get_and_reformat_base_catalog()`, `...get_coadd_catalog_for_matcher()`, `...fof_matcher()`, `...make_ngmixer_gaussap_compatible_catalog()`, `manipulate_catalogs.match_catalogs()`, `...stack_realizations()`, `...stack_tiles()`, `...write_to_region_files()`. 
 
 
-##### Plot colors
-Colors and colormaps for plots are set by the following in `set_constants.py`:
+##### Plot Colors
 
-`CMAPS`
-
-`PT_COLORS`
-
-`FIT_TO_FLUX`
-
-`GAP_FLUX_HIST`
-
-`FLUX_HIST`
-
-`FIT_TO_FLUX`.
+Colormaps and colors for plots are set by the following in `set_constants.py`: `CMAPS`, `PT_COLORS`, `GAP_FLUX_HIST`, `FIT_TO_GAP_FLUX`, `FLUX_HIST`, and `FIT_TO_FLUX`, where `GAP` represents the Gaussian aperture measured flux. These variables are explicitly stated here so user can more easily alter the plot colors.
 
 
-The following functions contain `__overwrite`:
+___
 
-`...get_and_reformat_base_catalog()`
 
-`...get_coadd_catalog_for_matcher()`
 
-`...fof_matcher()`
+---
 
-`...make_ngmixer_gaussap_compatible_catalog()`, 
+# Directory Structure
 
-`manipulate_catalogs.match_catalogs()`
-
-`...stack_realizations()`
-
-`...stack_tiles()`
-
-`...write_to_region_files()`. 
-
-If `__overwrite=True` a `raw_input()` prompt will appear to ensure that files are to be overwritten. In these instances, press 'Enter' to continue and 'Control+c' to stop the process.
-
-Log files, matched catalogs, and plot names are printed with a proceeding `----->` for ease of finding and opening these files.
+### Expected Catalog Directory Structure
 
 In general, user can edit path to catalogs in `manipulate_catalogs.get_catalog_filename()`.
 
-
-##### Note about Y3 Gold catalogs and Deep SN Coadds
+##### Y3 Gold Catalogs and Deep SN Coadds
 
 The following is relevant if either `MATCH_CAT1` or `MATCH_CAT2` is a Y3 Gold catalog or a deep SN coadd chip.
 
-By default, `manipulate_catalogs.get_catalog_filename()` tries to access Y3 Gold catalogs and deep SN coadds in `/data/des71.a/data/mspletts/balrog_validation_tests/y3_gold_catalogs/` and `/data/des71.a/data/mspletts/balrog_validation_tests/deep_sn_catalogs/`, respectively. 
+By default, `manipulate_catalogs.get_catalog_filename()` tries to access Y3 Gold catalogs and deep SN coadds in `/data/des71.a/data/mspletts/balrog_validation_tests/y3_gold_catalogs/` and `/data/des71.a/data/mspletts/balrog_validation_tests/deep_sn_catalogs/`, respectively.
 
 If user has access to FNAL DES machines, and necessary Y3 Gold catalogs are not already in the directory above, user will need to download the Y3 Gold catalogs with the headers found in: `/data/des71.a/data/mspletts/balrog_validation_tests/y3_gold_catalogs/y3_gold_general_column_query.sql` and edit `manipulate_catalogs.get_catalog_filename()` with the correct path to the Y3 Gold catalogs.
 
-
-
-##### Warnings
 
 If user does not have access to DES machines at FNAL:
 
 Replace `/data/des71.a/data/mspletts/balrog_validation_tests/scripts/BalVal/stilts_matcher` (in `manipulate_catalogs.match_catalogs()`) with the correct path to `stilts_matcher`. Similarly for `fof_stilts_matcher`.
 
-...
+There's more for the non-DES machine user!...
 
 
----
-
-# Output Directory Structure
+### Condensed Output Directory Structure
 
 If user wishes to change the output directory structure imposed below, make changes to `outputs.get_directory()`
 
@@ -216,8 +207,6 @@ Directory names are determined by the constants that follow.
 `MATCH_CAT1, MATCH_CAT2 = 'gal_truth', 'sof'`, `INJ1, INJ2 = True, True`, and `INJ1_PERCENT, INJ2_PERCENT = 10, 10` 
 then `MATCH_TYPE=10%_inj_gal_truth_cat_10%_inj_sof_cat`. Note that `MATCH_TYPE` reflects the order in which the catalogs were matched in `ms_matcher`.
 
-
-### Condensed Output Directory Structure
 
 Below are solely the directories and not the files that will be created within them.
 
@@ -378,19 +367,22 @@ Below are solely the directories and not the files that will be created within t
                 
 ```
 
-`{realization}` and `{tile}` will be `stack` if `STACK_REALIZATIONS=True` and `STACK_TILES=True`, respectively.
+##### Output Notes
 
-Log files are CSVs although they have `.log` extensions. Not all log files will be written to; for example, if `PLOT_MAG=False`, 'mag_completeness.log' will not be created and an empty 'dummy.log' will replace it.
+  - `{realization}` and `{tile}` will be `'stack'` if `STACK_REALIZATIONS=True` and `STACK_TILES=True`, respectively.
+  
+  - When stacking multiple realizations or multiple tiles, matching is performed first, then catalogs are stacked.
+
+  - Log files are CSVs although they have `.log` extensions. Not all log files will be written to; for example, if `PLOT_MAG=False`, 'mag_completeness.log' will not be created and an empty 'dummy.log' will replace it
+  
+  - Log files, matched catalogs, and plot names are printed with a proceeding `----->` for ease of finding and opening these files.
+
+
 
 
 ___
-##### Stacking multiple realizations or multiple tiles
-
-Matching is performed first, then catalogs are stacked.
-
-___
-# `flagged* objects`
-Docstrings frequently make reference to `flagged* objects` which refer to specific flag cuts employed in `analysis.get_good_index_using_primary_flags()` but described below for clarity.
+# Flagged* Objects
+Docstrings frequently make reference to 'flagged* objects' which refer to specific flag cuts employed in `analysis.get_good_index_using_primary_flags()` and described below for clarity.
 
 In general, the following catalog headers are considered: 'flags' and 'cm_flags'. Exceptions are listed below. 
 
