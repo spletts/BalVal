@@ -139,6 +139,8 @@ def get_short_difference_axlabel(axlabel_a, axlabel_b, band):
 		__short_axlabel = '%s/$\sigma_{flux\_meas}$' % __short_axlabel.replace('mag', 'flux')
 		
 
+	if len(__short_axlabel) < 5: 
+		print 'User may wish to set `OVERWRITE_AXLABEL=True` in `set_constants.py`.'
 
 	# Default labels #
 	if OVERWRITE_AXLABELS:

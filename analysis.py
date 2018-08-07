@@ -938,7 +938,7 @@ def one_sigma_magnitude_counter(mag_diff, clean_mag, full_mag, mag_bins_for_mag_
 	hax_mag, mag_diff = np.array(hax_mag)[__idx_relevant], np.array(mag_diff)[__idx_relevant]
 
 
-	if CENTER_ERR_ABT_ZERO:
+	if CENTER_MAG_ERR_ABT_ZERO:
 		for b in np.arange(0, len(mag_bins_for_mag_err)-1):
 			if binned_mag_err[b] is not None: 
 				for i in np.arange(0, len(hax_mag)):
@@ -949,7 +949,7 @@ def one_sigma_magnitude_counter(mag_diff, clean_mag, full_mag, mag_bins_for_mag_
 
 
 	# Center normalization about the median (of vertical axis) of each bin #
-	if CENTER_ERR_ABT_ZERO is False:
+	if CENTER_MAG_ERR_ABT_ZERO is False:
 		if VERBOSE_ING: print 'Centering 1sigma_mag about vax median of each bin... \n'
 		for b in np.arange(0, len(mag_bins_for_mag_err)-1):
                         if binned_mag_err[b] is not None:
@@ -1017,7 +1017,7 @@ def one_sigma_magnitude_counter_for_normalized_magnitude_difference(full_mag, no
         hax_mag, norm_mag_diff = np.array(hax_mag)[__idx_relevant], np.array(norm_mag_diff)[__idx_relevant]
 
 
-	if CENTER_ERR_ABT_ZERO:
+	if CENTER_MAG_ERR_ABT_ZERO:
                 for k in norm_mag_diff:
 			counter_objs_considered += 1
                         if abs(k) < 1.0:
@@ -1025,7 +1025,7 @@ def one_sigma_magnitude_counter_for_normalized_magnitude_difference(full_mag, no
 		#counter_objs_considered = len(norm_mag_diff)
 
 
-	if CENTER_ERR_ABT_ZERO is False:
+	if CENTER_MAG_ERR_ABT_ZERO is False:
 		if VERBOSE_ING: print 'Centering 1sigma_mag about vax median of each bin... \n'
 		for b in np.arange(0, len(mag_bins_for_mag_err)-1):
 			if mag_err_bin_medians[b] is not None:

@@ -43,7 +43,7 @@ def get_directory(balrog_run, low_level_dir, match_type, output_directory, reali
 		__dir = os.path.join(output_directory, 'outputs', balrog_run, match_type, tile, realization, low_level_dir)
 
 	if isinstance(low_level_dir, list):
-		if low_level_dir[1] == 'magnitude' and NORMALIZE:
+		if low_level_dir[1] == 'magnitude' and NORMALIZE_MAG:
 			__dir = os.path.join(output_directory, 'outputs', balrog_run, match_type, tile, realization, low_level_dir[0], low_level_dir[1], 'normalized')
 		else:
 			__dir = os.path.join(output_directory, 'outputs', balrog_run, match_type, tile, realization, low_level_dir[0], low_level_dir[1])
@@ -254,7 +254,7 @@ def get_magnitude_plot_filename(balrog_run, match_type, output_directory, realiz
 	### Get complete filename (including path) ###
         __fn_plot = os.path.join(plotDirectory, __fn_end)
 
-	if NORMALIZE and PLOT_MAG:
+	if NORMALIZE_MAG and PLOT_MAG:
 		__fn_plot = os.path.join(plotDirectory, 'norm_{}'.format(__fn_plot))
 
 
