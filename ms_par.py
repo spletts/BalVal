@@ -1,5 +1,7 @@
-"""Finds the FOF groups changed after Balrog-injection and unchanged after Balrog-injection.
-Author: Brian Yanny"""
+"""
+Finds the FOF groups changed after Balrog-injection and unchanged after Balrog-injection.
+Author: Brian Yanny
+"""
 
 #!/usr/bin/env python
 
