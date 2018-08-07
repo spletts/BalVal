@@ -35,6 +35,13 @@ ___
 ___
 # Running BalVal
 
+##### Setup
+Prior to running, user with access to the DES machines at FNAL must:
+
+1. Use `matplotlib v2.2.2` via `$ssh {user}@des70.fnal.gov` or `$ssh {user}@des71.fnal.gov`, and
+2. `$source /home/s1/mspletts/setup_ngmixer_gaussap.sh`.
+
+##### Use
 General: `$python plotter.py {BASE_PATH_TO_CATS} {OUTPUT_DIRECTORY} {realization(s)} {tile(s)}`
 
 Ex: `$python plotter.py /data/des71.a/data/kuropat/des2247-4414_sof/ /BalVal/ 0,1 DES2247-4414`
@@ -48,22 +55,16 @@ User sets plot attributes and catalog attributes within `set_constants.py`. User
 
 Non-standard dependencies:
 
-Requires [`ngmixer`](https://github.com/esheldon/ngmixer) to measure fluxes using a Gaussian aperture. 
+* Requires [`ngmixer`](https://github.com/esheldon/ngmixer) to measure fluxes using a Gaussian aperture. 
 
-If user has access to the DES machines at FNAL: 
-1. Use `matplotlib v2.2.2`, via 
-  - `$ssh {user}@des70.fnal.gov` OR
-  - `$ssh {user}@des71.fnal.gov`
-2. `$source /home/s1/mspletts/setup_ngmixer_gaussap.sh`
+  * Note that `/home/s1/mspletts/setup_ngmixer_gaussap.sh` points to `ngmixer` as cloned in `/home/s1/mspletts/`, where minor changes have been made to `ngmixer.gaussap.get_gauss_aper_flux_cat()`. These changes are indicated by
+   ```
+   ### MS ### 
+   {modified code} 
+   ### - ###
+   ```
 
-Note that `/home/s1/mspletts/setup_ngmixer_gaussap.sh` points to `ngmixer` as cloned in `/home/s1/mspletts/`, where minor changes have been made to `ngmixer.gaussap.get_gauss_aper_flux_cat()`. These changes are indicated by
-```
-### MS ### 
-{modified code} 
-### - ###
-```
-
-Requires [`corner.py`](https://github.com/dfm/corner.py) to make corner plots.
+* Requires [`corner.py`](https://github.com/dfm/corner.py) to make corner plots.
 
 
 ### Contents of Repository
@@ -104,60 +105,61 @@ Docstrings describe parameters but a [Table of Function Parameters and Returns](
 
 Parameter(s) | Type | Description <br> `allowed values` (if Type not bool)
 :---: | :---: | ---
-| `CENTER_ERR_ABT_ZERO`| bool | If `True` the plot of the magnitude error is centered about zero. This (minorly) affects the number of objects within 1sigma_mag. If `False` the plot of the magnitude error is centered about the median of the vertical axis data each bin.
-|`CM_T_CBAR` | bool | Used if `PLOT_MAG=True`. If `True` a colorbar is added to the plot according to the *measured* cm_T. `NORMALIZE` must be False.
-| `CM_T_ERR_CBAR` | bool | Used if `PLOT_MAG=True`. If `True` a colorbar is added to the plot according to the *measured* cm_T error. `NORMALIZE` must be False.
-| `COLOR_YLOW`, `COLOR_YHIGH` | float OR `None` | Limits for the vertical axis of the plot created if `PLOT_COLOR=True`. If `False`, semi-default `matplotlib` scaling is used, with symmetric limits forced. Must both be float or both be `None`.
+| `CENTER_MAG_ERR_ABT_ZERO`| bool | If `True` and `PLOT_MAG=True` and `NORMALIZE=True` the magnitude error is plotted to be centered about zero. This (minorly) affects the number of objects within one-sigma of the magnitude error. If `False` the magnitude error is centered about the median of the magnitude difference in each bin (this is close to zero).
+|`CM_T_CBAR` | bool | Used if `PLOT_MAG=True` and `NORMALIZE=False`. If `True` a colorbar of the measured cm_T (size squared) is added to the plot.
+| `CM_T_ERR_CBAR` | bool | Used if `PLOT_MAG=True` and `NORMALIZE=False`. If `True` a colorbar of the measured cm_T error (error of size squared) is added to the plot.
+| `COLOR_YLOW` `COLOR_YHIGH` | float OR `None` | Limits for the vertical axis of the plot created if `PLOT_COLOR=True`. If `None` symmetric limits are forced based on the default plot scaling of `matplotlib`. Must both be float or both be `None`.
 | `CORNER_HIST_2D` | bool | Used if `PLOT_MAG=True` or `PLOT_COLOR=True`. If `True` `corner.hist2d` plots are created using [`corner.py`](https://github.com/dfm/corner.py).
-| `CORNER_2D_HIST_LVLS` | 1D array | If `CORNER_2D_HIST=True` this is used as `levels` in [`corner.py`](https://github.com/dfm/corner.py).
+| `CORNER_HIST_2D_LVLS` | 1D array | If `CORNER_2D_HIST=True` this is used as `levels` in [`corner.py`](https://github.com/dfm/corner.py).
 | `CORNER_HIST_2D_LVLS_CLRS` | list of str | If `CORNER_2D_HIST=True` this is used as the color(s) for the `levels` above.
 | `CORNER_HIST_2D_LVLS_CLRS_LABEL` | list of str | If `CORNER_2D_HIST=True` this is used to label `levels`.
 | `FLUX_XLOW` `FLUX_XHIGH` | float OR `None` | Limits for the horizontal axis of the plot created if `PLOT_FLUX=True`. If these values are `None` default `matplotlib` scaling is used. Must both be float or both be `None`.
-| `FOF_FIT` | bool | Only used if `RUN_TYPE` is not `None`. Does `BASEPATH` entered at command line contain MOF (`MOF=True` or SOF `MOF=False` catalogs?
-| `HEXBIN` | bool | Used if `PLOT_MAG=True`. If `True` a density plot via `matplotlib.pyplot.hexbin()` is produced.
-| `HIST_2D` | bool | Used if `PLOT_MAG=True`. If `True` a `matplotlib.pyplot` 2D histogram is plotted.
+| `FOF_FIT` | str | Used if `RUN_TYPE` is not `None` to specify the catalogs to be used in FOF analysis. <br> `'mof'` `'sof'`.
+| `HEXBIN` | bool | Used if `PLOT_MAG=True`. If `True` a density plot is produced via `matplotlib.pyplot.hexbin()`.
+| `HIST_2D` | bool | Used if `PLOT_MAG=True`. If `True` a 2D histogram is plotted via `matplotlib.pyplot.hist2d`.
 | `INJ1` `INJ2` | bool | If `INJ1=True` then `MATCH_CAT1` is Balrog-injected. If `False` then `MATCH_CAT1` is a base (non-injected) catalog. Similarly for `INJ2` and `MATCH_CAT2`.
-|`INJ1_PERCENT` `INJ2_PERCENT` | int | These are set by `calculate_injection_percent.get_injection_percent()`. User should hardcode these if `{BASE_PATH_TO_CATS}` contains catalogs with different injection percents (for example, the Balrog run for TAMU had both 10% and 20% injections).
-| `MAG_YLOW`, `MAG_YHIGH` | int, float or `None` | Limits for the vertical axis of the magnitude plot. `None` results in default scaling. Must both be float or both be `None`.
-| `MAKE_REGION_FILES`| bool | If `True`, three DS9 region files created containing 1) objects in both `MATCH_CAT1` and `MATCH_CAT2`, 2) objects uniquely in `MATCH_CAT1` and not `MATCH_CAT2`, 3) objects uniquely in `MATCH_CAT2` and not `MATCH_CAT1`.
+|`INJ1_PERCENT` `INJ2_PERCENT` | int | These are set by `calculate_injection_percent.get_injection_percent()`. User should hardcode these if `{BASE_PATH_TO_CATS}` contains catalogs with multiple injection percents (for example, the Balrog run for TAMU had both 10% and 20% injections).
+| `MAG_YLOW` `MAG_YHIGH` | float OR `None` | Limits for the vertical axis of the plot created if `PLOT_MAG=True`. `None` results in default `matplotlib` scaling. Must both be float or both be `None`.
+| `MAKE_REGION_FILES`| bool | If `True`, three DS9 region files are created, containing 1) objects in both `MATCH_CAT1` and `MATCH_CAT2`, 2) objects uniquely in `MATCH_CAT1` and not `MATCH_CAT2`, 3) objects uniquely in `MATCH_CAT2` and not `MATCH_CAT1`.
 |`MATCH_CAT1` `MATCH_CAT2` | str | Type of catalogs to analyse. <br>`'coadd'` `'gal_truth'` `'mof'` `'sof'` `'star_truth'` `'y3_gold_2_0'` `'y3_gold_2_2'` `'deep_sn_mof'` `'deep_sn_sof'`
 | `N` | float | Used if `PLOT_FLUX=True` and `SIGMA_CLIP_NORM_FLUX_DIFF=True` to perform `N`-sigma clip.
-| `NO_DIR_MAKE` | bool| If `True` nonexistent directories will be created. If `False`, `sys.exit()` will be invoked when nonexistent directories are encountered.
-| `NORMALIZE` | bool | Used if `PLOT_MAG=True`. If `True` the magnitude plot is normalized according to the measured one-sigma magnitude error.
-| `NORMALIZE_NORM_FLUX_DIFF_VIA_DENSITY` | bool | Used if `PLOT_FLUX=True`. If `True` histograms are normalized (meaning area under the curve is 1).
-| `NOTICE` | bool | If `True` after issuing `$python plotter.py ...` at the command line a summary of the catalog and prompt attributes is printed to the screen, followed by `raw_input()` so that user can review before running the script.
-| `NUM_ITERS` | float OR `None` | Considered if `SIGMA_CLIP_NORM_FLUX_DIFF=True`. Number of iterations to use in `N`-sigma clipping. See [`iters`](http://docs.astropy.org/en/stable/api/astropy.stats.sigma_clip.html) documentation.
+| `NO_DIR_MAKE` | bool | If `True` nonexistent directories will be created. If `False`, `sys.exit()` will be invoked when nonexistent directories are encountered to remind user to edit directory structure in `outputs.get_directory()`.
+| `NORMALIZE_MAG` | bool | Used if `PLOT_MAG=True`. If `True` the magnitude plot is normalized according to the measured one-sigma magnitude error. Red dashed lines representing +/- one-sigma are also plotted.
+| `NORMALIZE_NORM_FLUX_DIFF_VIA_DENSITY` | bool | Used if `PLOT_FLUX=True`. If `True` histograms are normalized (meaning, in this instance, that the area under the histogram is 1).
+| `NOTICE` | bool | If `True` after issuing `$python plotter.py ...` at the command line, a summary of the catalog and plot attributes is printed to the screen, followed by `raw_input()` so that user can review before running the script.
+| `NUM_ITERS` | float OR `None` | Considered if `SIGMA_CLIP_NORM_FLUX_DIFF=True` and `PLOT_FLUX=True`. Number of iterations to use in `N`-sigma clipping. See [`iters`](http://docs.astropy.org/en/stable/api/astropy.stats.sigma_clip.html) documentation.
 | `__overwrite` | bool | If `True` a `raw_input()` prompt will appear to ensure that files are to be overwritten. In these instances, press 'Enter' to continue and 'Control+c' to stop the process. This constant exisits within the following functions: `...get_and_reformat_base_catalog()`, `...get_coadd_catalog_for_matcher()`, `...fof_matcher()`, `...make_ngmixer_gaussap_compatible_catalog()`, `manipulate_catalogs.match_catalogs()`, `...stack_realizations()`, `...stack_tiles()`, `...write_to_region_files()`. 
-| `OVERWRITE_AXLABELS` | bool | If `True` the axes labels created in `plot_labels.get_short_difference_axlabel()` will be overwritten with a generic `$\Delta$ flux_{band}/meas_flux_err` for the horizontal axis if `PLOT_FLUX`, `$\Delta$ ({color})` for the vertical axis if `PLOT_COLOR`, and `$\Delta$ mag_{band}` for the vertical axis if `PLOT_MAG`. <br>`plot_labels.get_short_difference_axlabel()` attempts to produce an axis label that describes `$\Delta$ mag` by including the order of subtraction (of the observables from `MATCH_CAT1` and `MATCH_CAT2`), whether the observables are from Balrog-base or Balrog-injected catalogs, the injection percent (if applicable), and whether the observables are from truth or measured catalogs. But this doesn't always look nice! Particularly if the strings have a short common substring.
-| `PLOT_34P_SPLIT` | bool | Considered if `PLOT_MAG=True` and `NORMALIZE=True`. If `True` the 34th percentile of the positive and negative vertical axis data in each bin are plotted separately. Bins refer to the magnitude bins used in the magnitude error calculation. Exists in `analysis.normalized_delta_magnitude_plotter()`.
-| `PLOT_68P` | bool | Considered if `PLOT_MAG=True` and `NORMALIZE=True`. If `True` the 68th percentile of the vertical axis data in each bin are plotted. Bins refer to the magnitude bins used in the magnitude error calculation. Exists in `analysis.normalized_delta_magnitude_plotter()`.
-| `PLOT_CM_FLUX` | bool | If `True` and `PLOT_FLUX=True` the CM flux is plotted. Note that both this and `PLOT_GAUSS_APER_FLUX` can be `True` and both will be plotted on the same plot.
-| `PLOT_COLOR` | bool | If `True` colors (g-r), (r-i), and (i-z) are plotted. Creates a 2x2 grid with subplots corresponding to different magnitude bins (currently \[20,21), \[21,22), \[22,23), and \[23,24)). Magnitudes are binned according to values in `MATCH_CAT1` for the leading filter (g for (g-r), etc). By default (`SWAP_HAX=False`) the color difference is calculated via the color from `MATCH_CAT1` minus the color from `MATCH_CAT2`. This order is reversed if `SWAP_HAX=True`.
-| `PLOT_COMPLETENESS` | bool | Used if `PLOT_MAG=True`. If `True` a 1x2 plot grid is produced with 10% injection {magnitude/color} completeness plot and 20% {magnitude/color} completeness plot, respectively (provided both injections are available for the particular `BALROG_RUN`). `PLOT_MAG` and `PLOT_COLOR` determines if the completeness plot displays magnitude or color completeness.
-| `PLOT_FLUX` | bool | If `True` a 1D histogram of FluxDifference/MeasuredFluxError is plotted along with a standard Gaussian (mean=0, standard_deviation=1). The flux difference is computed as the flux from the truth catalog minus the flux from the measured catalog (if `MATCH_CAT1` or `MATCH_CAT2` is a truth catalog). Otherwise, if `SWAP_HAX=False` the flux difference is calculated via the flux from `MATCH_CAT1` minus the flux from `MATCH_CAT2`.
+| `OVERWRITE_AXLABELS` | bool | If `True` the axes labels created in `plot_labels.get_short_difference_axlabel()` will be overwritten with a generic `$\Delta$ flux_{band}/meas_flux_err` for the horizontal axis if `PLOT_FLUX`, `$\Delta$ ({color})` for the vertical axis if `PLOT_COLOR`, and `$\Delta$ mag_{band}` for the vertical axis if `PLOT_MAG`.
+| `PLOT_34P_SPLIT` | bool | Considered if `PLOT_MAG=True` and `NORMALIZE_MAG=True`. If `True` the 34th percentiles of the binned positive magnitude differences are plotted. Similarly for the negative magnitude difference. Bins refer to the magnitude bins used in the magnitude error calculation.
+| `PLOT_68P` | bool | Considered if `PLOT_MAG=True` and `NORMALIZE_MAG=True`. If `True` the 68th percentiles of the binned magnitude differences are plotted. Bins refer to the magnitude bins used in the magnitude error calculation.
+| `PLOT_CM_FLUX` | bool | If `True` and `PLOT_FLUX=True` the CM flux is plotted. Note that both this and `PLOT_GAUSS_APER_FLUX` can be `True`, and both will be plotted on the same plot.
+| `PLOT_COLOR` | bool | If `True` colors (g-r), (r-i), and (i-z) (horizontal axis) versus color difference (vertical axis) are plotted. Creates a 2x2 grid for each color, with subplots corresponding to different magnitude bins (currently \[20,21), \[21,22), \[22,23), and \[23,24), but user can change this via `__mag_bins_for_color` in `analysis.py`). Magnitudes are binned according to values in `MATCH_CAT1` for the leading filter (g for (g-r), etc). By default (`SWAP_ORDER_OF_SUBTRACTION=False`) the color difference is calculated via the color from `MATCH_CAT1` minus the color from `MATCH_CAT2`. This order is reversed if `SWAP_ORDER_OF_SUBTRACTION=True`.
+| `PLOT_COMPLETENESS` | bool | Used if `PLOT_MAG=True`. If `True` one plot per band is produced... This must be used with either `MATCH_CAT1` or `MATCH_CAT2` set to `gal_truth` or `star_truth`.
+| `PLOT_FLUX` | bool | If `True` a 1D histogram of the flux difference normalized to the measured flux error is plotted. The flux difference is computed as the flux from the truth catalog minus the flux from the measured catalog (if `MATCH_CAT1` or `MATCH_CAT2` is a truth catalog). Otherwise, if `SWAP_ORDER_OF_SUBTRACTION=False` the flux difference is calculated via the flux from `MATCH_CAT1` minus the flux from `MATCH_CAT2`. A standard Gaussian distribution (mean=0, standard_deviation=1) is also plotted.
 | `PLOT_GAUSS_APER_FLUX` | bool | If `True` and `PLOT_FLUX=True` a Gaussian aperture method is used to measure the flux.
-| `PLOT_GAUSSIAN_FIT` | bool | If `True` and `PLOT_FLUX=True` a fit to the distribution(s) is plotted. Distrubtions plural if `PLOT_CM_FLUX=True` and `PLOT_GAUSS_APER_FLUX=True`.
-| `PLOT_MAG` | bool | If `True` plots of g-, r-, i-, and z-band magnitudes are created.
-| `PLOT_MAG_ERR` | bool | If `True` and and `PLOT_MAG` the 1sigma magnitude error curve is plotted. `NORMALIZE` must be False.
-| `PLOT_PEAKS` | bool | If `True` and `PLOT_FLUX=True` a dashed vertical line representing the median of the distribution(s) is plotted. 
-| `RAW_NORM_FLUX_DIFF` | bool | Used if `PLOT_FLUX=True`. If `True` the normalized (to measured flux error) flux differences are plotted within percentile trimming nor sigma clipping. These normalized (to measured flux error) flux differences can be from Gaussian aperture measurements if `GAUSS_APER=True`.
-| `RUN_TYPE` | str or `None` | FOF groups (if any) to analyse. <br> `None` `'ok'` `'rerun'` <br>`'ok'`: FOF groups *un*changed after Balrog-injection. <br>`'rerun'`: FOF groups changed after Balrog-injection. <br>`None`: FOF analysis not conducted. <br>If `RUN_TYPE='rerun'` or `RUN_TYPE='ok'` then `MATCH_CAT1` `MATCH_CAT2` `INJ1` and `INJ2` will be overwritten.
+| `PLOT_GAUSSIAN_FIT` | bool | If `True` and `PLOT_FLUX=True` a fit to the distribution(s) is plotted. If `PLOT_CM_FLUX=True` and `PLOT_GAUSS_APER_FLUX=True` the Gaussian fits to both will be plotted.
+| `PLOT_MAG` | bool | If `True` plots of g-, r-, i-, and z-band magnitudes (horizontal axis) versus magnitude differences (vertical axis) are created. If `SWAP_ORDER_OF_SUBTRACTION=False` the magnitude difference is computed via the magnitude from `MATCH_CAT1` minus the magnitude from `MATCH_CAT2`.
+| `PLOT_MAG_ERR` | bool | If `True` and and `PLOT_MAG` the one-sigma measured magnitude error curve is plotted. `NORMALIZE_MAG` must be False.
+| `PLOT_PEAKS` | bool | If `True` and `PLOT_FLUX=True` a dashed vertical line representing the median of the distribution(s) of normalized (to measured flux error) flux difference is plotted. If `PLOT_CM_FLUX=True` and `PLOT_GAUSS_APER_FLUX=True` the medians of both are plotted.
+| `RAW_NORM_FLUX_DIFF` | bool | Used if `PLOT_FLUX=True`. If `True` the normalized (to measured flux error) flux differences are plotted without percentile trimming and without sigma clipping. These normalized (to measured flux error) flux differences can be from Gaussian aperture measurements if `PLOT_GAUSS_APER_FLUX=True`.
+| `RUN_TYPE` | str or `None` | FOF groups (if any) to analyse. <br>`None`: FOF analysis not conducted. <br> `None` `'ok'` `'rerun'` <br>`'ok'`: FOF groups *un*changed after Balrog-injection. <br>`'rerun'`: FOF groups changed after Balrog-injection.<br>If `RUN_TYPE='rerun'` or `RUN_TYPE='ok'` then `MATCH_CAT1` `MATCH_CAT2` `INJ1` and `INJ2` will be overwritten.
 | `SAVE_BAD_IDX` | bool | If `True` the indices of objects with flags* are stored.
-| `SAVE_PLOT` | bool | If `True` plot is saved using name assigned by `outputs.get_plot_filename()`.
+| `SAVE_PLOT` | bool | If `True` the plot is saved using name assigned by `outputs.get_plot_filename()`.
 | `SHOW_PLOT` | bool | If `True` plot is displayed after it is created.
-| `SCATTER` | bool | Used if `PLOT_MAG=True`. If `True` a `matplotlib.pyplot.scatter()` plot is produced.
-| `SIGMA_CLIP_NORM_FLUX_DIFF` | bool | Used if `PLOT_FLUX=True`. If `True` the normalized (to measured flux error) flux differences are sigma clipped to `N`-sigma.
+| `SCATTER` | bool | Used if `PLOT_MAG=True` or `PLOT_COLOR=True`. If `True` a `matplotlib.pyplot.scatter()` plot is produced.
+| `SIGMA_CLIP_NORM_FLUX_DIFF` | bool | Used if `PLOT_FLUX=True`. If `True` the distribution of normalized (to measured flux error) flux differences is sigma clipped using `N`-sigma. This distribution can be one or both of `PLOT_CM_FLUX` and `PLOT_GAUSS_APER_FLUX`.
 | `STACK_REALIZATIONS` | bool | If `True` catalogs are matched then stacked. One stacked realization catalog is produced per tile. Plotting resumes with stacked catalog. Must be used with, for example, `0,1,2` at the command line.
 | `STACK_TILES` | bool | If `True` catalogs are matched then stacked. One stacked tile catalog is produced per realization. Must be used with, for example, `DES0220-0207,DES0222+0043` at the command line.
-| `SUBPLOT` | bool | If `True` four subplots are created in a 2x2 grid. If `False` plots are created individually.
-| `SWAP_HAX` | bool | If `False` (default) `MATCH_CAT1` values are plotted on the horizontal axis. If `True` `MATCH_CAT2` values are plotted on the horizontal axis. Considered if `PLOT_COLOR` or `PLOT_MAG`.
-| `SWAP_ORDER_OF_SUBTRACTION` | bool | If `False`, plots the observable from `MATCH_CAT1` minus the observable from `MATCH_CAT2`. IF `True`, plots the observable from `MATCH_CAT2` minus the observable from `MATCH_CAT1`. Only considered if `PLOT_COLOR` or `PLOT_MAG`.
-| `TRIM_NORM_FLUX_DIFF` | bool | If `True` and `PLOT_FLUX=True` histograms of FluxDifference/MeasuredFluxError (even those created using `GAUSS_APER`) include the 2<sup>nd</sup>-98<sup>th</sup> percentiles.
+| `SUBPLOT` | bool | If `True` and `PLOT_MAG=True` four subplots are created in a 2x2 grid. If `False` plots are created individually.
+| `SWAP_HAX` | bool | If `False` (default) `MATCH_CAT1` values are plotted on the horizontal axis. If `True` `MATCH_CAT2` values are plotted on the horizontal axis. Considered if `PLOT_COLOR=True` or `PLOT_MAG=True`.
+| `SWAP_ORDER_OF_SUBTRACTION` | bool | If `False`, differences are computed via the observable from `MATCH_CAT1` minus the observable from `MATCH_CAT2`. IF `True`, differences are computed via the observable from `MATCH_CAT2` minus the observable from `MATCH_CAT1`. Only considered if `PLOT_COLOR` or `PLOT_MAG`.
+| `TRIM_NORM_FLUX_DIFF` | bool | If `True` and `PLOT_FLUX=True` histograms of the distribution(s) of normalized (to measured flux error) flux difference include the 2<sup>nd</sup>-98<sup>th</sup> percentiles. This distribution can be one or both of `PLOT_CM_FLUX` and `PLOT_GAUSS_APER_FLUX`.
 | `VERBOSE_ED` | bool | If `True` results will print to screen. For example, 'got...', 'flagged...', 'checked...', etc. Note that many of these printouts are also saved in a log file.
 | `VERBOSE_ING` | bool | If `True` status and progress of script will print to screen. For example, 'Plotting...', 'calculating...', 'overwriting...', etc.
-| `Y3_MODEL` | str | <br> `'CM'` `'PSF'`
-| `Y3_FIT` | str | Considered if `MATCH_CAT1` or `MATCH_CAT2` is a Y3 Gold catalog<br> `'MOF'` `'SOF'`
+| `Y3_MODEL` | str | Considered if `MATCH_CAT1` or `MATCH_CAT2` is a Y3 Gold catalog.<br> `'CM'` `'PSF'`
+| `Y3_FIT` | str | Considered if `MATCH_CAT1` or `MATCH_CAT2` is a Y3 Gold catalog.<br> `'MOF'` `'SOF'`
 
+<br>`plot_labels.get_short_difference_axlabel()` attempts to produce an axis label that describes `$\Delta$ mag` by including the order of subtraction (of the observables from `MATCH_CAT1` and `MATCH_CAT2`), whether the observables are from Balrog-base or Balrog-injected catalogs, the injection percent (if applicable), and whether the observables are from truth or measured catalogs. But this doesn't always look nice! Particularly if the strings have a short common substring.
 
 ##### Plot Colors
 
