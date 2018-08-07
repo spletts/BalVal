@@ -128,9 +128,9 @@ if NOTICE:
 	['Save plot? :\t {}'.format(SAVE_PLOT)],
 	['Limits for the axis of plot? :\t ({}, {})'.format(MAG_YLOW, MAG_YHIGH)],
 	['If plotting magnityde, plot 1sigma_meas curve? :\t {}'.format(PLOT_MAG_ERR)],
-	['If plotting 1sigma_meas curve, center about zero? (else centered about medians) :\t {}'.format(CENTER_ERR_ABT_ZERO)],
-	['Normalize magnitude plot to magnitude error? :\t {}'.format(NORMALIZE)],
-	['If PLOT_MAG and NORMALIZE, plot percentiles? :\t {}, {}'.format(PLOT_68P, PLOT_34P_SPLIT)],
+	['If plotting 1sigma_meas curve, center about zero? (else centered about medians) :\t {}'.format(CENTER_MAG_ERR_ABT_ZERO)],
+	['Normalize magnitude plot to magnitude error? :\t {}'.format(NORMALIZE_MAG)],
+	['If PLOT_MAG and NORMALIZE_MAG, plot percentiles? :\t {}, {}'.format(PLOT_68P, PLOT_34P_SPLIT)],
 	['Make region files? :\t {}'.format(MAKE_REGION_FILES)],
 	['FOF analysis? :\t {}'.format(RUN_TYPE)]
 	]
@@ -287,9 +287,10 @@ def stacked_magnitude_completeness_subplotter(mag_hdr1, mag_hdr2, mag_err_hdr1, 
                 if 'COSMOS' not in BALROG_RUN:
 			# Make subplots #
                         plt.subplot(1, 2, 1)
-                        plt.plot(COMPLETENESS_PLOT_MAG_BINS, np.nanmean(__completeness1[:,k,:], axis=0) , color='blue')
+                        plt.plot(COMPLETENESS_PLOT_MAG_BINS, np.nanmean(__completeness1[:,k,:], axis=0) , color=PT_COLORS[ALL_BANDS[k]])
                         plt.axhline(y=1, color='black', linestyle='-', linewidth=0.7)
                         plt.axhline(y=0, color='black', linestyle='-', linewidth=0.7)
+			# From a telecon it was decided that ~90% completeness is desired, so provide this line to guide eye #
                         plt.axhline(y=0.9, color='orange', linestyle='--', linewidth=0.7)
                         plt.title('10% Injection') #TODO automate this?
                         plt.ylabel('$\\bf{%s}$-band Magnitude Completeness' % ALL_BANDS[k])
@@ -300,14 +301,15 @@ def stacked_magnitude_completeness_subplotter(mag_hdr1, mag_hdr2, mag_err_hdr1, 
                         plt.subplot(1, 2, 2)
 
                 # Get completeness mean (amongst all tiles) for each magnitude bin --> `axis=0` #
-                # Note: plot() ignores nans so there is no need to remove them from data in sep step #
-		# `b` labels for secondary completeness #
-                plt.plot(COMPLETENESS_PLOT_MAG_BINS, np.nanmean(__completeness2[:,k,:], axis=0), color='green')
+                # Note: `plt.plot()` ignores NaNs so there is no need to remove them from data in a separate step #
+		# Note variable names with `b` refer to secondary completeness #
+                plt.plot(COMPLETENESS_PLOT_MAG_BINS, np.nanmean(__completeness2[:,k,:], axis=0), color=PT_COLORS[ALL_BANDS[k]])
 		plt.axhline(y=1, color='black', linestyle='-', linewidth=0.7)
                 plt.axhline(y=0, color='black', linestyle='-', linewidth=0.7)
+		# From a telecon it was decided that ~90% completeness is desired, so provide this line to guide eye #
                 plt.axhline(y=0.9, color='orange', linestyle='--', linewidth=0.7)
                 plt.title('20% Injection') #TODO automate this?
-                plt.ylabel('$\\bf{%}$-band Magnitude Completeness' % ALL_BANDS[k])
+                plt.ylabel('$\\bf{%s}$-band Magnitude Completeness' % ALL_BANDS[k])
 		plt.xlabel(magAxLabel1b)
 		if SWAP_HAX: plt.xlabel(magAxLabel2b)
                 plt.grid(linestyle='dotted')
@@ -315,7 +317,7 @@ def stacked_magnitude_completeness_subplotter(mag_hdr1, mag_hdr2, mag_err_hdr1, 
 		plot_title = plot_title.replace('10% ', '')
 		plot_title = plot_title.replace('20% ', '')
 
-                plt.suptitle(plot_title, fontweight='bold') #FIXME check if there is a sigma cutoff
+                plt.suptitle(plot_title, fontweight='bold')
 
 		if SHOW_PLOT: plt.show()
 
@@ -856,10 +858,10 @@ def color_subplotter(band, df_1and2, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_h
 				__sym_ylim = np.min([abs(__ylow), __yhigh])
 
 			# Plot density bins #
-                        #corner.hist2d(__hax_color[i], __vax_color[i], bins=np.array([__bin_x, __bin_y]), no_fill_contours=False, color=get_color(band=band)[0], levels=CORNER_2D_HIST_LVLS, contour_kwargs={'colors':CORNER_HIST_2D_LVLS_CLRS, 'cmap':None, 'linewidths':__lw})
+                        #corner.hist2d(__hax_color[i], __vax_color[i], bins=np.array([__bin_x, __bin_y]), no_fill_contours=False, color=get_color(band=band)[0], levels=CORNER_HIST_2D_LVLS, contour_kwargs={'colors':CORNER_HIST_2D_LVLS_CLRS, 'cmap':None, 'linewidths':__lw})
 
 			# Plot points and not density bins #
-			corner.hist2d(__hax_color[i], __vax_color[i], plot_density=False, bins=np.array([__bin_x, __bin_y]), no_fill_contours=True, color=PT_COLORS[band], levels=CORNER_2D_HIST_LVLS, contour_kwargs={'colors':CORNER_HIST_2D_LVLS_CLRS, 'cmap':None, 'linewidths':__lw}, data_kwargs={'alpha':0.35, 'ms':1.75})
+			corner.hist2d(__hax_color[i], __vax_color[i], plot_density=False, bins=np.array([__bin_x, __bin_y]), no_fill_contours=True, color=PT_COLORS[band], levels=CORNER_HIST_2D_LVLS, contour_kwargs={'colors':CORNER_HIST_2D_LVLS_CLRS, 'cmap':None, 'linewidths':__lw}, data_kwargs={'alpha':0.35, 'ms':1.75})
 
 			if COLOR_YLOW is None and COLOR_YHIGH is None:
 				# Force symmetric vertical axis #
@@ -933,11 +935,11 @@ def normalized_magnitude_difference_plotter(mag_hdr1, mag_hdr2, cbar_data, mag_e
 	if PLOT_MAG_ERR and CORNER_HIST_2D is False:
 
 		### Plot 1sigma_mag curve ###
-		if CENTER_ERR_ABT_ZERO:
+		if CENTER_MAG_ERR_ABT_ZERO:
 			plt.axhline(y=1.0, color='red', linestyle='--', linewidth=0.7, label='$1 \sigma_{mag\_meas}$')
 			plt.axhline(y=-1.0, color='red', linestyle='--', linewidth=0.7)
 
-		if CENTER_ERR_ABT_ZERO is False:
+		if CENTER_MAG_ERR_ABT_ZERO is False:
 
 			counter_legend0 = 0; color0 = 'red'; lw = 0.7
 
@@ -1089,7 +1091,7 @@ def normalized_magnitude_difference_plotter(mag_hdr1, mag_hdr2, cbar_data, mag_e
 		__sym_ylim = np.mean([abs(__ylow), __yhigh])
 
 		__lw = 0.9
-                corner.hist2d(plotHaxMag, plotMagnitudeDifferenceag, bins=np.array([__bin_x, __bin_y]), no_fill_contours=True, levels=CORNER_2D_HIST_LVLS, color=PT_COLORS[band], contour_kwargs={'colors':CORNER_HIST_2D_LVLS_CLRS, 'cmap':None, 'linewidth':__lw})
+                corner.hist2d(plotHaxMag, plotMagnitudeDifferenceag, bins=np.array([__bin_x, __bin_y]), no_fill_contours=True, levels=CORNER_HIST_2D_LVLS, color=PT_COLORS[band], contour_kwargs={'colors':CORNER_HIST_2D_LVLS_CLRS, 'cmap':None, 'linewidth':__lw})
 		# Work-around for contour labels #
 		for j in np.arange(0, len(LVLS_FOR_CORNER_2D_HIST)):
 			plt.plot([0.5, 0.5], [0.5, 0.5], color=CORNER_HIST_2D_LVLS_CLRS_LABEL[j], label='$P_{'+str(round(LVLS_FOR_CORNER_2D_HIST[j], 2))[2:]+'}$', linewidth=__lw)
@@ -1200,10 +1202,10 @@ def magnitude_difference_plotter(mag_hdr1, mag_hdr2, cbar_data, mag_err1, mag_er
 
 		if CORNER_HIST_2D is False:
 			### Plot 1sigma_mag curve ###
-			if CENTER_ERR_ABT_ZERO:
+			if CENTER_MAG_ERR_ABT_ZERO:
 				plt.plot(hax, np.array(err), color='red', linestyle='-', linewidth=0.7, label='$1 \sigma_{mag\_meas}$')
 				plt.plot(hax, -1*np.array(err), color='red', linestyle='-', linewidth=0.7)
-			if CENTER_ERR_ABT_ZERO is False:
+			if CENTER_MAG_ERR_ABT_ZERO is False:
 				plt.plot(hax, np.array(vax) + np.array(err), color='red', linestyle='-', linewidth=0.7, label='$1 \sigma_{mag\_meas}$')
 				plt.plot(hax, np.array(vax) - np.array(err), color='red', linestyle='-', linewidth=0.7)
 
@@ -1258,11 +1260,11 @@ def magnitude_difference_plotter(mag_hdr1, mag_hdr2, cbar_data, mag_err1, mag_er
 		__sym_ylim = np.mean([abs(__ylow), __yhigh])
 
 		# Plot points and not density bins #
-		#corner.hist2d(__hax_mag, __mag_diff, plot_density=False, bins=np.array([__bin_x, __bin_y]), no_fill_contours=True, color=get_color(band=band)[0], levels=CORNER_2D_HIST_LVLS, contour_kwargs={'colors':CORNER_HIST_2D_LVLS_CLRS, 'cmap':None, 'linewidths':__lw}, data_kwargs={'alpha':0.25, 'ms':1.75})
+		#corner.hist2d(__hax_mag, __mag_diff, plot_density=False, bins=np.array([__bin_x, __bin_y]), no_fill_contours=True, color=get_color(band=band)[0], levels=CORNER_HIST_2D_LVLS, contour_kwargs={'colors':CORNER_HIST_2D_LVLS_CLRS, 'cmap':None, 'linewidths':__lw}, data_kwargs={'alpha':0.25, 'ms':1.75})
 
 		# Only the densest regions of the plot are binned so increase bin size of plt.hist2d() #
 		# SLACK channel corner.hist2d "draws 1- and 2-sigma contours automatically."Correct 1sigma levels: http://corner.readthedocs.io/en/latest/pages/sigmas.html #
-		corner.hist2d(__hax_mag, __mag_diff, bins=np.array([__bin_x, __bin_y]), no_fill_contours=True, levels=CORNER_2D_HIST_LVLS, color=PT_COLORS[band], contour_kwargs={'colors':CORNER_HIST_2D_LVLS_CLRS, 'cmap':None, 'linewidths':__lw}) 
+		corner.hist2d(__hax_mag, __mag_diff, bins=np.array([__bin_x, __bin_y]), no_fill_contours=True, levels=CORNER_HIST_2D_LVLS, color=PT_COLORS[band], contour_kwargs={'colors':CORNER_HIST_2D_LVLS_CLRS, 'cmap':None, 'linewidths':__lw}) 
 
 		if MAG_YLOW is None and MAG_YHIGH is None:
 			plt.ylim([-1*__sym_ylim, __sym_ylim])
@@ -1373,10 +1375,10 @@ def magnitude_difference_subplotter(df_1and2, mag_hdr1, mag_hdr2, mag_err_hdr1, 
 		if SUBPLOT: 
 			plt.subplot(2, 2, counter_subplot)
 
-		if NORMALIZE is False:
+		if NORMALIZE_MAG is False:
 			magnitude_difference_plotter(mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, cbar_data=cbarData, plot_title=plot_title, mag_err1=magErr1, mag_err2=magErr2, band=b, full_mag1=fullMag1, clean_mag1=cleanMag1, clean_mag2=cleanMag2, mag_axlabel1=magAxLabel1, mag_axlabel2=magAxLabel2, realization=realization, tile=tile, cbar_label=cbarLabel, fn_plot=fn_plot, fn_mag_err_log=fn_mag_err_log, vax_label=magVaxLabel, fn_mag_diff_outliers_log=fn_mag_diff_outliers_log, fn_percent_recovered_log=fn_percent_recovered_log, fn_num_objs_in_1sig_mag_log=fn_num_objs_in_1sig_mag_log)
 
-		if NORMALIZE:
+		if NORMALIZE_MAG:
 			normalized_magnitude_difference_plotter(mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, cbar_data=cbarData, plot_title=plot_title, mag_err1=magErr1, mag_err2=magErr2, band=b, full_mag1=fullMag1, clean_mag1=cleanMag1, clean_mag2=cleanMag2, mag_axlabel1=magAxLabel1, mag_axlabel2=magAxLabel2, realization=realization, tile=tile, cbar_label=cbarLabel, fn_plot=fn_plot, fn_mag_err_log=fn_mag_err_log, vax_label=magVaxLabel, fn_mag_diff_outliers_log=fn_mag_diff_outliers_log, fn_num_objs_in_1sig_mag_log=fn_num_objs_in_1sig_mag_log)
 
 		counter_subplot += 1
@@ -1610,7 +1612,7 @@ def get_directory(tile, realization, low_level_dir):
 		__dir = os.path.join(OUTPUT_DIRECTORY, 'outputs', BALROG_RUN, MATCH_TYPE, tile, realization, low_level_dir)
 
 	if isinstance(low_level_dir, list):
-		if low_level_dir[1] == 'magnitude' and NORMALIZE:
+		if low_level_dir[1] == 'magnitude' and NORMALIZE_MAG:
 			__dir = os.path.join(OUTPUT_DIRECTORY, 'outputs', BALROG_RUN, MATCH_TYPE, tile, realization, low_level_dir[0], low_level_dir[1], 'normalized')
 		else:
 			__dir = os.path.join(OUTPUT_DIRECTORY, 'outputs', BALROG_RUN, MATCH_TYPE, tile, realization, low_level_dir[0], low_level_dir[1])
@@ -2198,164 +2200,5 @@ def get_coadd_catalog_for_matcher(cat_type, inj_percent, inj, realization, mag_h
 
 
 
-#TODO accept idx_good as input param? Will only be used for df_match. 
-def write_to_region_files(df_1and2, df_1not2, df_2not1, realization, tile):
-	"""Make DS9 region files for catalogs matched via join=1and2, join=1not2, and join=2not1 (join type is STILTS parameter set in stilts_matcher or fof_stilts_matcher).
-
-	Parameters
-	----------
-	df_1and2 (pandas DataFrame)
-		Catalog for matches via join=1and2 between `MATCH_CAT1` and `MATCH_CAT2`.
-
-	df_1not2 (pandas DataFrame)
-		Catalog for matches via join=1not2 between `MATCH_CAT1` and `MATCH_CAT2`.
-
-	df_2not1 (pandas DataFrame)
-		Catalog for matches via join=2not1 between `MATCH_CAT1` and `MATCH_CAT2`.
-
-	realization (str)
-
-	tile (str)
-
-	Returns
-	-------
-	fnRegion1and2 (str)
-		Complete filename for region file containing regions pertaining to objects in `df_1and2`.
-
-	fnRegion1not2 (str)
-		Complete filename for region file containing regions pertaining to objects in `df_1not2`.
-
-	fn_reg_2not1 (str)
-		Complete filename for region file containing regions pertaining to objects in `df_2not1`.
-	"""
-
-	if VERBOSE_ING: print 'Writing region files...'
-
-	### Get filenames and open files ###
-	fnRegion1and2, fnRegion1not2, fnRegion2not1 = outputs.get_region_filenames(balrog_run=BALROG_RUN, match_type=MATCH_TYPE, output_directory=OUTPUT_DIRECTORY, realization=realization, tile=tile)
-
-	__overwrite = False
-	if __overwrite: raw_input('`__overwrite=True` in `write_to_region_files()`. Press enter to procees and ctrl+c to stop.')
-	
-	if os.path.isfile(fnRegion2not1) and __overwrite is False:
-		print 'Region files already exist. Not overwriting ...'
-	
-	#TODO make write_reg(a, b, color{}, ra, dec, angle) and call this three times. put in region_files.py
-
- 
-	if os.path.isfile(fnRegion2not1) is False or __overwrite:
-		fd_match = open(fnRegion1and2, 'w'); fd_1not2 = open(fnRegion1not2, 'w'); fd_2not1 = open(fnRegion2not1, 'w')
-		# Write coordinate system #
-		fd_match.write('J2000 \n'); fd_1not2.write('J2000 \n'), fd_2not1.write('J2000 \n')
-
-		# Handle matched catalog #
-		if RUN_TYPE is None:
-			ra1 = RA_HDR1 + str('_1'); dec1 = DEC_HDR1 + str('_1')
-			ra2 = RA_HDR2 + str('_2'); dec2 = DEC_HDR2 + str('_2')
-		if RUN_TYPE is not None:
-			# MOF or SOF catalogs #
-			ra1 = 'ra'; dec1 = 'dec'
-			ra2 = 'ra_2'; dec2 = 'dec_2' 
-
-		### Get position. Arbitrarily using MATCH_CAT1 for RA and DEC ###
-		ra_match, dec_match = df_1and2[ra2], df_1and2[dec2] 
-		ra_1not2, dec_1not2 = df_1not2[ra1], df_1not2[dec1]
-		ra_2not1, dec_2not1 = df_2not1[ra2], df_2not1[dec2]
-
-		### Write to region file for matched catalog. Units are arcseconds. ###
-		# Coadds allow for elliptical regions #
-		if 'coadd' in (MATCH_CAT1, MATCH_CAT2) or 'y3_gold' in MATCH_CAT1 or 'y3_gold' in MATCH_CAT2:
-			### Get semimajor and semiminor axes (a and b, respectively) and orientation. Coadds and Y3 Gold have these values. ###
-			a_match, b_match = df_1and2[MAJOR_AX_HDR1], df_1and2[MINOR_AX_HDR1]
-			a_1not2, b_1not2 = df_1not2[MAJOR_AX_HDR1], df_1not2[MINOR_AX_HDR1]
-			a_2not1, b_2not2 = df_2not1[MAJOR_AX_HDR2], df_2not1[MINOR_AX_HDR2]
-			orientation_match, orientation_1not2, orientation_2not1 = df_1and2[ANGLE1], df_1not2[ANGLE1], df_2not1[ANGLE1]
-			
-			for i in np.arange(0, len(ra_match)):
-				#TODO label units needed here
-				fd_match.write('ellipse {} {} {}" {}" {} #color=green width=3\n'.format(ra_match[i], dec_match[i], a_match[i], b_match[i], 90+orientation_match[i]))
-
-			for i in np.arange(0, len(ra_1not2)):
-				fd_1not2.write('ellipse {} {} {}" {}" {} #color=green width=3\n'.format(ra_1not2[i], dec_1not2[i], a_1not2[i], b_1not2[i], 90+orientation_1not2[i]))
-
-			for i in np.arange(0, len(ra_2not1)):
-				fd_2not1.write('ellipse {} {} {}" {}" {} #color=green width=3\n'.format(ra_2not1[i], dec_2not1[i], a_2not1[i], b_2not1[i], 90+orientation_2not1[i]))
-
-
-		# Non-coadd catalogs allow for circular regions #
-		# Use cm_T #
-		if MATCH_CAT1 != 'coadd' and MATCH_CAT2 != 'coadd':
-			size_sq_match = df_1and2[CM_T_HDR1]
-			size_sq_1not2 = df_1not2[CM_T_HDR1]
-			size_sq_2not1 = df_2not1[CM_T_HDR2]
-
-			# Note: Can use a typical radius of 2 arcsec #
-			for i in np.arange(0, len(ra_match)):
-				if size_sq_match[i] > 0:# and np.isnan(size_sq_match[i]) is False:
-					fd_match.write('cirlce {} {} {}" #color=green width=3\n'.format(ra_match[i], dec_match[i], size_sq_match[i]**0.5))
-			for i in np.arange(0, len(ra_1not2)):
-				if size_sq_1not2[i] > 0: # and np.isnan(size_sq_1not2[i]) is False:
-					fd_1not2.write('cirlce {} {} {}" #color=green width=3\n'.format(ra_1not2[i], dec_1not2[i], size_sq_1not2[i]**0.5))
-			for i in np.arange(0, len(ra_2not1)):
-				if size_sq_2not1[i] > 0: # and np.isnan(size_sq_2not1[i]) is False:
-					fd_1not2.write('cirlce {} {} {}" #color=green width=3\n'.format(ra_2not1[i], dec_2not1[i], size_sq_2not1[i]**0.5))
-
-		# Close files #
-		fd_match.close(); fd_1not2.close(); fd_2not1.close()
-
-	print '-----> Saving region files as: ', fnRegion1and2
-	print ' -----> ', fnRegion1not2 
-	print ' ----->', fnRegion2not1 
-
-	return fnRegion1and2, fnRegion1not2, fnRegion2not1 
-
-
-
-
-################################################################### Run script. 0 returned when complete. ###################################################################
-
-
-YLOOP = False 
-### !!!!! Run once. Log files are closed once 0 is returned. ###
-if YLOOP is False:
-	print make_plots(mag_hdr1=M_HDR1, mag_hdr2=M_HDR2, mag_err_hdr1=M_ERR_HDR1, mag_err_hdr2=M_ERR_HDR2)
-
-### Loop over vertical axis limits. Suggestions: for normalized plot with star truth catalog use y=[3, 10], for normalized plot with galaxy truth catalog use y=[3, 20]. For non-normalized plot with star truth catalog or galaxy truth catalog use y=[0.5, None]. ###
-# !!!!! Loop over vertical axis limits? #
-
-if NORMALIZE:
-	ylist = [10, 20, None]
-if NORMALIZE is False:
-	ylist = [0.5, 1, 3, None]
-if YLOOP:
-	for y in ylist: 
-		if y is None:
-			MAG_YLOW, MAG_YHIGH = None, None
-		if y is not None:
-			MAG_YLOW, MAG_YHIGH = -1*y, y
-
-		# Must pass constants as parameters here because used for plot name and manipulated. #
-		print make_plots(mag_hdr1=M_HDR1, mag_hdr2=M_HDR2, mag_err_hdr1=M_ERR_HDR1, mag_err_hdr2=M_ERR_HDR2)
-
-
-
-### !!!!! Loop over possible colorbars? ###
-CBAR_LOOP = False
-if CBAR_LOOP:
-	# Possible combinations for colorbars. Only one True allowed at a time and NORMALIZE and HEXBIN must both be False. #
-	cbar_bools_list =[[True, False, False, False, False], [False, True, False, False, False], [False, False, True, False, False]]
-	for cbar_bools in cbar_bools_list:
-		# Reset constants #
-		#FIXME no longer sure if this works and renames plots correctly
-		CM_T_CBAR, CM_T_ERR_CBAR, NORMALIZE, HEXBIN = cbar_bools
-		make_plots(mag_hdr1=M_HDR1, mag_hdr2=M_HDR2, mag_err_hdr1=M_ERR_HDR1, mag_err_hdr2=M_ERR_HDR2)
-
-
-
-RUN_TYPE_LOOP = False 
-if RUN_TYPE_LOOP:
-	run_type_list = [None, 'ok', 'rerun']
-	for run_type in run_type_list:
-		RUN_TYPE = run_type
-		make_plots(mag_hdr1=M_HDR1, mag_hdr2=M_HDR2, mag_err_hdr1=M_ERR_HDR1, mag_err_hdr2=M_ERR_HDR2)
-
+### Run script. 0 returned when complete. ###
+print make_plots(mag_hdr1=M_HDR1, mag_hdr2=M_HDR2, mag_err_hdr1=M_ERR_HDR1, mag_err_hdr2=M_ERR_HDR2)
