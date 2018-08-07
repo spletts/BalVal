@@ -2,6 +2,8 @@
 
 Conducts various [Balrog-GalSim](https://github.com/sweverett/Balrog-GalSim) validation tests.
 
+Validation tests include comparing the color, magnitude, and flux from input (truth) catalogs to output (Balrog-injected) catalogs. See below for more capabilities.
+
 ___
 ### Table of Contents
 
@@ -13,7 +15,7 @@ ___
 
 [Table of Constants](https://github.com/spletts/BalVal/blob/master/README.md#table-of-constants)
 
-  - [Plot Labelss](https://github.com/spletts/BalVal/blob/master/README.md#plot-labels)
+  - [Plot Labels](https://github.com/spletts/BalVal/blob/master/README.md#plot-labels)
 
   - [Plot Colors](https://github.com/spletts/BalVal/blob/master/README.md#plot-colors)
 
