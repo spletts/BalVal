@@ -15,8 +15,8 @@ import calculate_injection_percent
 
 
 ##### For catalogs #####
-MATCH_CAT1, MATCH_CAT2 = 'gal_truth', 'mof'
-INJ1, INJ2 = True, True 
+MATCH_CAT1, MATCH_CAT2 = 'deep_sn_mof', 'y3_gold_2_2'
+INJ1, INJ2 = False, False 
 
 STACK_REALIZATIONS = False
 STACK_TILES = False
@@ -40,11 +40,11 @@ SCATTER = False
 HIST_2D = False
 HEXBIN = True
 PLOT_COMPLETENESS = False
-NORMALIZE = False
+NORMALIZE_MAG = False
 PLOT_68P = True
 PLOT_34P_SPLIT = True
 PLOT_MAG_ERR = True
-CENTER_ERR_ABT_ZERO = False
+CENTER_MAG_ERR_ABT_ZERO = False
 CM_T_ERR_CBAR = False
 CM_T_CBAR = False
 MAG_YLOW, MAG_YHIGH = None, None
@@ -94,7 +94,7 @@ if 'y3_gold' in MATCH_CAT1 or 'y3_gold' in MATCH_CAT2:
 	if 'mof' in (MATCH_CAT1, MATCH_CAT2) or 'deep_sn_mof' in (MATCH_CAT1, MATCH_CAT2):
 		Y3_FIT = 'MOF'
 	if 'sof' in (MATCH_CAT1, MATCH_CAT2) or 'deep_sn_sof' in (MATCH_CAT1, MATCH_CAT2) :
-		Y3_FIT='SOF'
+		Y3_FIT = 'SOF'
 
 # `FOF_FIT` only used if `RUN_TYPE` is not `None` #
 if RUN_TYPE is None:
@@ -115,19 +115,19 @@ SAVE_BAD_IDX = False
 
 ### Percentiles for `corner.hist2d` contours ###
 # `levels` parameter in `corner.hist2d` interpreted as percentiles #
-CORNER_2D_HIST_LVLS = 1.0 - np.exp(-0.5 * np.array([1.5]) ** 2)
+CORNER_HIST_2D_LVLS = 1.0 - np.exp(-0.5 * np.array([1.5]) ** 2)
 # LVLS = 1.0 - np.exp(-0.5 * np.array([0.5, 1.0, 1.5, 2.2]) ** 2)
 CORNER_HIST_2D_LVLS_CLRS = ['red']
 # Point of confusion: `colors` parameter passed to contour_kwargs is applied in reverse order, so reverse order for labels #
-CORNER_HIST_2D_LVLS_CLRS_LABEL = CLRS[::-1]
+CORNER_HIST_2D_LVLS_CLRS_LABEL = CORNER_HIST_2D_LVLS_CLRS[::-1]
 
 
 ### Color coding ###
 CMAPS = {'g':'Greens', 'r':'Purples', 'i':'Greys', 'z':'Blues'}
 PT_COLORS = {'g':'green', 'r':'purple', 'i':'darkgrey', 'z':'navy'}
 # Flux plots #
-FIT_TO_FLUX = {'g':'lime', 'r':'lime', 'i':'lime', 'z':'lime'}
 GAP_FLUX_HIST = {'g':'blue', 'r':'blue', 'i':'blue', 'z':'blue'}
+FIT_TO_GAP_FLUX = {'g':'cyan', 'r':'cyan', 'i':'cyan', 'z':'cyan'}
 FLUX_HIST = {'g':'green', 'r':'green', 'i':'green', 'z':'green'}
 FIT_TO_FLUX = {'g':'lime', 'r':'lime', 'i':'lime', 'z':'lime'}
 
@@ -176,9 +176,9 @@ def catch_error(cmd_line_realizations, cmd_line_tiles):
 
 	if MAG_YLOW is not None and MAG_YHIGH is not None and MAG_YHIGH == MAG_YLOW: __err_msg = '`MAG_YLOW` =/= `MAG_YHIGH`. These two cannot be equal.'
 
-	if NORMALIZE and PLOT_MAG_ERR is False: __err_msg = 'If NORMALIZE is True so must be PLOT_MAG_ERR.'
+	if NORMALIZE_MAG and PLOT_MAG_ERR is False: __err_msg = 'If NORMALIZE_MAG is True so must be PLOT_MAG_ERR.'
 
-	if NORMALIZE and PLOT_COLOR: __err_msg = 'Script not equipped to normalize color plots'
+	if NORMALIZE_MAG and PLOT_COLOR: __err_msg = 'Script not equipped to normalize color plots'
 
 	if PLOT_FLUX is False and PLOT_COLOR is False and PLOT_MAG is False: __err_msg = 'Must plot one observable'
 
