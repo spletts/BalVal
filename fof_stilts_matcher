@@ -1,6 +1,8 @@
 #!/bin/bash
 
-# Run: $chmod +x fof_stilts_matcher
+# FOF analysis #
+# Run: $chmod +x fof_stilts_matcher #
+# TODO update `keepcols`
 
 ### Input filenames ###
 fof=$1
@@ -31,7 +33,6 @@ rerun_1not2=${22}
 ok_2not1=${23}
 rerun_2not1=${24}
 
-### FOF analysis ###
 
 ### 1. Match fof & coadd by number ###
 /data/des30.a/data/kgrabow/stilts tmatch2 in1=${fof} ifmt1=fits in2=${coadd} ifmt2=fits ofmt=csv matcher=1d values1="number" values2="number" params=0.5 ocmd='keepcols "number_1 fofid ALPHAWIN_J2000 DELTAWIN_J2000"' out=${fofcoadd}
@@ -59,7 +60,7 @@ echo "Completed step 5 ..."
 echo " "
 
 ### 6. Run par.py on {5.}out to separate objects that need to be rerun (.rerun) and those that don't (.ok) ###
-python ms_par.py ${origfof_injfof} ${parpy_outdir}
+python par.py ${origfof_injfof} ${parpy_outdir}
 echo "Completed step 6 ..."
 echo " "
 
