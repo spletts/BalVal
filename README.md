@@ -1,4 +1,4 @@
-# BalVal
+# BalVal: [Balrog-GalSim](https://github.com/sweverett/Balrog-GalSim) Validation
 
 Conducts various [Balrog-GalSim](https://github.com/sweverett/Balrog-GalSim) validation tests.
 
@@ -370,7 +370,7 @@ Below are solely the directories and not the files that will be created within t
 
   - Log files are CSVs although they have `.log` extensions. Not all log files will be written to; for example, if `PLOT_MAG=False`, 'mag_completeness.log' will not be created and an empty 'dummy.log' will replace it.
   
-  - Log filenames, matched catalog filenamess, and plot filenames are printed with a preceding `----->` for ease of finding and opening these files.
+  - Log filenames, matched catalog filenames, and plot filenames are printed with a preceding `----->` for ease of finding and opening these files.
 
 
 
@@ -385,7 +385,7 @@ Star truth catalogs (`star_truth`) do not contain any flags.
 
 Coadd catalogs (`coadd`) have a 'FLAGS' header but do not have a 'cm_flags' header (or equivalent), so only 'FLAGS' is used.
 
-Y3 Gold catalogs (`y3_gold`) are checked for 'FLAGS_GOLD' (which replaces 'flags' mentioned above), and 'SOF_CM_FLAGS' or 'MOF_CM_FLAGS' replaces 'cm_flags' (depending on `Y3_FIT`). In addition, the following flags are examined: 'SEXTRACTOR_FLAGS_{GRIZ}', 'IMAFLAGS_ISO_{GRIZ}', and, if a Y3 Gold catalog is compared to a MOF catalog, 'MOF_CM_MOF_FLAGS'.
+Y3 Gold catalogs (`y3_gold_2_0` `y3_gold_2_2`) are checked for 'FLAGS_GOLD' (which replaces 'flags' mentioned above), and 'SOF_CM_FLAGS' or 'MOF_CM_FLAGS' replaces 'cm_flags' (depending on `Y3_FIT`). In addition, the following flags are examined: 'SEXTRACTOR_FLAGS_{GRIZ}', 'IMAFLAGS_ISO_{GRIZ}', and, if a Y3 Gold catalog is compared to a MOF catalog, 'MOF_CM_MOF_FLAGS'.
 
 `ngmixer.gaussap.get_gauss_aper_flux_cat()` gives flags for the Gaussian aperture flux measurement. If `PLOT_FLUX=True` and `PLOT_GAUSS_APER_FLUX=True`, objects with these Gaussian aperture flags are removed.
 
