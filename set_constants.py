@@ -3,7 +3,7 @@ Set the catalogs to be matched.
 Set plot attributes.
 Set the color coding of plot(s).
 See 'Table of Constants' in README.md (https://github.com/spletts/BalVal/blob/master/README.md)
-Catch error from incompatible .
+Catch error from incompatible parameters set at command line.
 
 Comments are ABOVE the code they refer to.
 """
@@ -15,13 +15,15 @@ import calculate_injection_percent
 
 
 ##### For catalogs #####
-MATCH_CAT1, MATCH_CAT2 = 'deep_sn_mof', 'y3_gold_2_2'
-INJ1, INJ2 = False, False 
+MATCH_CAT1, MATCH_CAT2 = 'gal_truth', 'coadd'
+INJ1, INJ2 = True, False
 
 STACK_REALIZATIONS = False
 STACK_TILES = False
 
+# FOF analysis #
 RUN_TYPE = None
+
 
 ##### For plots #####
 
@@ -50,7 +52,7 @@ CM_T_CBAR = False
 MAG_YLOW, MAG_YHIGH = None, None
 
 # Flux plots #
-PLOT_GAUSS_APER_FLUX = True
+PLOT_GAUSS_APER_FLUX = False
 PLOT_CM_FLUX = True
 PLOT_GAUSSIAN_FIT = False
 PLOT_PEAKS = True
@@ -80,7 +82,7 @@ MAKE_REGION_FILES = False
 
 ### Printouts ###
 NOTICE = False
-VERBOSE_ING = False
+VERBOSE_ING = True
 VERBOSE_ED = False
 
 NO_DIR_MAKE = True
@@ -91,21 +93,21 @@ NO_DIR_MAKE = True
 # `Y3_FIT` only used if `MATCH_CAT1` or `MATCH_CAT2` is a Y3 Gold catalog #
 Y3_MODEL, Y3_FIT = 'CM', None
 if 'y3_gold' in MATCH_CAT1 or 'y3_gold' in MATCH_CAT2:
-	if 'mof' in (MATCH_CAT1, MATCH_CAT2) or 'deep_sn_mof' in (MATCH_CAT1, MATCH_CAT2):
-		Y3_FIT = 'MOF'
-	if 'sof' in (MATCH_CAT1, MATCH_CAT2) or 'deep_sn_sof' in (MATCH_CAT1, MATCH_CAT2) :
-		Y3_FIT = 'SOF'
+    if 'mof' in (MATCH_CAT1, MATCH_CAT2) or 'deep_sn_mof' in (MATCH_CAT1, MATCH_CAT2):
+        Y3_FIT = 'MOF'
+    if 'sof' in (MATCH_CAT1, MATCH_CAT2) or 'deep_sn_sof' in (MATCH_CAT1, MATCH_CAT2) :
+        Y3_FIT = 'SOF'
 
 # `FOF_FIT` only used if `RUN_TYPE` is not `None` #
 if RUN_TYPE is None:
-	FOF_FIT = None 
+    FOF_FIT = None 
 
 if RUN_TYPE is not None:
-	if VERBOSE_ING: print 'Doing FOF analysis. Please set `FOF_FIT`...'
-        # Overwrite MATCH_CATs #
-	#NOTE set me 
-        FOF_FIT = 'mof'
-	MATCH_CAT1, MATCH_CAT2 = FOF_FIT, FOF_FIT
+    if VERBOSE_ING: print 'Doing FOF analysis. Please set `FOF_FIT`...'
+    # Overwrite MATCH_CATs #
+    #NOTE set me 
+    FOF_FIT = 'mof'
+    MATCH_CAT1, MATCH_CAT2 = FOF_FIT, FOF_FIT
 
 # Note: not really being used #
 SAVE_BAD_IDX = False
@@ -150,75 +152,75 @@ BAND_INDEX = {'g':0, 'r':1, 'i':2, 'z':3}
 
 
 def catch_error(cmd_line_realizations, cmd_line_tiles):
-	"""Find errors created by setting incompatible parameters and command line arguments.
+    """Find errors created by setting incompatible parameters and command line arguments.
 
-	Parameters
-	----------
-	cmd_line_realizations (list of str)
-		Realizations provided at the command line via `$python plotter.py ....`.
-	cmd_line_tiles (list of str)
-		Tiles provided at the command line via `$python plotter.py ....`
+    Parameters
+    ----------
+    cmd_line_realizations (list of str)
+        Realizations provided at the command line via `$python plotter.py ....`.
+    cmd_line_tiles (list of str)
+        Tiles provided at the command line via `$python plotter.py ....`
 
-	Returns
-	-------
-	__err_msg (str or None)
-		Error message. Is `None` if there is no error.
-	"""
+    Returns
+    -------
+    __err_msg (str or None)
+        Error message. Is `None` if there is no error.
+    """
 
-	__err_msg = None
+    __err_msg = None
 
-	if cmd_line_realizations[0] == 'None' and INJ1 and INJ2: __err_msg = 'Realization=None entered at command line must be used with `INJ1=True` or `INJ2=True`.'
-	if INJ1 is False and INJ2 is False and cmd_line_realizations[0] != 'None': __err_msg = 'If `INJ1=False` and `INJ2=False` must have realizations=None at command line.'
+    if cmd_line_realizations[0] == 'None' and INJ1 and INJ2: __err_msg = 'Realization=None entered at command line must be used with `INJ1=True` or `INJ2=True`.'
+    if INJ1 is False and INJ2 is False and cmd_line_realizations[0] != 'None': __err_msg = 'If `INJ1=False` and `INJ2=False` must have realizations=None at command line.'
 
-	if STACK_REALIZATIONS and len(cmd_line_realizations) == 1: __err_msg = 'STACK_REALIZATIONS must be used with multiple realizations entered at command line'
+    if STACK_REALIZATIONS and len(cmd_line_realizations) == 1: __err_msg = 'STACK_REALIZATIONS must be used with multiple realizations entered at command line'
 
-	if STACK_TILES and ('.dat' not in cmd_line_tiles[0] and len(cmd_line_tiles) == 1): __err_msg = 'STACK_TILES must be used with multiple tiles entered at command line or .dat file provided at command line.'
+    if STACK_TILES and ('.dat' not in cmd_line_tiles[0] and len(cmd_line_tiles) == 1): __err_msg = 'STACK_TILES must be used with multiple tiles entered at command line or .dat file provided at command line.'
 
-	if MAG_YLOW is not None and MAG_YHIGH is not None and MAG_YHIGH == MAG_YLOW: __err_msg = '`MAG_YLOW` =/= `MAG_YHIGH`. These two cannot be equal.'
+    if MAG_YLOW is not None and MAG_YHIGH is not None and MAG_YHIGH == MAG_YLOW: __err_msg = '`MAG_YLOW` =/= `MAG_YHIGH`. These two cannot be equal.'
 
-	if NORMALIZE_MAG and PLOT_MAG_ERR is False: __err_msg = 'If NORMALIZE_MAG is True so must be PLOT_MAG_ERR.'
+    if NORMALIZE_MAG and PLOT_MAG_ERR is False: __err_msg = 'If NORMALIZE_MAG is True so must be PLOT_MAG_ERR.'
 
-	if NORMALIZE_MAG and PLOT_COLOR: __err_msg = 'Script not equipped to normalize color plots'
+    if NORMALIZE_MAG and PLOT_COLOR: __err_msg = 'Script not equipped to normalize color plots'
 
-	if PLOT_FLUX is False and PLOT_COLOR is False and PLOT_MAG is False: __err_msg = 'Must plot one observable'
+    if PLOT_FLUX is False and PLOT_COLOR is False and PLOT_MAG is False: __err_msg = 'Must plot one observable'
 
-	if PLOT_FLUX and PLOT_GAUSS_APER_FLUX:
-		if 'star_truth' in (MATCH_CAT1, MATCH_CAT2): 
-			__err_msg = 'Star truth catalogs do not have the necessary  headers to perform Gaussian aperture flux measurement'
-		if  'coadd' in (MATCH_CAT1, MATCH_CAT2):
-                        __err_msg = 'Coadd catalogs do not have the necessary headers to perform Gaussian aperture flux measurement'
+    if PLOT_FLUX and PLOT_GAUSS_APER_FLUX:
+        if 'star_truth' in (MATCH_CAT1, MATCH_CAT2): 
+            __err_msg = 'Star truth catalogs do not have the necessary  headers to perform Gaussian aperture flux measurement'
+        if  'coadd' in (MATCH_CAT1, MATCH_CAT2):
+            __err_msg = 'Coadd catalogs do not have the necessary headers to perform Gaussian aperture flux measurement'
 
-	# Colorbar errors #
-	cbar_counter = 0
-	if HEXBIN: cbar_counter += 1
-	if CM_T_ERR_CBAR: cbar_counter += 1
-	if HIST_2D: cbar_counter += 1
-	if CORNER_HIST_2D: cbar_counter += 1
-	if CM_T_CBAR: cbar_counter += 1 
-	if cbar_counter > 1: __err_msg = 'Only one colorbar can be used. Edit `HEXBIN`, `CM_T_ERR_CBAR`, `HIST_2D`, `CORNER_HIST_2D`, `CM_T_CBAR`, and `CM_T_CBAR`.' 
+    # Colorbar errors #
+    cbar_counter = 0
+    if HEXBIN: cbar_counter += 1
+    if CM_T_ERR_CBAR: cbar_counter += 1
+    if HIST_2D: cbar_counter += 1
+    if CORNER_HIST_2D: cbar_counter += 1
+    if CM_T_CBAR: cbar_counter += 1 
+    if cbar_counter > 1: __err_msg = 'Only one colorbar can be used. Edit `HEXBIN`, `CM_T_ERR_CBAR`, `HIST_2D`, `CORNER_HIST_2D`, `CM_T_CBAR`, and `CM_T_CBAR`.' 
 
-	if ('truth' in MATCH_CAT1 and INJ1 is False) or ('truth' in MATCH_CAT2 and INJ2 is False): __err_msg = 'Truth catalogs are always injected. Check `INJ1` and `INJ2`.'
+    if ('truth' in MATCH_CAT1 and INJ1 is False) or ('truth' in MATCH_CAT2 and INJ2 is False): __err_msg = 'Truth catalogs are always injected. Check `INJ1` and `INJ2`.'
 
-	if PLOT_COMPLETENESS and 'truth' not in MATCH_CAT1 and 'truth' not in MATCH_CAT2: __err_msg = 'Completeness plots must be made with a truth catalog. Check `MATCH_CAT1` and `MATCH_CAT2`.'
+    if PLOT_COMPLETENESS and 'truth' not in MATCH_CAT1 and 'truth' not in MATCH_CAT2: __err_msg = 'Completeness plots must be made with a truth catalog. Check `MATCH_CAT1` and `MATCH_CAT2`.'
 
-	if PLOT_COMPLETENESS and PLOT_MAG is False: __err_msg = 'Script not equipped to make flux completeness plots nor color completeness plots.'
+    if PLOT_COMPLETENESS and PLOT_MAG is False: __err_msg = 'Script not equipped to make flux completeness plots nor color completeness plots.'
 
-	# Display errors #
-	display_mag_counter = 0
-	if HIST_2D: display_mag_counter += 1
-	if CORNER_HIST_2D: display_mag_counter += 1 
-	if HEXBIN: display_mag_counter += 1
-	if SCATTER: display_mag_counter += 1
-	if PLOT_MAG and display_mag_counter == 0 and PLOT_COMPLETENESS is False: __err_msg = 'Pick a display for magnitude plot via `HIST_2D`, `CORNER_HIST_2D`, `HEXBIN`, or `SCATTER`.'
-	if display_mag_counter > 1: __err_msg = 'Pick only one display for magnitude plot.'
+    # Display errors #
+    display_mag_counter = 0
+    if HIST_2D: display_mag_counter += 1
+    if CORNER_HIST_2D: display_mag_counter += 1 
+    if HEXBIN: display_mag_counter += 1
+    if SCATTER: display_mag_counter += 1
+    if PLOT_MAG and display_mag_counter == 0 and PLOT_COMPLETENESS is False: __err_msg = 'Pick a display for magnitude plot via `HIST_2D`, `CORNER_HIST_2D`, `HEXBIN`, or `SCATTER`.'
+    if display_mag_counter > 1: __err_msg = 'Pick only one display for magnitude plot.'
 
-	if PLOT_COLOR and SCATTER is False and CORNER_HIST_2D is False: __err_msg = 'Pick a display for color plot via `SCATTER` or `CORNER_HIST_2D`.'
-	if PLOT_COLOR and SCATTER and CORNER_HIST_2D:  __err_msg = 'Pick only one display for color plot via `SCATTER` or `CORNER_HIST_2D`'
+    if PLOT_COLOR and SCATTER is False and CORNER_HIST_2D is False: __err_msg = 'Pick a display for color plot via `SCATTER` or `CORNER_HIST_2D`.'
+    if PLOT_COLOR and SCATTER and CORNER_HIST_2D:  __err_msg = 'Pick only one display for color plot via `SCATTER` or `CORNER_HIST_2D`'
 
-	# Just a warning #
-	if PLOT_FLUX and display_mag_counter != 0: print 'Flux plots are histograms. Ignoring `HIST_2D`, `CORNER_HIST_2D`, `HEXBIN`, and `SCATTER`...' 
+    # Just a warning #
+    if PLOT_FLUX and display_mag_counter != 0: print 'Flux plots are histograms. Ignoring `HIST_2D`, `CORNER_HIST_2D`, `HEXBIN`, and `SCATTER`...' 
 
-	if 'y3_gold' in MATCH_CAT1 and INJ1: __err_msg = 'Y3 Gold catalogs are not Balrog-injected. Edit `INJ1`.'
-	if 'y3_gold' in MATCH_CAT2 and INJ2: __err_msg = 'Y3 Gold catalogs are not Balrog-injected. Edit `INJ2`.'
+    if 'y3_gold' in MATCH_CAT1 and INJ1: __err_msg = 'Y3 Gold catalogs are not Balrog-injected. Edit `INJ1`.'
+    if 'y3_gold' in MATCH_CAT2 and INJ2: __err_msg = 'Y3 Gold catalogs are not Balrog-injected. Edit `INJ2`.'
 
-	return __err_msg
+    return __err_msg
