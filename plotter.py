@@ -116,7 +116,7 @@ if NOTICE:
 	ALL_OBS = {'Magnitude':PLOT_MAG, 'Color':PLOT_COLOR, 'Flux':PLOT_FLUX}
 	idxo = np.where(ALL_OBS.values())[0][0]
 	obs = ALL_OBS.keys()[idxo]
-
+	#TODO add more review
 	lines = [
 	['\ncatalog1 (name, injected?, injection percent) :\t {}, {}, {}'.format(MATCH_CAT1, INJ1, INJ1_PERCENT)],
 	['catalog2 (name, injected?, injection percent) :\t {}, {}, {}'.format(MATCH_CAT2, INJ2, INJ2_PERCENT)],
@@ -148,10 +148,10 @@ if NOTICE:
 
 
 #TODO this function is not finished
-def get_color_plot_error(mag_err_hdr, flux_hdr, flux_cov_hdr, df, band, idx_good, match_cat):
+#def get_color_plot_error(mag_err_hdr, flux_hdr, flux_cov_hdr, df, band, idx_good, match_cat):
 	"""Compute the color error. See @get_magnitude_plot_error docstring """
 
-
+	"""
 	magErrBand1 = analysis.get_magnitude_error(mag_err_hdr=mag_err_hdr, flux_hdr=flux_hdr, flux_cov_hdr=flux_cov_hdr, df_1and2=df, band=band, idx_good=idx_good, match_cat=match_cat)
 
 	magErrBand2 = analysis.get_magnitude_error(mag_err_hdr=mag_err_hdr, flux_hdr=flux_hdr, flux_cov_hdr=flux_cov_hdr, df_1and2=df, band=BANDS_FOR_COLOR[band], idx_good=idx_good, match_cat=match_cat)
@@ -171,11 +171,7 @@ def get_color_plot_error(mag_err_hdr, flux_hdr, flux_cov_hdr, df, band, idx_good
 	__color_error = (np.array(magErrBand1)**2 + np.array(magErrBand2)**2)**0.5
 
 	return __color_error
-
-
-
-
-
+	"""
 
 
 
@@ -184,7 +180,7 @@ def get_color_plot_error(mag_err_hdr, flux_hdr, flux_cov_hdr, df, band, idx_good
 
 
 #FIXME this function is not done
-def get_stacked_magnitude_differences(realization, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
+#def get_stacked_magnitude_differences(realization, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 	"""TODO
 
 	Parameters
@@ -193,12 +189,12 @@ def get_stacked_magnitude_differences(realization, mag_hdr1, mag_hdr2, mag_err_h
 	Returns
 	-------
 	"""
-
+	'''
 	__mag_diffs = np.empty(len(ALL_TILES), len(ALL_BANDS))
 
 	# First axis: tiles #
 	for i in np.arange(0, len(ALL_TILES)):
-		t = ALL_TILEs[i]
+		t = ALL_TILES[i]
 
 		__df1and2 = get_dataframe_and_headers(realization=realization, tile=t, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, inj1=INJ1, inj2=INJ2, inj1_percent=INJ1_PERCENT, inj2_percent=INJ2_PERCENT)[0] 
 
@@ -213,12 +209,12 @@ def get_stacked_magnitude_differences(realization, mag_hdr1, mag_hdr2, mag_err_h
 		#FIXME need a way to plot error and bin error
 
 	return 0	
-
+	'''
 
 
 
 def stacked_magnitude_completeness_subplotter(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, fn_plot, plot_title, realization, fn_flag_log, fn_mag_completeness_log, fn_percent_recovered_log):
-	"""TODO
+	"""Make magnitude completeness plots for multiple tiles stacked in a single plot.
 
 	Parameters
 	----------
@@ -245,7 +241,7 @@ def stacked_magnitude_completeness_subplotter(mag_hdr1, mag_hdr2, mag_err_hdr1, 
                 if 'COSMOS' not in BALROG_RUN:
 
 			### Get DataFrame for tile with 10% injection via `inj_percent=10` ###
-                        __df1 = get_dataframe_and_headers(realization=realization, tile=t, inj1=True, inj2=True, inj1_percent=10, inj2_percent=10, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2)[0]
+                        __df1 = manipulate_catalogs.get_dataframe_and_headers(realization=realization, tile=t, inj1=True, inj2=True, inj1_percent=10, inj2_percent=10, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, base_path_to_catalogs=BASE_PATH_TO_CATS, output_directory=OUTPUT_DIRECTORY, balrog_run=BALROG_RUN, all_realizations=ALL_REALIZATIONS, all_tiles=ALL_TILES)[0]
 
 			# Fill second axis: band #
 			for j in np.arange(0, len(ALL_BANDS)):
@@ -263,7 +259,7 @@ def stacked_magnitude_completeness_subplotter(mag_hdr1, mag_hdr2, mag_err_hdr1, 
 		if VERBOSE_ING: print 'Getting DataFrame for tile: {}...'.format(t)
 
 		#TODO df_b, completeness_b
-		__df2 = get_dataframe_and_headers(realization=realization, tile=t, inj1=True, inj2=True, inj1_percent=20, inj2_percent=20, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2)[0]
+		__df2 = manipulate_catalogs.get_dataframe_and_headers(realization=realization, tile=t, inj1=True, inj2=True, inj1_percent=20, inj2_percent=20, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, base_path_to_catalogs=BASE_PATH_TO_CATS, output_directory=OUTPUT_DIRECTORY, balrog_run=BALROG_RUN, all_realizations=ALL_REALIZATIONS, all_tiles=ALL_TILES)[0]
 
 		# Fill second axis: band #
 		for j in np.arange(0, len(ALL_BANDS)):
@@ -348,13 +344,14 @@ def magnitude_completeness_subplotter(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_
 
 		# Get completeness for 10% inj via `inj_percent=10` #
 		#FIXME instances where data_frame depends on band:
-		__df1 = get_dataframe_and_headers(realization=realization, tile=tile, inj1=True, inj2=True, inj1_percent=10, inj2_percent=10, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2)[0]
+		__df1 = manipulate_catalogs.get_dataframe_and_headers(realization=realization, tile=tile, inj1=True, inj2=True, inj1_percent=10, inj2_percent=10, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, base_path_to_catalogs=BASE_PATH_TO_CATS, output_directory=OUTPUT_DIRECTORY, balrog_run=BALROG_RUN, all_realizations=ALL_REALIZATIONS, all_tiles=ALL_TILES)[0]
 
 		for b in ALL_BANDS:
 			#TODO this will be stuck at value for 'z'
 			magErr1, magErr2, cleanMag1, cleanMag2, idxGood, fullMag1, fullMag2, magAxLabel1a, magAxLabel2a, magVaxLabel, percentRecoveredFlagsIncluded, percentRecoveredFlagsRemoved = analysis.get_magnitude_plot_variables(band=b, fn_percent_recovered_log=fn_percent_recovered_log, df_1and2=__df1, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization=realization, tile=tile, fn_flag_log=fn_flag_log, plot_title=plot_title, fn_plot=fn_plot, balrog_run=BALROG_RUN, base_path_to_catalogs=BASE_PATH_TO_CATS) #TODO this does not have inj_% parameter so axlabel is wrong
 
-			__mag_axlabel_griz_1a.append(magAxLabel1a), __mag_axlabel_griz_2a.append(magAxLabel2a)
+			__mag_axlabel_griz_1a.append(magAxLabel1a)
+			__mag_axlabel_griz_2a.append(magAxLabel2a)
 
 			completenessFraction1 = analysis.get_magnitude_completeness(inj_percent=10, idx_good=idxGood, df_1and2=__df1, clean_mag1=cleanMag1, clean_mag2=cleanMag2, full_mag1=fullMag1, full_mag2=fullMag2, tile=tile, realization=realization, band=b, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err1=magErr1, mag_err2=magErr2, fn_mag_completeness_log=fn_mag_completeness_log, balrog_run=BALROG_RUN, base_path_to_catalogs=BASE_PATH_TO_CATS)[0]
 
@@ -362,7 +359,7 @@ def magnitude_completeness_subplotter(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_
 
 
 	# Get completeness for 20% injection via `inj_percent=20` #
-	__df2 = get_dataframe_and_headers(realization=realization, tile=tile, inj1=True, inj2=True, inj1_percent=20, inj2_percent=20, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2)[0]
+	__df2 = manipulate_catalogs.get_dataframe_and_headers(realization=realization, tile=tile, inj1=True, inj2=True, inj1_percent=20, inj2_percent=20, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, base_path_to_catalogs=BASE_PATH_TO_CATS, output_directory=OUTPUT_DIRECTORY, balrog_run=BALROG_RUN, all_realizations=ALL_REALIZATIONS, all_tiles=ALL_TILES)[0]
 
 	for b in ALL_BANDS:
 		magErr1, magErr2, cleanMag1, cleanMag2, idxGood, fullMag1, fullMag2, magAxLabel1b, magAxLabel2b, magVaxLabel, percentRecoveredFlagsIncluded, percentRecoveredFlagsRemoved = analysis.get_magnitude_plot_variables(band=b, fn_percent_recovered_log=fn_percent_recovered_log, df_1and2=__df2, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, realization=realization, tile=tile, fn_flag_log=fn_flag_log, plot_title=plot_title, fn_plot=fn_plot, balrog_run=BALROG_RUN, base_path_to_catalogs=BASE_PATH_TO_CATS)
@@ -394,7 +391,6 @@ def magnitude_completeness_subplotter(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_
 			plt.ylabel('$\\bf{%s}$-band Magnitude Completeness' % ALL_BANDS[i])
 			plt.xlabel(__mag_axlabel_griz_1a[i])
 			if SWAP_HAX: plt.xlabel(__mag_axlabel_griz_1a[i])
-			#plt.xlabel('10%_inj_cm_mag_$\\bf{'+str(ALL_BANDS[i])+'}$_true') #TODO automate this?
 			plt.grid(linestyle='dotted')
 
 			plt.subplot(1, 2, 2)
@@ -414,7 +410,7 @@ def magnitude_completeness_subplotter(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_
 
 		plt.suptitle(plot_title, fontweight='bold') #FIXME check if there is a sigma cutoff
 
-		if SAVE_PLOT: fn_plot = fn_plot.replace('placehold', ALL_BANDS[i]); print '-----> Saving plot as: ', fn_plot; plt.savefig(fn_plot)
+		if SAVE_PLOT: fn_plot = fn_plot.replace('placehold', ALL_BANDS[i]); print 'Saving plot as...\n----->', fn_plot; plt.savefig(fn_plot)
 
 		if SHOW_PLOT: plt.show()
 
@@ -516,7 +512,7 @@ def color_completeness_subplotter(band, df, mag_hdr1, mag_hdr2, mag_err_hdr1, ma
         truthMag2, matchMag2 = get_magnitude_completeness(df=df, clean_mag1=cleanMag1, clean_mag2=cleanMag2, full_mag1=fullMag1, full_mag2=fullMag2, tile=tile, realization=realization, band=band, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, error1=err1, error2=err2, fd_mag_completeness_log=fd_mag_completeness_log)[2:]
 
 
-	if SAVE_PLOT: fn_plot = fn_plot.replace('placehold', WRITE_COLORS[band]); print '-----> Saving plot as: ', fn_plot; plt.savefig(fn_plot) 
+	if SAVE_PLOT: fn_plot = fn_plot.replace('placehold', WRITE_COLORS[band]); print 'Saving plot as...\n----->', fn_plot; plt.savefig(fn_plot) 
 
 	return 0
 '''
@@ -604,7 +600,7 @@ def normalized_flux_difference_histogram_subplotter(fn_gauss_aper_log, fn_plot, 
 	#plt.tight_layout(pad=1, h_pad=1, w_pad=1)
 	plt.text(0.1, 0.01, BASE_PATH_TO_CATS, fontsize=10, transform=plt.gcf().transFigure)
 
-	if SAVE_PLOT: fn_plot = fn_plot.replace('placehold', 'griz'); print '-----> Saving plot as: ', fn_plot; plt.savefig(fn_plot)
+	if SAVE_PLOT: fn_plot = fn_plot.replace('placehold', 'griz'); print 'Saving plot as...\n----->', fn_plot; plt.savefig(fn_plot)
 
 	if SHOW_PLOT: plt.show()
 
@@ -627,8 +623,7 @@ def normalized_flux_difference_histogram_plotter(tile, realization, band, df_1an
 	0
 	"""
 
-	#__flux_hist_bins = 10**2
-	# Equal bin size #
+	# Equal bin size for each band #
 	__flux_hist_bins = np.linspace(FLUX_XLOW, FLUX_XHIGH, 10**2)
 
         normFluxDiff, percentRecoveredFlagsIncluded, percentRecoveredFlagsRemoved, haxLabel = analysis.get_flux_plot_variables(tile=tile, realization=realization, band=band, df_1and2=df_1and2, flux_hdr1=flux_hdr1, flux_hdr2=flux_hdr2, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, fn_percent_recovered_log=fn_percent_recovered_log)
@@ -898,7 +893,7 @@ def color_subplotter(band, df_1and2, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_h
 
 	plt.text(0.1, 0.01, BASE_PATH_TO_CATS, fontsize=10, transform=plt.gcf().transFigure)
 
-        if SAVE_PLOT: fn_plot = fn_plot.replace('placehold', WRITE_COLORS[band]); print '-----> Saving plot as: ', fn_plot; plt.savefig(fn_plot)
+        if SAVE_PLOT: fn_plot = fn_plot.replace('placehold', WRITE_COLORS[band]); print 'Saving plot as...\n------>', fn_plot; plt.savefig(fn_plot)
 
         if SHOW_PLOT: plt.show()
 
@@ -913,7 +908,6 @@ def normalized_magnitude_difference_plotter(mag_hdr1, mag_hdr2, cbar_data, mag_e
 
 	Parameters
         ----------
-
 	band
 
 	tile
@@ -922,8 +916,7 @@ def normalized_magnitude_difference_plotter(mag_hdr1, mag_hdr2, cbar_data, mag_e
 
 	Returns
 	-------
-	percentRecoveredFlagsIncluded (float)
-		Percent of Balrog-injected objects recovered, calculated including objects with flags* (see README.md for a definition of flags*). Is `None` if neither `MATCH_CAT1` nor `MATCH_CAT2` is a truth catalog (`gal_truth` or `star_truth`). 
+	0
 	"""
 
 	# Args needed to call normalize_magnitude_difference_to_error() #
@@ -1043,7 +1036,6 @@ def normalized_magnitude_difference_plotter(mag_hdr1, mag_hdr2, cbar_data, mag_e
 						plt.plot(x_vbound2, y_vbound, color=color2, linewidth=lws, linestyle=':')
 
 
-	# Logger #
 	plotMagnitudeDifferenceag, plotHaxMag, cleanBins = analysis.normalize_magnitude_difference_to_error(binned_norm_mag_diff=normVaxBins, mag_bins_for_mag_err=initialBins, binned_hax_mag=haxBins)
 
 	percent_1sig = analysis.one_sigma_magnitude_counter_for_normalized_magnitude_difference(norm_mag_diff=plotMagnitudeDifferenceag, full_mag=full_mag1, clean_mag=clean_mag1, mag_bins_for_mag_err=initialBins, hax_mag=plotHaxMag, mag_err_bin_medians=magErrBinMedians, norm_vax_mag_bin_medians=vaxBinMedian, tile=tile, realization=realization, band=band, fn_num_objs_in_1sig_mag_log=fn_num_objs_in_1sig_mag_log) 
@@ -1061,7 +1053,7 @@ def normalized_magnitude_difference_plotter(mag_hdr1, mag_hdr2, cbar_data, mag_e
 
         if HEXBIN:
 		grid = (100, 1000)
-		if VERBOSE_ING: print ' Normalized hexbin has a large number of grid cells. Plotting will take a moment... \n'
+		if VERBOSE_ING: print ' Normalized hexbin has a large number of grid cells. Plotting will take a moment...'
                 plt.hexbin(plotHaxMag, plotMagnitudeDifferenceag, gridsize=grid, cmap=CMAPS[band], bins='log')
                 plt.colorbar(label='log(counts)')
 
@@ -1120,26 +1112,24 @@ def normalized_magnitude_difference_plotter(mag_hdr1, mag_hdr2, cbar_data, mag_e
 
 
         ### Title for subplot ###
-        plt.title('Objects in 1$\sigma_{mag}$: ' + str(round(percent_1sig, 2)) + '%')
+        plt.title('Objects in 1$\sigma_{mag}$: {}%'.format(round(percent_1sig, 2)))
 
 	if SUBPLOT is False:
 
                 fn_plot = fn_plot.replace('griz', band)
 
                 ### Title for  ###
-                plt.title(plot_title + '\n% objs in 1$\sigma$: ' + str(percent_1sig))
+                plt.title(plot_title + '\n% Objs in 1$\sigma$: {}%'.format(percent_1sig))
 
                 ### Save plot ###
-		if SAVE_PLOT: fn_plot = fn_plot.replace('placehold', 'griz'); print '-----> Saving plot as, ', fn_plot; plt.savefig(fn_plot)
+		if SAVE_PLOT: fn_plot = fn_plot.replace('placehold', 'griz'); print 'Saving plot as...\n----->', fn_plot; plt.savefig(fn_plot)
 
                 if SHOW_PLOT: plt.show()
 
         #plt.gca().set_aspect('equal')
 
 
-	#FIXME 
-	percentRecoveredFlagsIncluded = None
-	return percentRecoveredFlagsIncluded 
+	return 0 
 
 
 
@@ -1305,7 +1295,7 @@ def magnitude_difference_plotter(mag_hdr1, mag_hdr2, cbar_data, mag_err1, mag_er
 		plt.title(plot_title + '\n% objs in 1$\sigma$: ' + str(percent_1sig))
 
 		### Save plot ###
-		if SAVE_PLOT: print '-----> Saving plot as, ', fn_plot; plt.savefig(fn_plot)
+		if SAVE_PLOT: print 'Saving plot as...\n----->', fn_plot; plt.savefig(fn_plot)
 
 		if SHOW_PLOT: plt.show()
 
@@ -1402,7 +1392,7 @@ def magnitude_difference_subplotter(df_1and2, mag_hdr1, mag_hdr2, mag_err_hdr1, 
 		plt.text(0.1, 0.01, BASE_PATH_TO_CATS, fontsize=10, transform=plt.gcf().transFigure)
 
 		### Save plot ###
-		if SAVE_PLOT: fn_plot = fn_plot.replace('placehold', 'griz'); print '-----> Saving plot as, ', fn_plot; plt.savefig(fn_plot)
+		if SAVE_PLOT: fn_plot = fn_plot.replace('placehold', 'griz'); print 'Saving plot as...\n----->', fn_plot; plt.savefig(fn_plot)
 
 		### Show plot ###
 		if SHOW_PLOT: plt.show()
@@ -1421,7 +1411,7 @@ def magnitude_difference_subplotter(df_1and2, mag_hdr1, mag_hdr2, mag_err_hdr1, 
 
 
 #TODO split this into flux and mag functions because the flux is not always needed
-def get_coadd_catalog_observables(fn_coadd_cat_g, fn_coadd_cat_r, fn_coadd_cat_i, fn_coadd_cat_z, mag_hdr, mag_err_hdr, flux_hdr, flux_err_hdr):
+#def get_coadd_catalog_observables(fn_coadd_cat_g, fn_coadd_cat_r, fn_coadd_cat_i, fn_coadd_cat_z, mag_hdr, mag_err_hdr, flux_hdr, flux_err_hdr):
 	"""Creates a list of magnitudes and magnitude errors of form '(mag_g, mag_r, mag_i, mag_z)' from four catalogs. Solely for use with coadd catalogs.
 
 	Parameters
@@ -1439,7 +1429,7 @@ def get_coadd_catalog_observables(fn_coadd_cat_g, fn_coadd_cat_r, fn_coadd_cat_i
 
 	__coadd_mag_err_griz (list of str) -- Stores error in magnitude of each band in form '(mag_g, mag_r, mag_i, mag_z)'
 	"""
-
+	'''
 	print 'Getting g-, r-, i-, z-band magnitudes and fluxes and corresponding errors for coadd catalogs...'
 
 	# Files have not yet been matched, and do not have hdr_1 #
@@ -1473,11 +1463,11 @@ def get_coadd_catalog_observables(fn_coadd_cat_g, fn_coadd_cat_r, fn_coadd_cat_i
 		__coadd_mag_err_griz.append("'("+ str(mag_err_g[i])+ ', ' + str(mag_err_r[i])+ ', ' + str(mag_err_i[i]) + ', ' + str(mag_err_z[i]) + ")'")
 
         return __coadd_flux_griz, __coadd_flux_err_griz, __coadd_mag_griz, __coadd_mag_err_griz 
+	'''
 
 
 
-
-def get_star_truth_catalog_magnitude(df_1and2, suf):
+#def get_star_truth_catalog_magnitude(df_1and2, suf):
 	"""Computes and creates a list of magnitudes of form '(mag_g, mag_r, mag_i, mag_z)'. Solely for use with star truth catalogs.
 
 	Parameters
@@ -1490,7 +1480,7 @@ def get_star_truth_catalog_magnitude(df_1and2, suf):
 	-------
 	__star_truth_mag_griz (list of str) 
 	"""
-
+	'''
 	if VERBOSE_ING: print 'Calculating g-, r-, i-, z-band magnitudes for star truth catalog...'
 
 	m_g = df_1and2['g_Corr'+suf]
@@ -1507,12 +1497,12 @@ def get_star_truth_catalog_magnitude(df_1and2, suf):
 		__star_truth_mag_griz.append("'("+ str(m_g[i]) + ', ' + str(m_r[i]) + ', ' + str(m_i[i]) + ', ' + str(m_z[i]) + ")'")	
 
 	return __star_truth_mag_griz 
-
+	'''
 
 
 
 #TODO mag_hdr --> y3_gold_mag_hdr? Similarly for star_truth and coadd
-def get_y3_gold_catalog_magnitude(df_1and2, mag_hdr):
+#def get_y3_gold_catalog_magnitude(df_1and2, mag_hdr):
 	"""Creates a list of magnitudes of form '(mag_g, mag_r, mag_i, mag_z)'. Solely for use with Y3 Gold catalogs.
 
 	Parameters
@@ -1526,7 +1516,7 @@ def get_y3_gold_catalog_magnitude(df_1and2, mag_hdr):
 	-------
 	__y3_gold_mag_griz (list of str) 
         """
-
+	'''
 	if VERBOSE_ING: print 'Getting Y3 Gold g-, r-, i-, z-band magnitudes for', mag_hdr
 
 	# Get headers, which are dependent on band #
@@ -1542,11 +1532,11 @@ def get_y3_gold_catalog_magnitude(df_1and2, mag_hdr):
                 __y3_gold_mag_griz.append("'("+ str(m_g[i]) + ', ' + str(m_r[i]) + ', ' + str(m_i[i]) + ', ' + str(m_z[i]) + ")'")
 
         return __y3_gold_mag_griz 
+	'''
 
 
 
-
-def get_y3_gold_catalog_flux_griz(df_1and2, flux_hdr, flux_cov_hdr):
+#def get_y3_gold_catalog_flux_griz(df_1and2, flux_hdr, flux_cov_hdr):
         """Creates a list of magnitudes of form '(mag_g, mag_r, mag_i, mag_z)'. Solely for use with Y3 Gold catalogs.
 
         Parameters
@@ -1557,7 +1547,7 @@ def get_y3_gold_catalog_flux_griz(df_1and2, flux_hdr, flux_cov_hdr):
         -------
         __y3_gold_flux_griz (list of str)
         """
-
+	'''
         if VERBOSE_ING: print 'Getting Y3 Gold g-, r-, i-, z-band fluxes for', flux_hdr
 
         # Get headers, which are dependent on band #
@@ -1589,25 +1579,18 @@ def get_y3_gold_catalog_flux_griz(df_1and2, flux_hdr, flux_cov_hdr):
 		
 	
         return __y3_gold_flux_griz, __y3_gold_flux_cov_griz
+	'''
 
 
-
-
-def catch_catalog_filename_error(cat_type, inj, inj_percent):
-	"""TODO"""
-
-	__err = None
-
-	return __err
 
 
 
 
 
 # !!!!! #
-def get_directory(tile, realization, low_level_dir):
+#def get_directory(tile, realization, low_level_dir):
         """Get directory"""
-
+	'''
 	if isinstance(low_level_dir, str):
 		__dir = os.path.join(OUTPUT_DIRECTORY, 'outputs', BALROG_RUN, MATCH_TYPE, tile, realization, low_level_dir)
 
@@ -1629,13 +1612,13 @@ def get_directory(tile, realization, low_level_dir):
                         os.makedirs(__dir)
 
         return __dir
+	'''
 
 
 
-
-def get_zipped_coadd_magnitudes(fn_base_g, fn_base_r, fn_base_i, fn_base_z):
+#def get_zipped_coadd_magnitudes(fn_base_g, fn_base_r, fn_base_i, fn_base_z):
 	"""TODO"""
-
+	'''
 	if VERBOSE_ING: print 'Getting g-, r-, i-, z-band magnitudes and flags for zipped coadd catalogs...\n'
 
 	mag_hdr = 'MAG_AUTO'
@@ -1669,9 +1652,9 @@ def get_zipped_coadd_magnitudes(fn_base_g, fn_base_r, fn_base_i, fn_base_z):
 		__base_flag2_griz.append("'("+ str(flag2_g[i])+ ', ' + str(flag2_r[i])+ ', ' + str(flag2_i[i]) + ', ' + str(flag2_z[i]) + ")'")
 
 	return __base_mag_griz, __base_mag_err_griz, __base_flag1_griz, __base_flag2_griz
+	'''
 
-
-def get_and_reformat_base_catalog(tile, realization):
+#def get_and_reformat_base_catalog(tile, realization):
 	"""Handle new format for base catalogs. Zipped and SExtractor?
 
 	Parameters
@@ -1680,7 +1663,7 @@ def get_and_reformat_base_catalog(tile, realization):
 	Returns
 	-------
 	"""
-
+	'''
 	if VERBOSE_ING: print 'Unzipping and reformatting base coadd catalogs...\n'
 
 	__overwrite = False 
@@ -1732,6 +1715,7 @@ def get_and_reformat_base_catalog(tile, realization):
 	print ' ----->', __fn_base_cat_for_matcher
 
 	return __fn_base_cat_for_matcher 
+	'''
 
 
 
@@ -1739,8 +1723,7 @@ def get_and_reformat_base_catalog(tile, realization):
 
 
 
-
-def stack_tiles(realization):
+#def stack_tiles(realization):
 	"""Concatenate catalogs with multiple tiles and fixed realization.
 	
 	Parameters
@@ -1759,7 +1742,7 @@ def stack_tiles(realization):
 		Complete filename for stacked catalog of type join=2not1.
 
 	"""
-
+	'''
 	# Directory for stacked catalog #
 	stack_dir = get_directory(tile='stack', realization=realization, low_level_dir='catalog_compare') 
 
@@ -1814,11 +1797,11 @@ def stack_tiles(realization):
 	__number_of_stacked_tiles = len(ALL_TILES)
 
 	return __fn_stack_tiles_1and2, __fn_stack_tiles_1not2, __fn_stack_tiles_2not1, __number_of_stacked_tiles
+	'''
 
 
 
-
-def stack_realizations(tile):
+#def stack_realizations(tile):
 	"""Concatenate catalogs with multiple realizations and fixed tile.
 
 	Parameters
@@ -1835,7 +1818,7 @@ def stack_realizations(tile):
 
 	len(ALL_REALIZATIONS) (int) -- Number of catalogs stacked.
 	"""
-
+	'''
 	# Directory for stacked catalog #
 	stack_dir = get_directory(tile=tile, realization='stack', low_level_dir='catalog_compare') 
 
@@ -1886,13 +1869,13 @@ def stack_realizations(tile):
 	__number_of_stacked_realizations = len(ALL_REALIZATIONS)
 
 	return __fn_stack_reals_1and2, __fn_stack_reals_1not2, __fn_stack_reals_2not1, __number_of_stacked_realizations
+	'''
 
 
 
 
 
-
-def get_dataframe_and_headers(realization, tile, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, inj1, inj2, inj1_percent, inj2_percent):
+#def get_dataframe_and_headers(realization, tile, mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, inj1, inj2, inj1_percent, inj2_percent):
 	"""Get pandas DataFrame and read it.
 
 	Parameters
@@ -1913,7 +1896,7 @@ def get_dataframe_and_headers(realization, tile, mag_hdr1, mag_hdr2, mag_err_hdr
 	-------
 	df1and2, df1not2, df2not1, __mag_hdr1, __mag_hdr2, __mag_err_hdr1, __mag_err_hdr2, number_of_stacked_tiles, number_of_stacked_realizations
 	"""
-
+	'''
 	if VERBOSE_ING: print 'Getting (reading) DataFrame and getting headers for magnitude, magnitude error, flux, and flux error... \n'
 
 	__mag_hdr1, __mag_hdr2, __mag_err_hdr1, __mag_err_hdr2, __flux_hdr1, __flux_hdr2 = mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2, CM_FLUX_HDR1, CM_FLUX_HDR2 
@@ -1966,7 +1949,7 @@ def get_dataframe_and_headers(realization, tile, mag_hdr1, mag_hdr2, mag_err_hdr
 			suf = '_2'
 			__mag_hdr2 = NEW_STAR_TRUTH_MAG_GRIZ_HDR
 
-		star_mag = get_star_truth_catalog_magnitude(df_1and2=__df1and2, suf=suf)
+		star_mag = analysis.get_star_truth_catalog_magnitude(df_1and2=__df1and2, suf=suf)
 		# New header must be of the form {base}_x where x is a single character because of the way m_axlabel is created from m_hdr # #FIXME check this
 		__df1and2.insert(len(__df1and2.columns), NEW_STAR_TRUTH_MAG_GRIZ_HDR, star_mag)
 
@@ -1976,12 +1959,10 @@ def get_dataframe_and_headers(realization, tile, mag_hdr1, mag_hdr2, mag_err_hdr
 		if VERBOSE_ING: print 'Adding two or four  new columns to matched CSV. Columns contain Y3 Gold 1) g-, r-, i-, z-band magnitudes, 2) g-, r-, i-, z-band magnitude errors; if PLOT_FLUX=True: 3) g-, r-, i-, z-band fluxes, and 4) g-, r-, i-, z-band flux errors...\n'
 
 		# New header name #
-		'''
 		if 'star_truth' in (MATCH_CAT1, MATCH_CAT2):
 			new_y3_gold_hdr = 'psf_mag_griz'
 		if 'star_truth' not in (MATCH_CAT1, MATCH_CAT2):
 			new_y3_gold_hdr = 'cm_mag_griz'
-		'''
 		if 'y3_gold' in MATCH_CAT1:
 			# Headers in Y3 Gold #
 			mhdr = M_HDR1
@@ -2001,11 +1982,11 @@ def get_dataframe_and_headers(realization, tile, mag_hdr1, mag_hdr2, mag_err_hdr
 			__flux_hdr2 = NEW_Y3_GOLD_FLUX_GRIZ_HDR
 			__flux_cov_hdr2 = NEW_Y3_GOLD_CM_FLUX_COV_HDR
 		# Note: need magnitudes for `__idx_good` to get rid of mag=37.5 #
-		y3_gold_mag = get_y3_gold_catalog_magnitude(df_1and2=__df1and2, mag_hdr=mhdr)
+		y3_gold_mag = analysis.get_y3_gold_catalog_magnitude(df_1and2=__df1and2, mag_hdr=mhdr)
 		# Add new column to df #
 		__df1and2.insert(len(__df1and2.columns), NEW_Y3_GOLD_MAG_GRIZ_HDR, y3_gold_mag)
 		if PLOT_FLUX:
-			y3_gold_flux_griz, y3_gold_flux_cov_griz = get_y3_gold_catalog_flux_griz(df_1and2=__df1and2, flux_hdr=fhdr, flux_cov_hdr=fchdr)
+			y3_gold_flux_griz, y3_gold_flux_cov_griz = analysis.get_y3_gold_catalog_flux_griz(df_1and2=__df1and2, flux_hdr=fhdr, flux_cov_hdr=fchdr)
 			__df1and2.insert(len(__df1and2.columns), NEW_Y3_GOLD_FLUX_GRIZ_HDR, y3_gold_flux_griz)
 			__df1and2.insert(len(__df1and2.columns), NEW_Y3_GOLD_CM_FLUX_COV_HDR, y3_gold_flux_cov_griz)
 		
@@ -2041,7 +2022,7 @@ def get_dataframe_and_headers(realization, tile, mag_hdr1, mag_hdr2, mag_err_hdr
 
 
 	return __df1and2, __df1not2, __df2not1, __mag_hdr1, __mag_hdr2, __flux_hdr1, __flux_hdr2, __mag_err_hdr1, __mag_err_hdr2, __flux_err_hdr1, __flux_err_hdr2, __number_of_stacked_tiles, __number_of_stacked_realizations
-
+	'''
 
 
 
@@ -2076,7 +2057,7 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 
 			# Stacked completeness plots do NOT use stacked tile catalog ... #
 			if PLOT_COMPLETENESS is False: 
-				df1and2, df1not2, df2not1, magHdr1, magHdr2, fluxHdr1, fluxHdr2, magErrHdr1, magErrHdr2, fluxErrHdr1, fluxErrHdr2, numStackTile, numStackReal = get_dataframe_and_headers(realization=r, tile=t, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, inj1=INJ1, inj2=INJ2, inj1_percent=INJ1_PERCENT, inj2_percent=INJ2_PERCENT)
+				df1and2, df1not2, df2not1, magHdr1, magHdr2, fluxHdr1, fluxHdr2, magErrHdr1, magErrHdr2, fluxErrHdr1, fluxErrHdr2, numStackTile, numStackReal = manipulate_catalogs.get_dataframe_and_headers(realization=r, tile=t, mag_hdr1=mag_hdr1, mag_hdr2=mag_hdr2, mag_err_hdr1=mag_err_hdr1, mag_err_hdr2=mag_err_hdr2, inj1=INJ1, inj2=INJ2, inj1_percent=INJ1_PERCENT, inj2_percent=INJ2_PERCENT, base_path_to_catalogs=BASE_PATH_TO_CATS, output_directory=OUTPUT_DIRECTORY, balrog_run=BALROG_RUN, all_realizations=ALL_REALIZATIONS, all_tiles=ALL_TILES)
 
 			if PLOT_COMPLETENESS: numStackTile, numStackReal = len(ALL_TILES), len(ALL_REALIZATIONS)
 
@@ -2126,7 +2107,7 @@ def make_plots(mag_hdr1, mag_hdr2, mag_err_hdr1, mag_err_hdr2):
 
 
 #FIXME get rid of flux_hdr dependence if this is a constant
-def get_coadd_catalog_for_matcher(cat_type, inj_percent, inj, realization, mag_hdr, mag_err_hdr, tile, flux_hdr, flux_err_hdr):
+#def get_coadd_catalog_for_matcher(cat_type, inj_percent, inj, realization, mag_hdr, mag_err_hdr, tile, flux_hdr, flux_err_hdr):
 	"""Make FITS file that includes a column of form '(m_g, m_r, m_i, m_z)' where m is magnitude. Column will be added to '..._i_cat.fits'. This will be used in matcher(). Relies on directory structure /`OUTPUT_DIRECTORY`/outputs/`BALROG_RUN`/`MATCH_TYPE`/{tile}/{realization}/catalog_compare/
 
 	Parameters
@@ -2154,7 +2135,7 @@ def get_coadd_catalog_for_matcher(cat_type, inj_percent, inj, realization, mag_h
 	__fn_coadd_for_matcher (str)
 		Complete filename for catalog with added column. Is a FITS file.
 	"""
-
+	'''
 	__overwrite = False 
 	if __overwrite: raw_input('`__overwrite=True` in `get_coadd_catalog_for_matcher()`. Press enter to proceed, ctrl+c to exit.') 
 
@@ -2196,7 +2177,7 @@ def get_coadd_catalog_for_matcher(cat_type, inj_percent, inj, realization, mag_h
 		table.write(__fn_coadd_for_matcher, overwrite=__overwrite)
 
 	return __fn_coadd_for_matcher 
-
+	'''
 
 
 
