@@ -77,7 +77,7 @@ SWAP_ORDER_OF_SUBTRACTION = False
 SUBPLOT = True
 
 ##### Region files #####
-MAKE_REGION_FILES = False
+MAKE_REGION_FILES = True
 
 
 ### Printouts ###

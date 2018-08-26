@@ -489,6 +489,11 @@ def get_coadd_catalog_for_matcher(fn_coadd_cat_g, fn_coadd_cat_r, fn_coadd_cat_i
     """Reformat coadd catalog that will be used by `stilts_matcher`.
     The i-band coadd catalog will have the g-, r-, and z-band observables (magnitude, magnitude error, and possible flux and flux error if `PLOT_FLUX=True`) and flags appended to it.
     Thus, catalogs are matched using i-band RA and Dec.
+    Make FITS file that includes a column of form '(mag_g, mag_r, mag_i, mag_z)' .
+    Column will be added to the i-band coadd catalog.
+    New FITS file will be matched via `stilts_matcher`. Thus, catalogs are matched via i-band RA and Dec.
+    New FITS file saved in `OUTPUT_DIRECTORY`/outputs/`BALROG_RUN`/`MATCH_TYPE`/{tile}/{realization}/catalog_compare/`
+
 
     Parameters
     ----------
@@ -545,81 +550,6 @@ def get_coadd_catalog_for_matcher(fn_coadd_cat_g, fn_coadd_cat_r, fn_coadd_cat_i
 
 
 
-
-#FIXME remove
-#def get_coadd_catalog_for_matcher1(cat_type, inj_percent, inj, realization, mag_hdr, mag_err_hdr, tile, flux_hdr, flux_err_hdr, output_directory, balrog_run, base_path_to_catalogs):
-    """Make FITS file that includes a column of form '(mag_g, mag_r, mag_i, mag_z)' .
-    Column will be added to the i-band coadd catalog. 
-    New FITS file will be matched via `stilts_matcher`. Thus, catalogs are matched via i-band RA and Dec. 
-    New FITS file saved in `OUTPUT_DIRECTORY`/outputs/`BALROG_RUN`/`MATCH_TYPE`/{tile}/{realization}/catalog_compare/` 
-
-    Parameters
-    ----------
-    cat_type (str)
-        Catalog type. This is set by `MATCH_CAT1` or `MATCH_CAT2`. 
-    inj (bool)
-        Is the catalog Balrog-injected? Determined by `INJ1` and `INJ2`.
-    inj_percent (int)
-        Injection percent? Currently '10' and '20' are allowed values referring to 5,000 and 10,000 injected objects, respectively.
-    realization (str)
-    mag_hdr (str)
-        Header for magnitude. Headers refer to columns in the matched catalog.
-    mag_err_hdr (str)
-    tile (str)
-
-    Returns
-    -------
-    __fn_coadd_for_matcher (str)
-        Complete filename for catalog with added column. Is a FITS file.
-    """
-    '''
-    __overwrite = False 
-    if __overwrite: raw_input('`__overwrite=True` in `get_coadd_catalog_for_matcher()`. Press enter to proceed, ctrl+c to exit.') 
-
-    catalogDirectory = outputs.get_directory(tile=tile, realization=realization, low_level_dir='catalog_compare', output_directory=output_directory, balrog_run=balrog_run, match_type=MATCH_TYPE)
-
-    __fn_coadd_for_matcher = os.path.join(catalogDirectory, '{}_i_cat_combo.fits'.format(tile))
-
-    # Check if new coadd catalog has already been created #
-    if os.path.isfile(__fn_coadd_for_matcher):
-        print 'New coadd catalog already exists...'
-
-
-    if os.path.isfile(__fn_coadd_for_matcher) is False or __overwrite:  
-        print 'Adding a column to i-band coadd catalog...'
-
-        # There is a separate catalog for each band. Collect filenames #
-        fn_coadd_griz = []
-        for b in ALL_BANDS:
-            # get_catalog_filename()` handles zipped coadd catalogs #
-            fn_coadd_griz.append(get_catalog_filename(cat_type=cat_type, inj=inj, inj_percent=inj_percent, realization=realization, tile=tile, band=b, base_path_to_catalogs=base_path_to_catalogs, balrog_run=balrog_run))
-        fn_coadd_cat_g, fn_coadd_cat_r, fn_coadd_cat_i, fn_coadd_cat_z = fn_coadd_griz
-
-        # Reformat coadd magnitude and magnitude error to be of form '(mag_g, mag_r, mag_i, mag_z)'. Recall that this is a string #
-        coadd_mags, coadd_mag_errs, coadd_fluxes, coadd_flux_errs, coadd_flags1, coadd_flags2 = get_reformatted_coadd_catalog_observables(fn_coadd_cat_g=fn_coadd_cat_g, fn_coadd_cat_r=fn_coadd_cat_r, fn_coadd_cat_i=fn_coadd_cat_i, fn_coadd_cat_z=fn_coadd_cat_z, mag_hdr=mag_hdr, mag_err_hdr=mag_err_hdr, flux_hdr=flux_hdr, flux_err_hdr=flux_err_hdr) 
- 
-           # Create columns for new table #
-        coadd_flag1_col = Column(__base_flag1_griz, name=NEW_COADD_FLAG_GRIZ_HDR)
-        coadd_flag2_col = Column(__base_flag2_griz, name=NEW_COADD_IMAFLAG_ISO_GRIZ_HDR)
-        coadd_mag_col = Column(coadd_mags, name=NEW_COADD_MAG_GRIZ_HDR)
-        coadd_mag_err_col = Column(coadd_mag_errs, name=NEW_COADD_MAG_ERR_GRIZ_HDR)
-        coadd_flux_col = Column(coadd_fluxes, name=NEW_COADD_FLUX_GRIZ_HDR)
-        coadd_flux_err_col = Column(coadd_flux_errs, name=NEW_COADD_FLUX_ERR_GRIZ_HDR)
-
-        # Add columns to i-band coadd catalog #
-        table = Table.read(fn_coadd_cat_i)
-        table.add_column(coadd_mag_col, index=0)
-        table.add_column(coadd_mag_err_col, index=1)
-        table.add_column(coadd_flux_col, index=2)
-        table.add_column(coadd_flux_err_col, index=3)
-        table.add_column(coadd_flag1_col, index=4)
-        table.add_column(coadd_flag2_col, index=5)
-
-        # Save new table as FITS file #
-        table.write(__fn_coadd_for_matcher, overwrite=__overwrite)
-
-    return __fn_coadd_for_matcher 
-    '''
 
 
 
