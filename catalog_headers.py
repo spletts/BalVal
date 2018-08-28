@@ -19,23 +19,36 @@ INJ1_PERCENT, INJ2_PERCENT = 20, 20
 
 def get_class(cat_type, cat_type_pair, inj, inj_percent, suf):
     """Get the appropriate class for the catalog type.
+    Class will specify catalog properties and headers using `inj`, `inj_percent`, and `suf`.
 
     Parameters
     ----------
     cat_type (str)
-        Catalog type. This is set by `MATCH_CAT1` or `MATCH_CAT2`. 
+        Catalog type.
+        Set by `MATCH_CAT1` or `MATCH_CAT2`. 
 
-    inj_percent (int)
+    cat_type_pair (str)
+        Catalog type NOT given by `cat_type`.
+        If `cat_type=MATCH_CAT1` then `cat_type_pair=MATCH_CAT2`.
 
     inj (bool)
+        If `True` the catalog (given by `cat_type`) is Balrog-injected. If `False` the catalog is not Balrog-injected (also called 'base'). 
+        Set by `INJ1` or `INJ2`.
+
+    inj_percent (int)
+        Injection density percentage for the appropriate truth catalog (see `calculate_injection_percent.get_injection_percent()` docstring -- Returns). 
+        Considered if `inj=True`. 
+        Set by `INJ1_PERCENT` or `INJ2_PERCENT`.
+        Note that a 10% injection density is 5,000 injected objects.
 
     suf (str)
-        Refers to the order in which `cat_type` was matched (via join=1and2) in stilts_matcher (order set by `in1` and `in2` in STILTS script). Allowed values: '_1' '_2'.
+        Suffix for the header in the catalog matched via `join=1and2` in `stilts_matcher`.
+        The catalog used as `in1` in `stilts_matcher` has '_1' appended to each header name. Similarly, the catalog used as `in2` has '_2' appended to each header name.
 
     Returns
     -------
     __class (class)
-        Points to the appropriate class and class constants.
+        Points to the appropriate class for the catalog type. Class appropriately specifies catalog properties (dependent on `inj`, `inj_percent`, and `suf). 
     """
 
     if cat_type == 'gal_truth':
@@ -69,19 +82,21 @@ def get_class(cat_type, cat_type_pair, inj, inj_percent, suf):
 
 
 def get_match_type(title_piece1, title_piece2):
-    """Transform two strings of form '10% Inj MOF Cat' and '10% Inj Truth Cat' to '10%_inj_mof_cat_10%_inj_truth_cat'.
+    """Transform two strings of form '10% Inj MOF Cat' and '10% Inj Truth Cat' to '10%_inj_mof_cat_10%_inj_truth_cat' (for example).
+    The match type is '10%_inj_mof_cat_10%_inj_truth_cat' in the example above.
 
     Parameters
     ----------
     title_piece1, title_piece2 (str)
-        Set by `self.title_piece` in appropriate class. Class set by `MATCH_CAT*` `INJ*PERCENT`.
-        Example: 10% Inj MOF Cat.
+        Set by `self.title_piece` in appropriate class. 
+        Example: '10% Inj MOF Cat'.
 
     Returns
     -------
-    match_type (str)
-        Reflects the order in which catalogs were matched (via join=1and2). 
-        Example: 10%_inj_mof_cat_10%_inj_truth_cat, where the injected MOF catalog was STILTS parameter `in1`.
+    __match_type (str)
+        Example: '10%_inj_mof_cat_10%_inj_truth_cat', where the injected MOF catalog was STILTS parameter `in1`.
+        Note that `__match_type` reflects the order in which catalogs were matched (via `join=1and2`) in `stilts_matcher`.
+        In the example above, the injected MOF catalog was used as the STILTS parameter `in1`.
     """
 
     __match_type = '{}_{}'.format(title_piece1.lower().replace(' ', '_'), title_piece2.lower().replace(' ', '_'))
