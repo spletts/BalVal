@@ -24,19 +24,24 @@ def get_injection_percent(balrog_run, base_path_to_catalogs, cat_types, realizat
     balrog_run (str)
         Names the Balrog test. This is a substring of `base_path_to_catalogs`.
         Ex: `base_path_to_catalogs=/data/des71.a/data/kuropat/des2247-4414_sof/` --> `balrog_run=des2247-4414_sof`.
+
     base_path_to_catalogs (str)
         Complete base path to catalogs set by `MATCH_CAT1` and `MATCH_CAT2`.
+
     cat_types (list of str)
         Types of catalogs to be analysed.
         Set by `MATCH_CAT1` and `MATCH_CAT2`.
+
     realization (str)
         A realization refers to a Balrog injection. Realizations are numbered starting with 0.
         The realization will be applied to `MATCH_CAT1` if `INJ1=True`, and `MATCH_CAT2` if `INJ2=True`.
         If both `INJ1=False` and `INJ2=False` this should be set to `None` at the command line.
         Note that although `realization` is an int, it is of type str because it is set using `sys.argv[]` (whose contents are strings).
+
     tile (str)
         'A sky area unit used by DESDM [Dark Energy Survey Data Management] to parcel the DES footprint and organize the coadd outputs. Each tile is 0.7306 degrees on a side'. 
         See Appendix A of https://arxiv.org/abs/1801.03181
+
     truth_cat_type (str)
         Allowed values: 'gal_truth' 'star_truth'
         Considered if `base_path_to_catalogs` contains both a galaxy truth catalog and a star truth catalog.
