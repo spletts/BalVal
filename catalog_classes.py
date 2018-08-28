@@ -17,7 +17,8 @@ class CoaddCatalog():
     """Declare headers for coadd catalogs.
     There is a separate catalog for each band.
     Headers must be capitalized.
-    Data for the headers .... are single numbers (not arrays)."""
+    Data corresponding to the headers declared below are single numbers (not arrays).
+    """
 
     def __init__(self, inj, inj_percent, suf):
         """Declare headers for the catalog matched via `join=1and2`. Declare descriptive constants.
@@ -27,18 +28,16 @@ class CoaddCatalog():
         inj (bool)
             If `True` the catalog is Balrog-injected. If `False` the catalog is not Balrog-injected ('base'). 
             Set by `INJ1` or `INJ2`.
-
         inj_percent (int)
             Considered if `inj=True`, otherwise ignored.
             Injection density percentage for the catalog.
             Set by `INJ1_PERCENT` or `INJ2_PERCENT`.
             Note that a 10% injection density corresponds to 5,000 injected objects.
-
         suf (str)
             Allowed values: '_1', '_2'
             Once the catalogs `MATCH_CAT1` and `MATCH_CAT2` are matched via `join=1and2` with STILTS, each header changes.
             'hdr' --> 'hdr_1' or 'hdr' --> 'hdr_2'
-            The suffix `suf` refers to whether the catalog served as `in1` or `in2` in `ms_matcher` (where `in1`, `in2`, and `join` are STILTS parameters).
+            The suffix `suf` refers to whether the catalog served as `in1` or `in2` in `stilts_matcher` (where `in1`, `in2`, and `join` are STILTS parameters).
         """
 
         # For plot title and filenames #
@@ -100,7 +99,8 @@ class CoaddCatalog():
 
 class DeepSNMOFCatalog():
     """Declare headers for MOF catalogs.
-    Data for the headers .... are arrays of form ({data}_g, {data}_r, {data}_i, {data}_z)."""
+    Data corresponding to the headers declared below are typically arrays of form ({data}_g, {data}_r, {data}_i, {data}_z).
+    """
 
     def __init__(self, inj, inj_percent, suf, model='cm'):
         """Declare headers for the catalog matched via `join=1and2`. Declare descriptive constants.
@@ -110,18 +110,16 @@ class DeepSNMOFCatalog():
         inj (bool)
             If `True` the catalog is Balrog-injected. If `False` the catalog is not Balrog-injected ('base').
             Set by `INJ1` or `INJ2`.
-
         inj_percent (int)
             Considered if `inj=True`, otherwise ignored.
             Injection density percentage for the catalog.
             Set by `INJ1_PERCENT` or `INJ2_PERCENT`.
             Note that a 10% injection density corresponds to 5,000 injected objects.
-
         suf (str)
             Allowed values: '_1', '_2'
             Once the catalogs `MATCH_CAT1` and `MATCH_CAT2` are matched via `join=1and2` with STILTS, each header changes.
             'hdr' --> 'hdr_1' or 'hdr' --> 'hdr_2'
-            The suffix `suf` refers to whether the catalog served as `in1` or `in2` in `ms_matcher` (where `in1`, `in2`, and `join` are STILTS parameters).
+            The suffix `suf` refers to whether the catalog served as `in1` or `in2` in `stilts_matcher` (where `in1`, `in2`, and `join` are STILTS parameters).
         """
 
         # For plot title and filenames #
@@ -181,7 +179,8 @@ class DeepSNMOFCatalog():
 
 class DeepSNSOFCatalog():
     """Declare headers for SOF catalogs.
-    Data for the headers .... are arrays of form ({data}_g, {data}_r, {data}_i, {data}_z)."""
+    Data corresponding to the headers declared below are typically arrays of form ({data}_g, {data}_r, {data}_i, {data}_z).
+    """
 
     def __init__(self, cat_type_pair, inj, inj_percent, suf, model='cm'):
         """Declare headers for the catalog matched via `join=1and2`. Declare descriptive constants.
@@ -189,25 +188,21 @@ class DeepSNSOFCatalog():
         Parameters
         ----------
         cat_type_pair (str)
-            Refers to the catalog type that will be matched with the SOF catalog in `ms_matcher`.
+            Refers to the catalog type that will be matched with the SOF catalog in `stilts_matcher`.
             Set by `MATCH_CAT1` or `MATCH_CAT2`.
-
         inj (bool)
             If `True` the catalog is Balrog-injected. If `False` the catalog is not Balrog-injected ('base').
             Set by `INJ1` or `INJ2`.
-
         inj_percent (int)
             Considered if `inj=True`, otherwise ignored.
             Injection density percentage for the catalog.
             Set by `INJ1_PERCENT` or `INJ2_PERCENT`.
             Note that a 10% injection density corresponds to 5,000 injected objects.
-
         suf (str)
             Allowed values: '_1', '_2'
             Once the catalogs `MATCH_CAT1` and `MATCH_CAT2` are matched via `join=1and2` with STILTS, each header changes.
             'hdr' --> 'hdr_1' or 'hdr' --> 'hdr_2'
-            The suffix `suf` refers to whether the catalog served as `in1` or `in2` in `ms_matcher` (where `in1`, `in2`, and `join` are STILTS parameters).
-
+            The suffix `suf` refers to whether the catalog served as `in1` or `in2` in `stilts_matcher` (where `in1`, `in2`, and `join` are STILTS parameters).
         model (str)
         """
 
@@ -271,7 +266,8 @@ class DeepSNSOFCatalog():
 class GalaxyTruthCatalog():
     """Declare headers for galaxy truth catalogs.
     Galaxy truth catalogs are created from MOF catalogs or COSMOS catalogs (as of August 2018).
-    Data for the headers .... are arrays of form ({data}_g, {data}_r, {data}_i, {data}_z).""" 
+    Data corresponding to the headers declared below are typically arrays of form ({data}_g, {data}_r, {data}_i, {data}_z).
+    """
 
     def __init__(self, inj, inj_percent, suf, model='cm'):
         """Declare headers for the catalog matched via `join=1and2`. Declare descriptive constants.
@@ -282,19 +278,16 @@ class GalaxyTruthCatalog():
             `inj=True` for truth catalogs.
             If `True` the catalog is Balrog-injected. If `False` the catalog is not Balrog-injected ('base').
             Set by `INJ1` or `INJ2`.
-
         inj_percent (int)
             Considered if `inj=True`, otherwise ignored.
             Injection density percentage for the catalog.
             Set by `INJ1_PERCENT` or `INJ2_PERCENT`.
             Note that a 10% injection density corresponds to 5,000 injected objects.
-
         suf (str)
-                Allowed values: '_1', '_2'
-                Once the catalogs `MATCH_CAT1` and `MATCH_CAT2` are matched via `join=1and2` with STILTS, each header changes.
-                'hdr' --> 'hdr_1' or 'hdr' --> 'hdr_2'
-                The suffix `suf` refers to whether the catalog served as `in1` or `in2` in `ms_matcher` (where `in1`, `in2`, and `join` are STILTS parameters).
-
+            Allowed values: '_1', '_2'
+            Once the catalogs `MATCH_CAT1` and `MATCH_CAT2` are matched via `join=1and2` with STILTS, each header changes.
+            'hdr' --> 'hdr_1' or 'hdr' --> 'hdr_2'
+            The suffix `suf` refers to whether the catalog served as `in1` or `in2` in `stilts_matcher` (where `in1`, `in2`, and `join` are STILTS parameters).
         model (str)
             Allowed values: 'cm', 'psf'
         """
@@ -352,7 +345,8 @@ class GalaxyTruthCatalog():
 
 class SOFCatalog():
     """Declare headers for SOF catalogs.
-    Data for the headers .... are arrays of form ({data}_g, {data}_r, {data}_i, {data}_z).""" 
+    Data corresponding to the headers declared below are typically arrays of form ({data}_g, {data}_r, {data}_i, {data}_z).
+    """
 
     def __init__(self, cat_type_pair, inj, inj_percent, suf, model='cm'):
         """Declare headers for the catalog matched via `join=1and2`. Declare descriptive constants.
@@ -360,24 +354,21 @@ class SOFCatalog():
         Parameters
         ----------
         cat_type_pair (str)
-            Refers to the catalog type that will be matched with the SOF catalog in `ms_matcher`.
+            Refers to the catalog type that will be matched with the SOF catalog in `stilts_matcher`.
             Set by `MATCH_CAT1` or `MATCH_CAT2`.
-
         inj (bool)
             If `True` the catalog is Balrog-injected. If `False` the catalog is not Balrog-injected ('base').
             Set by `INJ1` or `INJ2`.
-
         inj_percent (int)
             Considered if `inj=True`, otherwise ignored.
             Injection density percentage for the catalog.
             Set by `INJ1_PERCENT` or `INJ2_PERCENT`.
             Note that a 10% injection density corresponds to 5,000 injected objects.
-
         suf (str)
             Allowed values: '_1', '_2'
             Once the catalogs `MATCH_CAT1` and `MATCH_CAT2` are matched via `join=1and2` with STILTS, each header changes.
             'hdr' --> 'hdr_1' or 'hdr' --> 'hdr_2'
-                        The suffix `suf` refers to whether the catalog served as `in1` or `in2` in `ms_matcher` (where `in1`, `in2`, and `join` are STILTS parameters).
+            The suffix `suf` refers to whether the catalog served as `in1` or `in2` in `stilts_matcher` (where `in1`, `in2`, and `join` are STILTS parameters).
         """
 
         # For plot title and filenames #
@@ -438,7 +429,8 @@ class SOFCatalog():
 
 class MOFCatalog():
     """Declare headers for MOF catalogs.
-    Data for the headers .... are arrays of form ({data}_g, {data}_r, {data}_i, {data}_z)."""
+    Data corresponding to the headers declared below are typically arrays of form ({data}_g, {data}_r, {data}_i, {data}_z).
+    """
 
     def __init__(self, inj, inj_percent, suf, model='cm'):
         """Declare headers for the catalog matched via `join=1and2`. Declare descriptive constants.
@@ -448,19 +440,16 @@ class MOFCatalog():
         inj (bool)
             If `True` the catalog is Balrog-injected. If `False` the catalog is not Balrog-injected ('base').
             Set by `INJ1` or `INJ2`.
-
         inj_percent (int)
             Considered if `inj=True`, otherwise ignored.
             Injection density percentage for the catalog.
             Set by `INJ1_PERCENT` or `INJ2_PERCENT`.
             Note that a 10% injection density corresponds to 5,000 injected objects.
-
         suf (str)
             Allowed values: '_1', '_2'
             Once the catalogs `MATCH_CAT1` and `MATCH_CAT2` are matched via `join=1and2` with STILTS, each header changes.
             'hdr' --> 'hdr_1' or 'hdr' --> 'hdr_2'
-            The suffix `suf` refers to whether the catalog served as `in1` or `in2` in `ms_matcher` (where `in1`, `in2`, and `join` are STILTS parameters).
-
+            The suffix `suf` refers to whether the catalog served as `in1` or `in2` in `stilts_matcher` (where `in1`, `in2`, and `join` are STILTS parameters).
         model (str)
             Allowed values: 'cm',
         """
@@ -520,7 +509,8 @@ class MOFCatalog():
 
 class StarTruthCatalog(): 
     """Declare headers for star truth catalogs.
-    Data for the headers .... are arrays of form ({data}_g, {data}_r, {data}_i, {data}_z)."""
+    Data corresponding to the headers declared below are typically arrays of form ({data}_g, {data}_r, {data}_i, {data}_z).
+    """
 
     def __init__(self, inj, inj_percent, suf, model='psf'):
         """Declare headers for the catalog matched via `join=1and2`. Declare descriptive constants.
@@ -530,19 +520,16 @@ class StarTruthCatalog():
         inj (bool)
             If `True` the catalog is Balrog-injected. If `False` the catalog is not Balrog-injected ('base').
             Set by `INJ1` or `INJ2`.
-
         inj_percent (int)
             Considered if `inj=True`, otherwise ignored.
             Injection density percentage for the catalog.
             Set by `INJ1_PERCENT` or `INJ2_PERCENT`.
             Note that a 10% injection density corresponds to 5,000 injected objects.
-
         suf (str)
             Allowed values: '_1', '_2'
             Once the catalogs `MATCH_CAT1` and `MATCH_CAT2` are matched via `join=1and2` with STILTS, each header changes.
             'hdr' --> 'hdr_1' or 'hdr' --> 'hdr_2'
-            The suffix `suf` refers to whether the catalog served as `in1` or `in2` in `ms_matcher` (where `in1`, `in2`, and `join` are STILTS parameters).
-
+            The suffix `suf` refers to whether the catalog served as `in1` or `in2` in `stilts_matcher` (where `in1`, `in2`, and `join` are STILTS parameters).
         model (str)
             Allowed values: 'psf'
         """ 
@@ -609,8 +596,9 @@ class StarTruthCatalog():
 class Y3GoldCatalog():
     """Declare headers for Y3 Gold catalogs.
     Headers must be in capitalized.
-    Data for the headers .... are single numbers (not arrays) 
-    The full list of headers is at https://cdcvs.fnal.gov/redmine/projects/des-y3/wiki/Full_bins_of_Y3_GOLD_2_0_Columns""" 
+    Data corresponding to the headers declared below are typically single numbers (not arrays).
+    The full list of headers is at https://cdcvs.fnal.gov/redmine/projects/des-y3/wiki/Full_bins_of_Y3_GOLD_2_0_Columns
+    """ 
 
     def __init__(self, cat_type, cat_type_pair, inj, inj_percent, suf, y3_fit, y3_model):
         """Declare headers for the catalog matched via `join=1and2`. Declare descriptive constants.
@@ -619,31 +607,25 @@ class Y3GoldCatalog():
         ----------
         cat_type (str)
             Allowed values: 'y3_gold_2_0', 'y3_gold_2_2'
-
         cat_type_pair (str)
-            Refers to the catalog type that will be matched with the Y3 Gold catalog in `ms_matcher`.
+            Refers to the catalog type that will be matched with the Y3 Gold catalog in `stilts_matcher`.
             Set by `MATCH_CAT1` or `MATCH_CAT2`.
-
         inj (bool)
             If `True` the catalog is Balrog-injected. If `False` the catalog is not Balrog-injected ('base').
             Set by `INJ1` or `INJ2`.
-
         inj_percent (int)
             Considered if `inj=True`, otherwise ignored.
             Injection density percentage for the catalog.
             Set by `INJ1_PERCENT` or `INJ2_PERCENT`.
             Note that a 10% injection density corresponds to 5,000 injected objects.
-
         suf (str)
             Allowed values: '_1', '_2'
             Once the catalogs `MATCH_CAT1` and `MATCH_CAT2` are matched via `join=1and2` with STILTS, each header changes.
             'hdr' --> 'hdr_1' or 'hdr' --> 'hdr_2'
-            The suffix `suf` refers to whether the catalog served as `in1` or `in2` in `ms_matcher` (where `in1`, `in2`, and `join` are STILTS parameters).
-
+            The suffix `suf` refers to whether the catalog served as `in1` or `in2` in `stilts_matcher` (where `in1`, `in2`, and `join` are STILTS parameters).
         y3_fit (str)
             Allowed values: `mof`, `sof`.
             Set by `Y3_FIT`.
-
         y3_model (str)
             Allowed values: `cm` or `psf`
             Set by `Y3_MODEL`.
