@@ -14,25 +14,47 @@ from catalog_headers import TITLE_PIECE1, TITLE_PIECE2
 
 
 def get_magnitude_axlabel(inj, mag_hdr, meas_or_true_cat, match_cat, band, inj_percent):
-    """Get labels for the horizontal axis. 
-    Note that `'{}'.format()` does not render TeX reliably.
+    """Create label for the axis of the magnitude plot that describes the model used to measure the observable (e.g. 'cm'),
+    the injection percent (if applicable),
+    and the catalog type if the catalog (given by `match_cat`) is a Y3 Gold catalog. 
+    Note that `'{}'.format()` does not render TeX reliably so `%` is used at times.
 
     Parameters
     ----------
-    inj_percent (int)
-
     inj (bool)
+        If `True` the catalog given by `match_cat` is Balrog-injected.
+        If `False` the catalog is not Balrog-injected (also called 'base'). 
+        Set by `INJ1` or `INJ2`.
 
-    mag_hdr, cm_t_hdr, cm_t_err (str) 
-        Headers in the matched catalog that refer to the magnitude, cm_T (size), and cm_T error.
+    inj_percent (int)
+        Injection density percentage for the catalog given by `match_cat`.
+        Set by `INJ1_PERCENT` or `INJ2_PERCENT`.
+        Note that a 10% injection density corresponds to 5,000 injected objects.
+
+    mag_hdr (str)
+        Magnitude header.
+        Headers refer to the catalog matched via `join=1and2` in `stilts_matcher`.
+        This may set by `M_HDR1`, `M_HDR2`, or changed if catalogs are reconstructed in the case of `star_truth`, `y3_gold`, `coadd`.
+
+    meas_or_true_cat (str)
+        Describes plot axes and catalog type.
+        Allowed values: 'meas', 'true'.
+        Set by `AXLABEL1` or `AXLABEL2`.
+
     match_cat (str)
-        Catalog containing the data the hax_label describes. Set by `MATCH_CAT1` or `MATCH_CAT2`. 
+        One of the two catalogs that was matched in `stilts_matcher`.
+        Set by `MATCH_CAT1` or `MATCH_CAT2`.
+
     band (str)
+        Allowed values: 'g', 'r', 'i', 'z'.
+        Set by an element in `set_constants.ALL_BANDS`.
 
     Returns
     -------
-    hax_label (str)
-        Label for the horizontal axis. Includes LaTeX \bf{} formatting.
+    __mag_axlabel (str)
+        Label for the horizontal axis of the magnitude plot.
+        Example: '10%_inj_cm_mag_g_true'
+        Includes LaTeX \bf{} formatting so that that band is bolded.
     """
 
     # 'mag_2' --> 'mag_{band}_true' with {band} bolded. Note that `format()` does not render TeX #
@@ -56,17 +78,42 @@ def get_magnitude_axlabel(inj, mag_hdr, meas_or_true_cat, match_cat, band, inj_p
 
 
 def get_color_axlabel(inj, meas_or_true_cat, match_cat, band, inj_percent):
-    """Get axes labels for color plots.
+    """Create label for the axis of the color plot that describes the model used to measure the observable (e.g. 'cm'),
+    the injection percent (if applicable),
+    and the catalog type if the catalog (given by `match_cat`) is a Y3 Gold catalog. 
+    Note that `'{}'.format()` does not render TeX reliably so `%` is used at times.
 
     Parameters
     ----------
+    inj (bool)
+        If `True` the catalog given by `match_cat` is Balrog-injected.
+        If `False` the catalog is not Balrog-injected (also called 'base'). 
+        Set by `INJ1` or `INJ2`.
+
+    inj_percent (int)
+        Injection density percentage for the catalog given by `match_cat`.
+        Set by `INJ1_PERCENT` or `INJ2_PERCENT`.
+        Note that a 10% injection density corresponds to 5,000 injected objects.
+
     meas_or_true_cat (str)
-        Allowed values: 'meas' 'true'. Set by `AXLABEL1` or `AXLABEL2`. 
-    
+        Describes plot axes and catalog type.
+        Allowed values: 'meas', 'true'.
+        Set by `AXLABEL1` or `AXLABEL2`.
+
+    match_cat (str)
+        One of the two catalogs that was matched in `stilts_matcher`.
+        Set by `MATCH_CAT1` or `MATCH_CAT2`.
+
+    band (str)
+        Allowed values: 'g', 'r', 'i', 'z'.
+        Set by an element in `set_constants.ALL_BANDS`.
+ 
     Returns
     -------
     __color_axlabel (str)
-        Contains LaTeX formatting. Ex: 'inj_\bf{(g-r)}_true'.
+        Label for the horizontal axis of the magnitude plot.
+        Example: '10%_inj_(g-r)_true'
+        Includes LaTeX \bf{} formatting so that that color is bolded.
     """
 
     if inj:
@@ -87,17 +134,27 @@ def get_color_axlabel(inj, meas_or_true_cat, match_cat, band, inj_percent):
 
 
 def get_short_difference_axlabel(axlabel_a, axlabel_b, band):
-    """Create a short axis label for the difference (`axlabel_a` minus `axlabel_b`) between two observables.
-    If the order of subtraction is not `axlabel_a` - `axlabel_b`, call this function via `axlabel_a=label2`, `axlabel_b=label1`.
+    """Create a short axis label to describe the difference (`axlabel_a` minus `axlabel_b`) between two axis labels.
+    The short label is created by finding the longest common substring between `axlabel1` and `axlabel`;
+    therefore, if the longest common substring is short, user is recommended to set `OVERWRITE_AXLABELS=True` in set_constants.py`.
+    If the order of subtraction is not `axlabel_a` minus `axlabel_b`, reverse the order of `axlabel` inputs;
+    that is, `axlabel_a=label1, axlabel_b=label2` --> `axlabel_a=label2, axlabel_b=label1`.
 
     Parameters
     ----------
     axlabel_a, axlabel_b (str)
-        Axis labels for an observable in `MATCH_CAT1` or `MATCH_CAT2`.  `axlabel_a` does not need to correspond to `MATCH_CAT1`.
+        Axis label for an observable in `MATCH_CAT1` or `MATCH_CAT2`.
+        `axlabel_a` does not need to correspond to `MATCH_CAT1`. `axlabel_b` does not need to correspond to `MATCH_CAT2`.
+
+    band (str)
+        Allowed values: 'g', 'r', 'i', 'z'.
+        Set by an element in `set_constants.ALL_BANDS`.
 
     Returns
     -------
     __short_axlabel (str)
+        Short label that describes the difference (`axlabel_a` minus `axlabel_b`) between two observables.
+        Example: '10%_inj_cm_mag_g true-meas' from `axlabel_a='10%_inj_cm_mag_g_true', axlabel_b='10%_inj_cm_mag_g_meas'`.
     """
 
     ### Find longest common substring ###
@@ -157,21 +214,39 @@ def get_short_difference_axlabel(axlabel_a, axlabel_b, band):
 
 
 def get_plot_suptitle(realization, tile, number_of_stacked_realizations, number_of_stacked_tiles):
-    """Generate plot title.
+    """Create plot title that describes the two catalogs matched (in `stilts_matcher`) and their Balrog-injection percents (or lack of -- called 'base').
+    The plot title reflects the order in which the catalogs were matched in `stilts_matcher`; the first catalog mentioned in the plot title was used as STILTS parameter `in1`. 
+    The return will be used in `matplotlib.pyplot.suptitle` for subplots, and `matplotlib.pyplot.title()` for plots.
 
     Parameters
     ----------
     realization (str)
+        A realization refers to a Balrog injection.
+        Realizations are numbered starting with 0. Realization can be 'None' (str).
+        The realization will be applied to `MATCH_CAT1` if `INJ1=True`, and `MATCH_CAT2` if `INJ2=True`.
+        If both `INJ1=False` and `INJ2=False` this should be set to `None` at the command line.
+        Note that although `realization` is an int, it is of type str because it is set using `sys.argv[]` (whose contents are strings).
+
     tile (str)
+        A sky area unit used by DESDM [Dark Energy Survey Data Management] to parcel the DES footprint and organize the coadd outputs. Each tile is 0.7306 degrees on a side'. 
+        See Appendix A of https://arxiv.org/abs/1801.03181
+
     number_of_stacked_realizations (int)
-        Number of catalogs in stacked realization catalog. Can be `None`.
+        Number of catalogs in the stacked realization catalog.
+        This is the same as the number of realizations entered at the command line.
+        Can be `None`.
+
     number_of_stacked_tiles (int)
-        Number of catalogs in stacked tile catalog. Can be `None`.
+        Number of catalogs in stacked tile catalog.
+        The is the same as the number of tiles entered at the command line.
+        Can be `None`.
 
     Returns
     -------
     __plot_title (str)
-        Ex: '10% Inj MOF Cat & 10% Inj Truth Cat' 
+        Plot title that describes various properties about the two catalogs matched in `stilts_matcher`.
+        Example: '10% Inj MOF Cat & 10% Inj Truth Cat' 
+        In this example, STILTS parameter `in1` was a Balrog-injected MOF catalog.
     """
 
     if STACK_REALIZATIONS:
@@ -197,28 +272,49 @@ def get_plot_suptitle(realization, tile, number_of_stacked_realizations, number_
 
 
 
-def get_colorbar_for_magnitude_plot_axlabel(df_1and2, cm_t_hdr, cm_t_err_hdr, idx_good, clean_mag1, clean_mag2, meas_or_true_cat, inj_percent, inj):
-    """Get the label for the colorbar of the magnitude plot.
-    This function will return `None` if no colorbar is to be added to the plot.
+def get_colorbar_for_magnitude_plot_axlabel(df_1and2, cm_t_hdr, cm_t_err_hdr, idx_good, meas_or_true_cat, inj_percent, inj):
+    """Create the label for the colorbar of the magnitude plot.
+    This label describes the property assigned to the colorbar (either size squared ('cm_T') or size squared error).
 
     Parameters
     ----------
     df_1and2 (pandas DataFrame)
-        DataFrame for the matched (join=1and2) catalog.
+        DataFrame that contains objects in both `MATCH_CAT1` and `MATCH_CAT2`.
+        This catalog is created in `stilts_matcher` using `join=1and2`.
 
-    cm_t_hdr, cm_t_err_hdr (str)
-        Matched (join=1and2) catalog headers for cm_T (size squared) and cm_T_err. Can be `None`.
-        idx_good (list of ints)
-        Indices of objects without flags.       
+    cm_t_hdr (str)
+        Header for the size squared (cm_T) of objects. 
+        Headers refer to the catalog matched via `join=1and2` in `stilts_matcher`.
+        Set by `CM_T_HDR1` or `CM_T_HDR2`.
 
-    clean_mag1, clean_mag2 (list of floats)
-        meas_or_true_cat (str)
-        Allowed values: 'true' 'meas'   
+    cm_t_err_hdr (str)
+        Header for the error in 'cm_T' (size squared of objects).
+        Headers refer to the catalog matched via `join=1and2` in `stilts_matcher`.
+        Set by `CM_T_ERR_HDR1` or `CM_T_ERR_HDR2`.
+
+    idx_good (1D array_like, dtype=str)
+        Indices of objects without flags* (for a description of flags* see https://github.com/spletts/BalVal/blob/master/README.md#flagged-objects).
+        Indices correspond to the catalog matched via `join=1and2` in `stilts_matcher`.
+
+    meas_or_true_cat (str)
+        Describes plot axes and catalog type with allowed values: 'meas', 'true'.
+        Set by `AXLABEL1` or `AXLABEL2`.
+
+    inj (bool)
+        If `True` the catalog given by `match_cat` is Balrog-injected.
+        If `False` the catalog is not Balrog-injected (also called 'base'). 
+        Set by `INJ1` or `INJ2`.
+
+    inj_percent (int)
+        Injection density percentage for the catalog given by `match_cat`.
+        Set by `INJ1_PERCENT` or `INJ2_PERCENT`.
+        Note that a 10% injection density corresponds to 5,000 injected objects.
 
     Returns
     -------
     __cbar_label (str)
-        Label for colorbar. Includes LaTeX \bf{} formatting. Can be `None`.
+        Label for colorbar.
+        Includes LaTeX \bf{} formatting.
     """
 
     if 'true' in meas_or_true_cat:
