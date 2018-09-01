@@ -77,7 +77,7 @@ SWAP_ORDER_OF_SUBTRACTION = False
 SUBPLOT = True
 
 ##### Region files #####
-MAKE_REGION_FILES = True
+MAKE_REGION_FILES = False
 
 
 ### Printouts ###
@@ -152,19 +152,23 @@ BAND_INDEX = {'g':0, 'r':1, 'i':2, 'z':3}
 
 
 def catch_error(cmd_line_realizations, cmd_line_tiles):
-    """Find errors created by setting incompatible parameters and command line arguments.
+    """Find errors (if any) created by setting incompatible parameters (in `set_constants.py`) and command line arguments.
 
     Parameters
     ----------
     cmd_line_realizations (list of str)
-        Realizations provided at the command line via `$python plotter.py ....`.
+        Realizations provided at the command line, via `$python plotter.py ....`.
+        Note this may be a one-element list.
+
     cmd_line_tiles (list of str)
-        Tiles provided at the command line via `$python plotter.py ....`
+        Tiles provided at the command line, via `$python plotter.py ....`.
+        Note this may be a one-element list.
 
     Returns
     -------
-    __err_msg (str or None)
-        Error message. Is `None` if there is no error.
+    __err_msg (str OR None)
+        Error message.
+        Is `None` if there is no error.
     """
 
     __err_msg = None
