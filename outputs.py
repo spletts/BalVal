@@ -27,16 +27,44 @@ if PLOT_FLUX:
 
 
 def get_directory(balrog_run, low_level_dir, match_type, output_directory, realization, tile):
-    """Get directory for various outputs. 
+    """Get path to directory where various output files are to be saved.
+    For directory structure, see https://github.com/spletts/BalVal/blob/master/README.md#condensed-output-directory-structure
 
     Parameters
     ----------
+    balrog_run (str)
+        Names the Balrog test. This is a substring of `BASE_PATH_TO_CATS` entered at the command line.
+        Example: `base_path_to_catalogs=/data/des71.a/data/kuropat/des2247-4414_sof/` --> `balrog_run=des2247-4414_sof`.
+
     low_level_dir (str OR list of str)
+        The directory structure following `output_directory`.
+        For specific directory structure, see https://github.com/spletts/BalVal/blob/master/README.md#condensed-output-directory-structure
+
+    match_type (str)
+        Describes the two catalogs matched (via `join=1and2`) in `stilts_matcher`.
+        Example: '10%_inj_mof_cat_10%_inj_truth_cat'.
+        Note that `match_type` reflects the order in which catalogs were matched. 
+        In the example above, the injected MOF catalog was used as the STILTS parameter `in1`.
+
+    output_directory (str)
+        All outputs of BalVal will be saved in `output_directory`.
+        For specific directory structure, see https://github.com/spletts/BalVal/blob/master/README.md#condensed-output-directory-structure
+
+    realization (str)
+        A realization refers to a Balrog injection.
+        Realizations are numbered starting with 0. Realization can be 'None' (str).
+        The realization will be applied to `MATCH_CAT1` if `INJ1=True`, and `MATCH_CAT2` if `INJ2=True`.
+        If both `INJ1=False` and `INJ2=False` this should be set to `None` at the command line.
+        Note that although `realization` is an int, it is of type str because it is set using `sys.argv[]` (whose contents are strings).
+
+    tile (str)
+        A sky area unit used by DESDM [Dark Energy Survey Data Management] to parcel the DES footprint and organize the coadd outputs. Each tile is 0.7306 degrees on a side'. 
+        See Appendix A of https://arxiv.org/abs/1801.03181
 
     Returns
     -------
     __dir (str)
-        Directory path.
+        Complete path to directory.
     """
 
     if isinstance(low_level_dir, str):
@@ -67,24 +95,85 @@ def get_directory(balrog_run, low_level_dir, match_type, output_directory, reali
 
 
 def get_log_filenames(balrog_run, match_type, output_directory, realization, tile):
-    """Generate names for log files.
-    Directory structure: /`OUTPUT_DIRECTORY`/log_files/`BALROG_RUN`/`match_type`/{tile}/{realization}/log_files/.
+    """Create filenames for various log files.
+     For directory structure and log filenames, see https://github.com/spletts/BalVal/blob/master/README.md#full-output-directory-structure 
 
     Parameters
     ----------
-    tile (str)
+    balrog_run (str)
+        Names the Balrog test. This is a substring of `BASE_PATH_TO_CATS` entered at the command line.
+        Example: `base_path_to_catalogs=/data/des71.a/data/kuropat/des2247-4414_sof/` --> `balrog_run=des2247-4414_sof`.
+
+    match_type (str)
+        Describes the two catalogs matched (via `join=1and2`) in `stilts_matcher`.
+        Example: '10%_inj_mof_cat_10%_inj_truth_cat'.
+        Note that `match_type` reflects the order in which catalogs were matched. 
+        In the example above, the injected MOF catalog was used as the STILTS parameter `in1`.
+
+    output_directory (str)
+        All outputs of BalVal will be saved in `output_directory`.
+        For specific directory structure, see https://github.com/spletts/BalVal/blob/master/README.md#condensed-output-directory-structure
+
     realization (str)
+        A realization refers to a Balrog injection.
+        Realizations are numbered starting with 0. Realization can be 'None' (str).
+        The realization will be applied to `MATCH_CAT1` if `INJ1=True`, and `MATCH_CAT2` if `INJ2=True`.
+        If both `INJ1=False` and `INJ2=False` this should be set to `None` at the command line.
+        Note that although `realization` is an int, it is of type str because it is set using `sys.argv[]` (whose contents are strings).
+
+    tile (str)
+        A sky area unit used by DESDM [Dark Energy Survey Data Management] to parcel the DES footprint and organize the coadd outputs. Each tile is 0.7306 degrees on a side'. 
+        See Appendix A of https://arxiv.org/abs/1801.03181
 
     Returns
     -------
     __fn_flag_log (str)
-        Complete filename for flag log file.
+        Complete filename for the log file that records flags if `LOG_FLAGS=True`. 
+        If `LOG_FLAGS=False` this file is not created; 'dummy.log' is created.
+        Headers: TILE, REALIZATION, FLAG1_HEADER, FLAG2_HEADER,  FLAG1_VALUE, FLAG2_VALUE, MAG1, MAG2, RUN_TYPE.
+
     __fn_mag_err_log (str)
-        Complete filename for error calculation log file.
+        Complete filename for the log file that records details of the magnitude error calculation.
+        Headers: TILE, REALIZATION, BAND, NUM_OBJS_IN_BIN, MAG_{MEAS/TRUE}_BIN_LHS, MAG_{MEAS/TRUE}_BIN_RHS, MEDIAN_HAX_MAG_{MEAS/TRUE}, MEDIAN_MAG_ERROR
+
     __fn_color_log (str)
+        Complete filename for the log file that details the color calculation. 
+        Headers: TILE, REALIZATION, COLOR, MAG_{MEAS/TRUE}_BIN, OBJS_IN_MAG_BIN, TOTAL_OBJECTS_NO_FLAGS, RUN_TYPE.
+
     __fn_mag_diff_outliers_log (str)
+        Complete filename for the log file that records the magnitude differences greater than a threshold.
+        Threshold is given by `__cutoff_mag_diff_for_log` in `bin_and_cut_measured_magnitude_error()`. 
+        Headers: TILE, REALIZATION, BAND, MAG1, MAG2, MAG_DIFF
+
     __fn_mag_completeness_log (str)
+        Complete filename for the log file that details the magnitude completeness calculation. 
+        Headers: TILE, REALIZATION, BAND, INJ_PERCENT, TRUTH_MAG_BIN_LHS, TRUTH_MAG_BIN_RHS, MATCH_CAT_OBJS_IN_BIN, TRUTH_CAT_OBJS_IN_BIN
+
     __fn_gauss_aper_log (str)
+        Complete filename for the log file that records details of the Gaussian aperture method for measuring flux. 
+        If `PLOT_FLUX=False` and `GAUSS_APER=False` this file is not created; 'dummy.log' is created.
+        Headers: TILE, REALIZATION, BAND, FLUX_MEAS, FLUX_TRUE, GAUSS_APER_FLUX_MEAS, GAUSS_APER_FLUX_TRUE, FLUX_ERR_MEAS, GAUSS_APER_FLUX_DIFF/FLUX_ERR_MEAS
+
+
+    __fn_flux_sigma_clip_log (str)
+        Complete filename for the log file that records the details of the `N`-sigma clip of the normalized (to flux error) flux difference.
+        Headers: TILE, REALIZATION, BAND, GAUSSIAN_APER_APPLIED, NUM_OBJS_FLAGS_RM, N-SIGMA_CLIP, NUM_OBJS_CLIPPED
+        If `PLOT_FLUX=False` and `SIGMA_CLIP_NORM_FLUX_DIFF=False` this file not created; 'dummy.log' is created. 
+
+    __fn_percent_recovered_log (str)
+        Complete filename for the log file that records the percent of Balrog-injected objects recovered in the appropriate measured catalog.
+        The percent recovered is computed in two ways: (1) without removing flagged* objects and (2) removing flagged* objects.
+        For a description of flags, see https://github.com/spletts/BalVal/blob/master/README.md#flagged-objects
+        Headers: TILE, REALIZATION, BAND, TOTAL_OBJS_IN_MATCH1AND2, TOTAL_FLAGGED_OBJS_IN_MATCH1AND2, TOTAL_FLAGGED_OBJS_IN_TRUTH, %_RECOVERED_FLAGS_IN, %_RECOVERED_FLAGS_RM, RUN_TYPE
+
+    __fn_num_objs_in_1sig_mag_log (str)
+        Complete filename for the log file that records the number of objects that lie within one-sigma of the measured magnitude error.
+        If `PLOT_MAG=False`, this file is not created; 'dummy.log' is created.
+        Headers: TILE, REALIZATION, BAND, TOTAL_OBJS_IN_MATCH1AND2, TOTAL_FLAGGED_OBJS_IN_MATCH1AND2, TOTAL_OBJS_IN_1SIGMA_MAG_MEAS, NORMALIZED, RUN_TYPE
+
+    __fn_match_log (str)
+        Complete filename for the log file that records then number of objects in various matched catalogs (set by STILTS parameter `join`)
+        Headers: TILE, REALIZATION, IN1, IN2, TOTAL_MATCHES_1AND2, TOTAL_MATCHES_1NOT2, TOTAL_MATCHES_2NOT1
     """
 
     logFileDirectory = get_directory(tile=tile, realization=realization, low_level_dir='log_files', output_directory=output_directory, balrog_run=balrog_run, match_type=match_type)
@@ -146,13 +235,41 @@ def get_log_filenames(balrog_run, match_type, output_directory, realization, til
 
 
 def get_color_plot_filename(balrog_run, match_type, output_directory, realization, tile):
-    """
+    """Create the filename for the color plot. 
+    If `SAVE_PLOT=True` the filename is used in `matplotlib.pyplot.savefig()`.
 
     Parameters
     ----------
+    balrog_run (str)
+        Names the Balrog test. This is a substring of `BASE_PATH_TO_CATS` entered at the command line.
+        Example: `base_path_to_catalogs=/data/des71.a/data/kuropat/des2247-4414_sof/` --> `balrog_run=des2247-4414_sof`.
+
+    match_type (str)
+        Describes the two catalogs matched (via `join=1and2`) in `stilts_matcher`.
+        Example: '10%_inj_mof_cat_10%_inj_truth_cat'.
+        Note that `match_type` reflects the order in which catalogs were matched. 
+        In the example above, the injected MOF catalog was used as the STILTS parameter `in1`.
+
+    output_directory (str)
+        All outputs of BalVal will be saved in `output_directory`.
+        For specific directory structure, see https://github.com/spletts/BalVal/blob/master/README.md#condensed-output-directory-structure
+
+    realization (str)
+        A realization refers to a Balrog injection.
+        Realizations are numbered starting with 0. Realization can be 'None' (str).
+        The realization will be applied to `MATCH_CAT1` if `INJ1=True`, and `MATCH_CAT2` if `INJ2=True`.
+        If both `INJ1=False` and `INJ2=False` this should be set to `None` at the command line.
+        Note that although `realization` is an int, it is of type str because it is set using `sys.argv[]` (whose contents are strings).
+
+    tile (str)
+        A sky area unit used by DESDM [Dark Energy Survey Data Management] to parcel the DES footprint and organize the coadd outputs. Each tile is 0.7306 degrees on a side'. 
+        See Appendix A of https://arxiv.org/abs/1801.03181
 
     Returns
     -------
+    __fn_plot (str)
+        Complete filename for the color plot.
+        If `SAVE_PLOT=True` this is used via `matplotlib.pyplot.savefig(__fn_plot)`
     """
 
     plotDirectory = get_directory(tile=tile, realization=realization, low_level_dir=['plots', 'color'], output_directory=output_directory, balrog_run=balrog_run, match_type=match_type)
@@ -182,13 +299,41 @@ def get_color_plot_filename(balrog_run, match_type, output_directory, realizatio
 
 
 def get_flux_plot_filename(balrog_run, match_type, output_directory, realization, tile):
-    """
+    """Create the filename for the flux plot. 
+    If `SAVE_PLOT=True` the filename is used in `matplotlib.pyplot.savefig()`.
 
     Parameters
     ----------
+    balrog_run (str)
+        Names the Balrog test. This is a substring of `BASE_PATH_TO_CATS` entered at the command line.
+        Example: `base_path_to_catalogs=/data/des71.a/data/kuropat/des2247-4414_sof/` --> `balrog_run=des2247-4414_sof`.
+
+    match_type (str)
+        Describes the two catalogs matched (via `join=1and2`) in `stilts_matcher`.
+        Example: '10%_inj_mof_cat_10%_inj_truth_cat'.
+        Note that `match_type` reflects the order in which catalogs were matched. 
+        In the example above, the injected MOF catalog was used as the STILTS parameter `in1`.
+
+    output_directory (str)
+        All outputs of BalVal will be saved in `output_directory`.
+        For specific directory structure, see https://github.com/spletts/BalVal/blob/master/README.md#condensed-output-directory-structure
+
+    realization (str)
+        A realization refers to a Balrog injection.
+        Realizations are numbered starting with 0. Realization can be 'None' (str).
+        The realization will be applied to `MATCH_CAT1` if `INJ1=True`, and `MATCH_CAT2` if `INJ2=True`.
+        If both `INJ1=False` and `INJ2=False` this should be set to `None` at the command line.
+        Note that although `realization` is an int, it is of type str because it is set using `sys.argv[]` (whose contents are strings).
+
+    tile (str)
+        A sky area unit used by DESDM [Dark Energy Survey Data Management] to parcel the DES footprint and organize the coadd outputs. Each tile is 0.7306 degrees on a side'. 
+        See Appendix A of https://arxiv.org/abs/1801.03181
 
     Returns
     -------
+    __fn_plot (str)
+        Complete filename for the flux plot.
+        If `SAVE_PLOT=True` this is used via `matplotlib.pyplot.savefig(__fn_plot)`
     """
 
     plotDirectory = get_directory(tile=tile, realization=realization, low_level_dir=['plots', 'flux'], output_directory=output_directory, balrog_run=balrog_run, match_type=match_type)
@@ -223,13 +368,41 @@ def get_flux_plot_filename(balrog_run, match_type, output_directory, realization
 
 
 def get_magnitude_plot_filename(balrog_run, match_type, output_directory, realization, tile):
-    """
+    """Create the filename for the magnitude plot. 
+    If `SAVE_PLOT=True` the filename is used in `matplotlib.pyplot.savefig()`.
 
     Parameters
     ----------
+    balrog_run (str)
+        Names the Balrog test. This is a substring of `BASE_PATH_TO_CATS` entered at the command line.
+        Example: `base_path_to_catalogs=/data/des71.a/data/kuropat/des2247-4414_sof/` --> `balrog_run=des2247-4414_sof`.
+
+    match_type (str)
+        Describes the two catalogs matched (via `join=1and2`) in `stilts_matcher`.
+        Example: '10%_inj_mof_cat_10%_inj_truth_cat'.
+        Note that `match_type` reflects the order in which catalogs were matched. 
+        In the example above, the injected MOF catalog was used as the STILTS parameter `in1`.
+
+    output_directory (str)
+        All outputs of BalVal will be saved in `output_directory`.
+        For specific directory structure, see https://github.com/spletts/BalVal/blob/master/README.md#condensed-output-directory-structure
+
+    realization (str)
+        A realization refers to a Balrog injection.
+        Realizations are numbered starting with 0. Realization can be 'None' (str).
+        The realization will be applied to `MATCH_CAT1` if `INJ1=True`, and `MATCH_CAT2` if `INJ2=True`.
+        If both `INJ1=False` and `INJ2=False` this should be set to `None` at the command line.
+        Note that although `realization` is an int, it is of type str because it is set using `sys.argv[]` (whose contents are strings).
+
+    tile (str)
+        A sky area unit used by DESDM [Dark Energy Survey Data Management] to parcel the DES footprint and organize the coadd outputs. Each tile is 0.7306 degrees on a side'. 
+        See Appendix A of https://arxiv.org/abs/1801.03181
 
     Returns
     -------
+    __fn_plot (str)
+        Complete filename for the magnitude plot.
+        If `SAVE_PLOT=True` this is used via `matplotlib.pyplot.savefig(__fn_plot)`
     """
 
     plotDirectory = get_directory(tile=tile, realization=realization, low_level_dir=['plots', 'magnitude'], output_directory=output_directory, balrog_run=balrog_run, match_type=match_type)
@@ -265,19 +438,40 @@ def get_magnitude_plot_filename(balrog_run, match_type, output_directory, realiz
 
 
 def get_plot_filename(balrog_run, match_type, output_directory, realization, tile):
-    """Generate name of plot.
-    Relies on directory structure: /`OUTPUT_DIRECTORY`/plots/`BALROG_RUN`/`match_type`/{tile}/{realization}/plots/`plot_obs`/ `plot_obs` can be: 'color' 'magnitude' 'flux'.
-    The FOF analysis plots are saved differently: /`OUTPUT_DIRECTORY`/plots/`BALROG_RUN`/`match_type`/{tile}/{realization}/plots/{plot_obs}/'fof_analysis'/
+    """Create file name of plot.
 
     Parameters
     ----------
-    realization (str) 
+    balrog_run (str)
+        Names the Balrog test. This is a substring of `BASE_PATH_TO_CATS` entered at the command line.
+        Example: `base_path_to_catalogs=/data/des71.a/data/kuropat/des2247-4414_sof/` --> `balrog_run=des2247-4414_sof`.
+
+    match_type (str)
+        Describes the two catalogs matched (via `join=1and2`) in `stilts_matcher`.
+        Example: '10%_inj_mof_cat_10%_inj_truth_cat'.
+        Note that `match_type` reflects the order in which catalogs were matched. 
+        In the example above, the injected MOF catalog was used as the STILTS parameter `in1`.
+
+    output_directory (str)
+        All outputs of BalVal will be saved in `output_directory`.
+        For specific directory structure, see https://github.com/spletts/BalVal/blob/master/README.md#condensed-output-directory-structure
+
+    realization (str)
+        A realization refers to a Balrog injection.
+        Realizations are numbered starting with 0. Realization can be 'None' (str).
+        The realization will be applied to `MATCH_CAT1` if `INJ1=True`, and `MATCH_CAT2` if `INJ2=True`.
+        If both `INJ1=False` and `INJ2=False` this should be set to `None` at the command line.
+        Note that although `realization` is an int, it is of type str because it is set using `sys.argv[]` (whose contents are strings).
+
     tile (str)
+        A sky area unit used by DESDM [Dark Energy Survey Data Management] to parcel the DES footprint and organize the coadd outputs. Each tile is 0.7306 degrees on a side'. 
+        See Appendix A of https://arxiv.org/abs/1801.03181
 
     Returns
     -------
     __fn_plot (str)
-        Complete filename for the plot. This will be used in `plt.savefig()` if `SAVE_PLOT=True`.
+        Complete filename for the plot.
+        If `SAVE_PLOT=True` this is used via `matplotlib.pyplot.savefig(__fn_plot)`
     """
 
     if PLOT_COLOR:
@@ -306,22 +500,45 @@ def get_plot_filename(balrog_run, match_type, output_directory, realization, til
 
 
 def get_region_filenames(balrog_run, match_type, output_directory, realization, tile):
-    """Generate names for region files of different join types (join types specified in ms_matcher or ms_fof_matcher). 
-    Relies on directory structure `/OUTPUT_DIRECTORY/outputs/BALROG_RUN/match_type/{tile}/{realization}/region_files/`
+    """Generate names for region files of different `join` types (`join` is a STILTS parameter). 
 
     Parameters
     ----------
-    tile (str)
+    balrog_run (str)
+        Names the Balrog test. This is a substring of `BASE_PATH_TO_CATS` entered at the command line.
+        Example: `base_path_to_catalogs=/data/des71.a/data/kuropat/des2247-4414_sof/` --> `balrog_run=des2247-4414_sof`.
+
+    match_type (str)
+        Describes the two catalogs matched (via `join=1and2`) in `stilts_matcher`.
+        Example: '10%_inj_mof_cat_10%_inj_truth_cat'.
+        Note that `match_type` reflects the order in which catalogs were matched. 
+        In the example above, the injected MOF catalog was used as the STILTS parameter `in1`.
+
+    output_directory (str)
+        All outputs of BalVal will be saved in `output_directory`.
+        For specific directory structure, see https://github.com/spletts/BalVal/blob/master/README.md#condensed-output-directory-structure
+
     realization (str)
+        A realization refers to a Balrog injection.
+        Realizations are numbered starting with 0. Realization can be 'None' (str).
+        The realization will be applied to `MATCH_CAT1` if `INJ1=True`, and `MATCH_CAT2` if `INJ2=True`.
+        If both `INJ1=False` and `INJ2=False` this should be set to `None` at the command line.
+        Note that although `realization` is an int, it is of type str because it is set using `sys.argv[]` (whose contents are strings).
+
+    tile (str)
+        A sky area unit used by DESDM [Dark Energy Survey Data Management] to parcel the DES footprint and organize the coadd outputs. Each tile is 0.7306 degrees on a side'. 
+        See Appendix A of https://arxiv.org/abs/1801.03181
 
     Returns
     -------
     __fn_reg_1and2 (str)
-        Complete filename for region file containing regions with join=1and2.
+        Complete filename for region file containing regions of objects in both `MATCH_CAT1` and `MATCH_CAT2` (`join=1and2` in `stilts_matcher`).
+
     __fn_reg_1not2 (str)
-        Complete filename for region file containing regions with join=1not2.
+        Complete filename for region file containing regions of objects uniquely in `MATCH_CAT1` and not in `MATCH_CAT2` (`join=1not2` in `stilts_matcher`). 
+
     __fn_reg_2not1 (str)
-        Complete filename for region file containing regions with join=2not1.
+        Complete filename for region file containing regions of objects uniquely in `MATCH_CAT2` and not in `MATCH_CAT1` (`join=2not1` in `stilts_matcher`). 
     """
 
     regionFileDirectory = get_directory(tile=tile, realization=realization, low_level_dir='region_files', output_directory=output_directory, balrog_run=balrog_run, match_type=match_type)
@@ -349,18 +566,45 @@ def get_region_filenames(balrog_run, match_type, output_directory, realization, 
 
 
 def get_matched_catalog_filenames(balrog_run, match_type, output_directory, realization, tile):
-    """
+    """Create filenames for the matched catalogs that will be created in `stilts_matcher`.
 
     Parameters
     ----------
-    tile (str)
-        Allowed value: 'stack'
+    balrog_run (str)
+        Names the Balrog test. This is a substring of `BASE_PATH_TO_CATS` entered at the command line.
+        Example: `base_path_to_catalogs=/data/des71.a/data/kuropat/des2247-4414_sof/` --> `balrog_run=des2247-4414_sof`.
+
+    match_type (str)
+        Describes the two catalogs matched (via `join=1and2`) in `stilts_matcher`.
+        Example: '10%_inj_mof_cat_10%_inj_truth_cat'.
+        Note that `match_type` reflects the order in which catalogs were matched. 
+        In the example above, the injected MOF catalog was used as the STILTS parameter `in1`.
+
+    output_directory (str)
+        All outputs of BalVal will be saved in `output_directory`.
+        For specific directory structure, see https://github.com/spletts/BalVal/blob/master/README.md#condensed-output-directory-structure
 
     realization (str)
-        Allowed value: 'stack'
+        A realization refers to a Balrog injection.
+        Realizations are numbered starting with 0. Realization can be 'None' (str).
+        The realization will be applied to `MATCH_CAT1` if `INJ1=True`, and `MATCH_CAT2` if `INJ2=True`.
+        If both `INJ1=False` and `INJ2=False` this should be set to `None` at the command line.
+        Note that although `realization` is an int, it is of type str because it is set using `sys.argv[]` (whose contents are strings).
+
+    tile (str)
+        A sky area unit used by DESDM [Dark Energy Survey Data Management] to parcel the DES footprint and organize the coadd outputs. Each tile is 0.7306 degrees on a side'. 
+        See Appendix A of https://arxiv.org/abs/1801.03181
 
     Returns
     -------
+    __fn_match_1and2 (str)
+        Complete filename for region file containing regions of objects in both `MATCH_CAT1` and `MATCH_CAT2` (`join=1and2` in `stilts_matcher`).
+
+    __fn_match_1not2 (str)
+        Complete filename for region file containing regions of objects uniquely in `MATCH_CAT1` and not in `MATCH_CAT2` (`join=1not2` in `stilts_matcher`). 
+
+    __fn_match_2not1 (str)
+        Complete filename for region file containing regions of objects uniquely in `MATCH_CAT2` and not in `MATCH_CAT1` (`join=2not1` in `stilts_matcher`). 
     """
 
     matchedCatalogDirectory = get_directory(tile=tile, realization=realization, low_level_dir='catalog_compare', output_directory=output_directory, balrog_run=balrog_run, match_type=match_type)
@@ -377,13 +621,45 @@ def get_matched_catalog_filenames(balrog_run, match_type, output_directory, real
 
 
 def get_ngmix_compatible_catalog_filename(balrog_run, fn_unmatched_cat, match_type, output_directory, realization, tile):
-    """
+    """Create filename for the catalog that is reformatted to be compatible with `ngmix`.
+    An `ngmix` compatible catalog is required to use https://github.com/esheldon/ngmixer/blob/master/ngmixer/gaussap.py
 
     Parameters
     ----------
+    balrog_run (str)
+        Names the Balrog test. This is a substring of `BASE_PATH_TO_CATS` entered at the command line.
+        Example: `base_path_to_catalogs=/data/des71.a/data/kuropat/des2247-4414_sof/` --> `balrog_run=des2247-4414_sof`.
+
+    fn_unmatched_cat (str)
+        Complete filename for an unmatched catalog.
+        This refers to either the catalog described by `MATCH_CAT1, INJ1, INJ1_PERCENT` or `MATCH_CAT2, INJ2, INJ2_PERCENT`;
+        this does not refer to catalogs created by `stilts_matcher`.
+
+    match_type (str)
+        Describes the two catalogs matched (via `join=1and2`) in `stilts_matcher`.
+        Example: '10%_inj_mof_cat_10%_inj_truth_cat'.
+        Note that `match_type` reflects the order in which catalogs were matched. 
+        In the example above, the injected MOF catalog was used as the STILTS parameter `in1`.
+
+    output_directory (str)
+        All outputs of BalVal will be saved in `output_directory`.
+        For specific directory structure, see https://github.com/spletts/BalVal/blob/master/README.md#condensed-output-directory-structure
+
+    realization (str)
+        A realization refers to a Balrog injection.
+        Realizations are numbered starting with 0. Realization can be 'None' (str).
+        The realization will be applied to `MATCH_CAT1` if `INJ1=True`, and `MATCH_CAT2` if `INJ2=True`.
+        If both `INJ1=False` and `INJ2=False` this should be set to `None` at the command line.
+        Note that although `realization` is an int, it is of type str because it is set using `sys.argv[]` (whose contents are strings).
+
+    tile (str)
+        A sky area unit used by DESDM [Dark Energy Survey Data Management] to parcel the DES footprint and organize the coadd outputs. Each tile is 0.7306 degrees on a side'. 
+        See Appendix A of https://arxiv.org/abs/1801.03181
 
     Returns
     -------
+    __full_fn_ngmix_cat (str)
+        Complete filename for the catalog to be used in `ngmixer.gaussap.get_gauss_aper_flux_cat()`
     """
 
     matchedCatalogDirectory = get_directory(tile=tile, realization=realization, low_level_dir='catalog_compare', output_directory=output_directory, balrog_run=balrog_run, match_type=match_type) 
@@ -403,13 +679,41 @@ def get_ngmix_compatible_catalog_filename(balrog_run, fn_unmatched_cat, match_ty
 
 
 def get_reformatted_coadd_catalog_filename(balrog_run, match_type, output_directory, realization, tile):
-    """
+    """Create filename for the reformatted coadd catalog.
+    g-, r-, i-, and z-band coadd catalogs exist. Catalogs are reformatted so that g-, r-, i-, and z-band relevant observables are in one catalog.
+    Several observables are added to the i-band catalog so that matching is performed on the i-band RA and Dec.
 
     Parameters
     ----------
+    balrog_run (str)
+        Names the Balrog test. This is a substring of `BASE_PATH_TO_CATS` entered at the command line.
+        Example: `base_path_to_catalogs=/data/des71.a/data/kuropat/des2247-4414_sof/` --> `balrog_run=des2247-4414_sof`.
+
+    match_type (str)
+        Describes the two catalogs matched (via `join=1and2`) in `stilts_matcher`.
+        Example: '10%_inj_mof_cat_10%_inj_truth_cat'.
+        Note that `match_type` reflects the order in which catalogs were matched. 
+        In the example above, the injected MOF catalog was used as the STILTS parameter `in1`.
+
+    output_directory (str)
+        All outputs of BalVal will be saved in `output_directory`.
+        For specific directory structure, see https://github.com/spletts/BalVal/blob/master/README.md#condensed-output-directory-structure
+
+    realization (str)
+        A realization refers to a Balrog injection.
+        Realizations are numbered starting with 0. Realization can be 'None' (str).
+        The realization will be applied to `MATCH_CAT1` if `INJ1=True`, and `MATCH_CAT2` if `INJ2=True`.
+        If both `INJ1=False` and `INJ2=False` this should be set to `None` at the command line.
+        Note that although `realization` is an int, it is of type str because it is set using `sys.argv[]` (whose contents are strings).
+
+    tile (str)
+        A sky area unit used by DESDM [Dark Energy Survey Data Management] to parcel the DES footprint and organize the coadd outputs. Each tile is 0.7306 degrees on a side'. 
+        See Appendix A of https://arxiv.org/abs/1801.03181
 
     Returns
     -------
+    __fn_coadd_for_matcher (str)
+        Complete filename for the reformatted coadd catalog.
     """
 
     catalogFileDirectory = get_directory(tile=tile, realization=realization, low_level_dir='catalog_compare', output_directory=output_directory, balrog_run=balrog_run, match_type=match_type) 
@@ -426,8 +730,39 @@ def write_log_file_headers(fn_mag_err_log, fn_flag_log, fn_color_log, fn_mag_dif
 
     Parameters
     ----------
+    fn_flag_log (str)
+        Complete filename for the log file that records flags if `LOG_FLAGS=True`. 
+        If `LOG_FLAGS=False` this file is not created; 'dummy.log' is created.
+
+    fn_mag_err_log (str)
+        Complete filename for the log file that records details of the magnitude error calculation.
+
+    fn_color_log (str)
+        Complete filename for the log file that details the color calculation. 
+
+    fn_mag_diff_outliers_log (str)
+        Complete filename for the log file that records the magnitude differences greater than a threshold.
+        Threshold is given by `__cutoff_mag_diff_for_log` in `bin_and_cut_measured_magnitude_error()`. 
+
+    fn_mag_completeness_log (str)
+        Complete filename for the log file that details the magnitude completeness calculation. 
+
+    fn_flux_sigma_clip_log (str)
+        Complete filename for the log file that records the details of the `N`-sigma clip of the normalized (to flux error) flux difference.
+        If `PLOT_FLUX=False` and `SIGMA_CLIP_NORM_FLUX_DIFF=False` this file not created; 'dummy.log' is created. 
+
+    fn_percent_recovered_log (str)
+        Complete filename for the log file that records the percent of Balrog-injected objects recovered in the appropriate measured catalog.
+        The percent recovered is computed in two ways: (1) without removing flagged* objects and (2) removing flagged* objects.
+        For a description of flags, see https://github.com/spletts/BalVal/blob/master/README.md#flagged-objects
+
+    fn_num_objs_in_1sig_mag_log (str)
+        Complete filename for the log file that records the number of objects that lie within one-sigma of the measured magnitude error.
+        If `PLOT_MAG=False`, this file is not created; 'dummy.log' is created.
+
     Returns
     -------
+    Identical to Parameters.
     """
 
     ### Percent recovered log ###
@@ -487,7 +822,7 @@ def write_log_file_headers(fn_mag_err_log, fn_flag_log, fn_color_log, fn_mag_dif
     ### Log file for sigma clipping done in `()` ###
     with open(fn_flux_sigma_clip_log, 'wb') as csvfile:
         writer = csv.writer(csvfile, delimiter=',')
-        writer.writerow(['TILE', 'REALIZATION', 'BAND', 'GAUSSIAN_APER_APPLIED', 'NUM_OBJS_FLAGS_RM', 'N-SIGMA_CLIP' 'NUM_OBJS_CLIPPED']) 
+        writer.writerow(['TILE', 'REALIZATION', 'BAND', 'GAUSSIAN_APER_APPLIED', 'NUM_OBJS_FLAGS_RM', 'N-SIGMA_CLIP', 'NUM_OBJS_CLIPPED']) 
     csvfile.close()
 
 
