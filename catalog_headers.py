@@ -94,8 +94,9 @@ def get_match_type(title_piece1, title_piece2):
     Returns
     -------
     __match_type (str)
-        Example: '10%_inj_mof_cat_10%_inj_truth_cat', where the injected MOF catalog was STILTS parameter `in1`.
-        Note that `__match_type` reflects the order in which catalogs were matched (via `join=1and2`) in `stilts_matcher`.
+        Describes the two catalogs matched (via `join=1and2`) in `stilts_matcher`.
+        Example: '10%_inj_mof_cat_10%_inj_truth_cat'.
+        Note that `match_type` reflects the order in which catalogs were matched. 
         In the example above, the injected MOF catalog was used as the STILTS parameter `in1`.
     """
 
